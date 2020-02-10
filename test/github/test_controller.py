@@ -74,4 +74,48 @@ class GithubControllerTest(MockTestCase):
             "original body\s*Pull Request synchronized with \[Asana task\]",
         )
 
-    # TODO: More tests for this module
+    @patch.object(asana_controller, "update_task")
+    @patch.object(asana_controller, "add_comment_to_task")
+    def test_upsert_comment_when_task_id_already_found_in_dynamodb(
+        self, add_comment_mock, update_task_mock
+    ):
+        # If the task id is found in dynamodb, then we just update (don't
+        # attempt to create)
+        pull_request = PullRequestBuilder().build()
+        comment = CommentBuilder().build()
+
+        # Insert the mapping first
+        existing_task_id = uuid4().hex
+        dynamodb_client.insert_github_node_to_asana_id_mapping(
+            pull_request.id(), existing_task_id
+        )
+
+        github_controller.upsert_comment(pull_request, comment)
+
+        add_comment_mock.assert_called_with(comment, existing_task_id)
+        update_task_mock.assert_called_with(pull_request, existing_task_id)
+
+    @patch.object(asana_controller, "update_task")
+    @patch.object(asana_controller, "add_comment_to_task")
+    def test_upsert_comment_when_task_id_not_found_in_dynamodb(
+        self, add_comment_mock, update_task_mock
+    ):
+        pull_request = PullRequestBuilder().build()
+        comment = CommentBuilder().build()
+
+        github_controller.upsert_comment(pull_request, comment)
+        # TODO: Test that a full sync was performed
+
+    @patch.object(github_client, "set_pull_request_assignee")
+    def test_assign_pull_request_to_author(self, set_pr_assignee_mock):
+        pull_request = PullRequestBuilder().with_author(login="the_author").build()
+        with patch.object(pull_request, "set_assignees") as set_assignees_mock:
+            github_controller.assign_pull_request_to_author(pull_request)
+            set_assignees_mock.assert_called_with([pull_request.author_handle()])
+
+        set_pr_assignee_mock.assert_called_with(
+            pull_request.repository_owner_handle(),
+            pull_request.repository_name(),
+            pull_request.number(),
+            pull_request.author_handle(),
+        )

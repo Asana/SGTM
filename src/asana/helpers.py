@@ -6,6 +6,19 @@ from src.github.models import Comment, PullRequest, Review
 from src.github import logic as github_logic
 
 
+def memoize(func: Callable) -> Callable:
+    memo = {}
+
+    def inner(*args):
+        if args in memo:
+            return memo[args]
+        result = func(*args)
+        memo[args] = result
+        return result
+
+    return inner
+
+
 def task_url_from_task_id(task_id: str) -> str:
     return f"https://app.asana.com/0/0/{task_id}"
 

@@ -123,5 +123,10 @@ class PullRequestBuilder(object):
                 self.raw_pr["reviews"]["nodes"].append(review.build().raw_review)
         return self
 
+    def with_author(self, login="", name=""):
+        self.raw_pr["author"]["login"] = login
+        self.raw_pr["author"]["name"] = name
+        return self
+
     def build(self):
         return PullRequest(self.raw_pr)

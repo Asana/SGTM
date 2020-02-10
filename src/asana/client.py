@@ -3,6 +3,7 @@ import asana
 from src.config import ASANA_API_KEY
 
 client = asana.Client.access_token(ASANA_API_KEY)
+client.headers = {"Asana-Enable": "string_ids"}
 
 
 def create_task(project: str) -> str:
