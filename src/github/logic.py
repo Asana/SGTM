@@ -51,14 +51,14 @@ def pull_request_approved_before_merging(pull_request: PullRequest) -> bool:
     requested) before merging was an approval
     """
     merged_at = pull_request.merged_at()
-    reviews = [
+    premerge_reviews = [
         review
         for review in pull_request.reviews()
         if review.is_approval_or_changes_requested()
         and review.submitted_at() < merged_at
     ]
-    if reviews:
-        latest_review = sorted(reviews, key=lambda r: r.submitted_at())[-1]
+    if premerge_reviews:
+        latest_review = sorted(premerge_reviews, key=lambda r: r.submitted_at())[-1]
         return latest_review.is_approval()
     return False
 
@@ -74,15 +74,17 @@ def _is_approval_comment_body(body: str) -> bool:
 
 def pull_request_approved_after_merging(pull_request: PullRequest) -> bool:
     merged_at = pull_request.merged_at()
-    comments = [
+    postmerge_comments = [
         comment
         for comment in pull_request.comments()
         if comment.published_at() > merged_at
     ]
-    reviews = [
+    postmerge_reviews = [
         review for review in pull_request.reviews() if review.submitted_at() > merged_at
     ]
-    body_texts = [c.body() for c in comments] + [r.body() for r in reviews]
+    body_texts = [c.body() for c in postmerge_comments] + [
+        r.body() for r in postmerge_reviews
+    ]
     return bool(
         [body_text for body_text in body_texts if _is_approval_comment_body(body_text)]
     )

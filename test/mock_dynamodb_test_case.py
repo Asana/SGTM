@@ -10,7 +10,7 @@ from src.config import OBJECTS_TABLE, USERS_TABLE, LOCK_TABLE
 
 
 @mock_dynamodb2
-class MockTestCase(TestCase):
+class MockDynamoDbTestCase(TestCase):
     @classmethod
     def setUpClass(kls):
         with mock_dynamodb2():

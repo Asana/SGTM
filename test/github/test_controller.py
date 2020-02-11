@@ -1,7 +1,7 @@
 from unittest.mock import patch
 from uuid import uuid4
 from datetime import datetime, timedelta
-from test.mock_test_case import MockTestCase
+from test.mock_dynamodb_test_case import MockDynamoDbTestCase
 import src.github.client as github_client
 import src.github.logic as github_logic
 import src.github.controller as github_controller
@@ -15,7 +15,7 @@ from test.github.helpers import (
 )
 
 
-class GithubControllerTest(MockTestCase):
+class GithubControllerTest(MockDynamoDbTestCase):
     @patch.object(asana_controller, "update_task")
     @patch.object(asana_controller, "create_task")
     def test_upsert_pull_request_when_task_id_not_found_in_dynamodb(

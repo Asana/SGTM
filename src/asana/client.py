@@ -19,6 +19,6 @@ def add_followers(task_id: str, followers: List[str]):
     client.tasks.add_followers(task_id, {"followers": followers})
 
 
-def add_comment(task_id: str, comment_body: str):
+def add_comment(task_id: str, comment_body: str) -> str:
     response = client.tasks.add_comment(task_id, {"html_text": comment_body})
     return response["gid"]
