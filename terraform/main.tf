@@ -59,7 +59,7 @@ resource "aws_lambda_function" "sgtm" {
 
   runtime = "python3.7"
 
-  timeout = 30
+  timeout = var.lambda_function_timeout
 
   environment {
     variables = {
