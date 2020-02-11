@@ -2,7 +2,7 @@ from uuid import uuid4
 from random import randint
 from typing import List, Union
 from datetime import datetime
-from src.github.utils import STR_FMT
+from src.utils import STR_FMT
 from src.github.models import PullRequest, Comment, Review
 
 

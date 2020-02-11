@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List
 from src.logger import logger
-from src.github.utils import parse_date_string
+from src.utils import parse_date_string
 from .comment import Comment
 
 
