@@ -47,7 +47,7 @@ resource "aws_iam_role_policy_attachment" "lambda-function-bsaic-execution-role"
 }
 
 resource "aws_lambda_function" "sgtm" {
-  filename      = "../function.zip"
+  filename      = "../build/function.zip"
   function_name = "sgtm"
   role          = "${aws_iam_role.iam_for_lambda_function.arn}"
   handler       = "src.handler.handler"
@@ -55,7 +55,7 @@ resource "aws_lambda_function" "sgtm" {
   # The filebase64sha256() function is available in Terraform 0.11.12 and later
   # For Terraform 0.11.11 and earlier, use the base64sha256() function and the file() function:
   # source_code_hash = "${base64sha256(file("lambda_function_payload.zip"))}"
-  source_code_hash = "${filebase64sha256("../function.zip")}"
+  source_code_hash = "${filebase64sha256("../build/function.zip")}"
 
   runtime = "python3.7"
 
