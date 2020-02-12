@@ -56,7 +56,8 @@ resource "aws_iam_policy" "LambdaFunctionApiKeysBucketAccess" {
   "Statement": [
     {
       "Action": [
-        "s3:Get*"
+        "s3:GetObject",
+        "s3:GetObjectVersion"
       ],
       "Resource": [
         "${aws_s3_bucket.api_key_bucket.arn}/*"
