@@ -97,3 +97,6 @@ class PullRequest(object):
         return [
             Comment(comment) for comment in self.raw_pull_request["comments"]["nodes"]
         ]
+
+    def build_status(self) -> str:
+        return self.raw_pull_request["commits"]["nodes"][0]["commit"]["status"]["state"]

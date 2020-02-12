@@ -22,3 +22,7 @@ def add_followers(task_id: str, followers: List[str]):
 def add_comment(task_id: str, comment_body: str) -> str:
     response = client.tasks.add_comment(task_id, {"html_text": comment_body})
     return response["gid"]
+
+
+def get_project_custom_fields(project_id: str):
+    return client.custom_field_settings.find_by_project(project_id)

@@ -1,9 +1,11 @@
 import re
 from html import escape
-from typing import Callable, Match, Optional
+from typing import Callable, Match, Optional, List
+from src.asana.client import get_project_custom_fields
 from src.dynamodb import client as dynamodb_client
 from src.github.models import Comment, PullRequest, Review
 from src.github import logic as github_logic
+from src.logger import logger
 
 
 def memoize(func: Callable) -> Callable:
@@ -30,7 +32,77 @@ def extract_task_fields_from_pull_request(pull_request: PullRequest) -> dict:
         "html_notes": _task_description_from_pull_request(pull_request),
         "completed": _task_completion_from_pull_request(pull_request),
         "followers": _task_followers_from_pull_request(pull_request),
+        "custom_fields": _custom_fields_from_pull_request(pull_request)
     }
+
+
+def _task_status_from_pull_request(pull_request: PullRequest) -> str:
+    if not pull_request.closed():
+        return "Open"
+    elif pull_request.closed() and pull_request.merged():
+        return "Merged"
+    elif pull_request.closed() and not pull_request.merged():
+        return "Closed"
+
+
+def _build_status_from_pull_request(pull_request: PullRequest) -> str:
+    return pull_request.build_status().capitalize()
+
+
+_custom_fields_to_extract_map = {
+    "PR Status": _task_status_from_pull_request,
+    "Build": _build_status_from_pull_request
+}
+
+
+def _custom_fields_from_pull_request(pull_request: PullRequest):
+    repository_id = pull_request.repository_id()
+    project_id = dynamodb_client.get_asana_id_from_github_node_id(repository_id)
+
+    if project_id is None:
+        logger.info(
+            f"Task not found for pull request {pull_request.id()}. Running a full sync!"
+        )
+        # TODO: Full sync
+        return {}
+    else:
+        custom_field_settings = list(get_project_custom_fields(project_id))
+        data = {}
+        for custom_field_name, action in _custom_fields_to_extract_map.items():
+            custom_field_id = _get_custom_field_id(custom_field_name, custom_field_settings)
+            enum_option_id = _get_custom_field_enum_option_id(
+                custom_field_name, action(pull_request), custom_field_settings
+            )
+
+            print(custom_field_id, enum_option_id)
+            if custom_field_id and enum_option_id:
+                data[custom_field_id] = enum_option_id
+
+        return data
+
+
+def _get_custom_field_id(custom_field_name: str, custom_field_settings: List[dict]) -> Optional[str]:
+    filtered_gid = [
+        custom_field_setting['gid'] for custom_field_setting in custom_field_settings
+        if custom_field_setting['custom_field']['name'] == custom_field_name
+    ]
+    return filtered_gid[0] if filtered_gid else None
+
+
+def _get_custom_field_enum_option_id(custom_field_name: str, enum_option_name: str, custom_field_settings: List[dict]) -> Optional[str]:
+    filtered_enum_options = [
+        custom_field_setting['custom_field']['enum_options'] for custom_field_setting in custom_field_settings
+        if custom_field_setting['custom_field']['name'] == custom_field_name
+    ]
+
+    if not filtered_enum_options:
+        return None
+    else:
+        filtered_gid = [
+            enum_option['gid'] for enum_option in filtered_enum_options[0]
+            if enum_option['name'] == enum_option_name
+        ]
+        return filtered_gid[0] if filtered_gid else None
 
 
 def _task_assignee_from_pull_request(pull_request: PullRequest) -> Optional[str]:
