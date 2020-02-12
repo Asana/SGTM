@@ -105,3 +105,12 @@ venv.bak/
 
 # IntelliJ Idea
 .idea
+
+# Terraform
+terraform/.terraform
+terraform/terraform.tfstate
+terraform/terraform.backup
+terraform/terraform.tfstate.backup
+
+# virtualenv
+v-env/

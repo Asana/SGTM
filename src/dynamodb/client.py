@@ -2,6 +2,7 @@ from typing import Optional
 import boto3
 from src.config import OBJECTS_TABLE, USERS_TABLE
 from botocore.exceptions import NoRegionError
+from src.utils import memoize
 
 
 class ConfigurationError(Exception):
@@ -42,6 +43,7 @@ def insert_github_node_to_asana_id_mapping(gh_node_id: str, asana_id: str):
 ### USERS TABLE
 
 
+@memoize
 def get_asana_domain_user_id_from_github_handle(github_handle: str) -> Optional[str]:
     response = client.get_item(
         TableName=USERS_TABLE, Key={"github/handle": {"S": github_handle}}

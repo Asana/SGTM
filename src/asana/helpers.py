@@ -6,19 +6,6 @@ from src.github.models import Comment, PullRequest, Review
 from src.github import logic as github_logic
 
 
-def memoize(func: Callable) -> Callable:
-    memo = {}
-
-    def inner(*args):
-        if args in memo:
-            return memo[args]
-        result = func(*args)
-        memo[args] = result
-        return result
-
-    return inner
-
-
 def task_url_from_task_id(task_id: str) -> str:
     if task_id is None or not task_id:
         raise ValueError("task_url_from_task_id requires a task_id")
@@ -42,7 +29,6 @@ def _task_assignee_from_pull_request(pull_request: PullRequest) -> Optional[str]
     return _asana_user_id_from_github_handle(assignee_handle)
 
 
-# @memoize
 def _asana_user_id_from_github_handle(github_handle: str) -> Optional[str]:
     return dynamodb_client.get_asana_domain_user_id_from_github_handle(github_handle)
 
@@ -82,7 +68,9 @@ def _transform_github_mentions_to_asana_mentions(text: str) -> str:
 
 def asana_comment_from_github_comment(comment: Comment) -> str:
     asana_author = asana_author_from_github_author(comment.author())
-    comment_text = _transform_github_mentions_to_asana_mentions(escape(comment.body()))
+    comment_text = _transform_github_mentions_to_asana_mentions(
+        escape(comment.body(), quote=False)
+    )
     return _wrap_in_tag("body")(
         _wrap_in_tag("strong")(f"{asana_author} commented:\n") + comment_text
     )
@@ -100,10 +88,12 @@ _review_action_to_text_map = {
 def asana_comment_from_github_review(review: Review) -> str:
     asana_author = asana_author_from_github_author(review.author())
     review_action = _review_action_to_text_map.get(review.state(), "commented")
-    review_body = _transform_github_mentions_to_asana_mentions(escape(review.body()))
+    review_body = _transform_github_mentions_to_asana_mentions(
+        escape(review.body(), quote=False)
+    )
     comment_texts = [comment.body() for comment in review.comments()]
     inline_comments = [
-        _transform_github_mentions_to_asana_mentions(escape(comment_text))
+        _transform_github_mentions_to_asana_mentions(escape(comment_text, quote=False))
         for comment_text in comment_texts
     ]
 
@@ -145,7 +135,7 @@ def _task_description_from_pull_request(pull_request: PullRequest) -> str:
         + "\n✍️ "
         + asana_author_url
         + _wrap_in_tag("strong")("\n\nDescription:\n")
-        + escape(pull_request.body())
+        + escape(pull_request.body(), quote=False)
     )
 
 

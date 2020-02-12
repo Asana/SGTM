@@ -1,12 +1,14 @@
-variable "asana_api_key" {
+variable "api_key_s3_object" {
   type        = string
-  description = "Asana API key to interact with the Asana API"
+  description = "Name of the API key object"
 }
 
-variable "github_api_key" {
+
+variable "api_key_s3_bucket_name" {
   type        = string
-  description = "GitHub API key to interact with the GitHub API"
+  description = "Name of the API key S3 bucket"
 }
+
 
 variable "lambda_function_timeout" {
   type        = number
