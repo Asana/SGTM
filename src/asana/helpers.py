@@ -78,7 +78,9 @@ def _transform_github_mentions_to_asana_mentions(text: str) -> str:
 
 def asana_comment_from_github_comment(comment: Comment) -> str:
     asana_author = asana_author_from_github_author(comment.author())
-    comment_text = _transform_github_mentions_to_asana_mentions(escape(comment.body()))
+    comment_text = _transform_github_mentions_to_asana_mentions(
+        escape(comment.body(), quote=False)
+    )
     return _wrap_in_tag("body")(
         _wrap_in_tag("strong")(f"{asana_author} commented:\n") + comment_text
     )
@@ -96,10 +98,12 @@ _review_action_to_text_map = {
 def asana_comment_from_github_review(review: Review) -> str:
     asana_author = asana_author_from_github_author(review.author())
     review_action = _review_action_to_text_map.get(review.state(), "commented")
-    review_body = _transform_github_mentions_to_asana_mentions(escape(review.body()))
+    review_body = _transform_github_mentions_to_asana_mentions(
+        escape(review.body(), quote=False)
+    )
     comment_texts = [comment.body() for comment in review.comments()]
     inline_comments = [
-        _transform_github_mentions_to_asana_mentions(escape(comment_text))
+        _transform_github_mentions_to_asana_mentions(escape(comment_text, quote=False))
         for comment_text in comment_texts
     ]
 
@@ -141,7 +145,7 @@ def _task_description_from_pull_request(pull_request: PullRequest) -> str:
         + "\n✍️ "
         + asana_author_url
         + _wrap_in_tag("strong")("\n\nDescription:\n")
-        + escape(pull_request.body())
+        + escape(pull_request.body(), quote=False)
     )
 
 
