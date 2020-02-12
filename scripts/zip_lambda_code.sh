@@ -1,5 +1,5 @@
 #! /bin/bash
-set -e
+set -e # Exit immediately if a command exits with a non-zero status.
 
 # Instructions taken from
 # https://docs.aws.amazon.com/lambda/latest/dg/lambda-python-how-to-create-deployment-package.html#python-package-venv
