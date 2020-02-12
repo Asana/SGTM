@@ -1,8 +1,22 @@
 from typing import Optional
 import boto3
 from src.config import OBJECTS_TABLE, USERS_TABLE
+from botocore.exceptions import NoRegionError
 
-client = boto3.client("dynamodb")
+
+class ConfigurationError(Exception):
+    pass
+
+
+def _create_dynamodb_client():
+    try:
+        return boto3.client("dynamodb")
+    except NoRegionError as e:
+        pass
+    raise ConfigurationError("Configuration error: Please select a region, e.g. via `AWS_DEFAULT_REGION=us-east-1`")
+
+
+client = _create_dynamodb_client()
 
 
 ### OBJECTS TABLE

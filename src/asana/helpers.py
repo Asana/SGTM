@@ -20,10 +20,14 @@ def memoize(func: Callable) -> Callable:
 
 
 def task_url_from_task_id(task_id: str) -> str:
+    if task_id is None or not task_id:
+        raise ValueError("task_url_from_task_id requires a task_id")
     return f"https://app.asana.com/0/0/{task_id}"
 
 
 def extract_task_fields_from_pull_request(pull_request: PullRequest) -> dict:
+    if pull_request is None:
+        raise ValueError("extract_task_fields_from_pull_request requires a pull_request")
     return {
         "assignee": _task_assignee_from_pull_request(pull_request),
         "name": _task_name_from_pull_request(pull_request),

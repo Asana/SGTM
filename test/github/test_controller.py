@@ -119,3 +119,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
             pull_request.number(),
             pull_request.author_handle(),
         )
+
+
+if __name__ == '__main__':
+    unittest.main()

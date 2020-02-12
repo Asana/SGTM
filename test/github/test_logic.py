@@ -210,3 +210,7 @@ class GithubLogicTest(unittest.TestCase):
             .build()
         )
         self.assertTrue(github_logic.pull_request_approved_after_merging(pull_request))
+
+
+if __name__ == '__main__':
+    unittest.main()
