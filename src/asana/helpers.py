@@ -6,19 +6,6 @@ from src.github.models import Comment, PullRequest, Review
 from src.github import logic as github_logic
 
 
-def memoize(func: Callable) -> Callable:
-    memo = {}
-
-    def inner(*args):
-        if args in memo:
-            return memo[args]
-        result = func(*args)
-        memo[args] = result
-        return result
-
-    return inner
-
-
 def task_url_from_task_id(task_id: str) -> str:
     return f"https://app.asana.com/0/0/{task_id}"
 
@@ -38,7 +25,6 @@ def _task_assignee_from_pull_request(pull_request: PullRequest) -> Optional[str]
     return _asana_user_id_from_github_handle(assignee_handle)
 
 
-# @memoize
 def _asana_user_id_from_github_handle(github_handle: str) -> Optional[str]:
     return dynamodb_client.get_asana_domain_user_id_from_github_handle(github_handle)
 
