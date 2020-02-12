@@ -1,7 +1,12 @@
+variable "api_key_s3_object" {
+  type        = string
+  description = "Name of the API key object"
+}
+
+
 variable "api_key_s3_bucket_name" {
   type        = string
   description = "Name of the API key S3 bucket"
-  default     = "asana-sgtm-api-keys"
 }
 
 

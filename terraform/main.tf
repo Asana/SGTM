@@ -94,6 +94,12 @@ resource "aws_lambda_function" "sgtm" {
   runtime = "python3.7"
 
   timeout = var.lambda_function_timeout
+  environment {
+    variables = {
+      API_KEYS_S3_BUCKET  = "${var.api_key_s3_bucket_name}",
+      API_KEYS_S3_KEY     = "${var.api_key_s3_object}"
+    }
+  }
 
 }
 
