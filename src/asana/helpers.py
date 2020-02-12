@@ -73,8 +73,6 @@ def _custom_fields_from_pull_request(pull_request: PullRequest):
             enum_option_id = _get_custom_field_enum_option_id(
                 custom_field_name, action(pull_request), custom_field_settings
             )
-
-            print(custom_field_id, enum_option_id)
             if custom_field_id and enum_option_id:
                 data[custom_field_id] = enum_option_id
 
