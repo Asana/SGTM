@@ -1,12 +1,9 @@
-variable "asana_api_key" {
+variable "api_key_s3_bucket_name" {
   type        = string
-  description = "Asana API key to interact with the Asana API"
+  description = "Name of the API key S3 bucket"
+  default     = "asana-sgtm-api-keys"
 }
 
-variable "github_api_key" {
-  type        = string
-  description = "GitHub API key to interact with the GitHub API"
-}
 
 variable "lambda_function_timeout" {
   type        = number
