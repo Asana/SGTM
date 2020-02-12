@@ -7,3 +7,8 @@ When first setting up your repository, you should install all required python de
 
 ## Running Tests
 `python3 -m unittest discover`
+
+## Installing a Virtual Environment for Python
+
+See [these instructions](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) for help in
+setting up a virtual environment for Python.
