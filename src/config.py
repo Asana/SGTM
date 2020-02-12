@@ -1,7 +1,19 @@
 import os
+import boto3
+import json
 
-ASANA_API_KEY = os.getenv("ASANA_API_KEY")
-GITHUB_API_KEY = os.getenv("GITHUB_API_KEY")
+__api_keys_s3_bucket = os.getenv("API_KEYS_S3_BUCKET")
+__api_keys_s3_key = os.getenv("API_KEYS_S3_KEY")
+if __api_keys_s3_bucket is None or __api_keys_s3_key is None:
+    ASANA_API_KEY = os.getenv("ASANA_API_KEY")
+    GITHUB_API_KEY = os.getenv("GITHUB_API_KEY")
+else:
+    s3 = boto3.client("s3")
+    obj = s3.get_object(Bucket=__api_keys_s3_bucket, Key=__api_keys_s3_key)
+    keys = json.loads(obj["Body"].read())
+    ASANA_API_KEY = keys.get("ASANA_API_KEY")
+    GITHUB_API_KEY = keys.get("GITHUB_API_KEY")
+
 ENV = os.getenv("ENV", "dev")
 LOCK_TABLE = os.getenv("LOCK_TABLE", "sgtm-lock")
 OBJECTS_TABLE = os.getenv("OBJECTS_TABLE", "sgtm-objects")
