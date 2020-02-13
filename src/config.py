@@ -13,6 +13,7 @@ else:
     keys = json.loads(obj["Body"].read())
     ASANA_API_KEY = keys.get("ASANA_API_KEY")
     GITHUB_API_KEY = keys.get("GITHUB_API_KEY")
+    GITHUB_HMAC_SECRET = keys.get("GITHUB_HMAC_SECRET")
 
 ENV = os.getenv("ENV", "dev")
 LOCK_TABLE = os.getenv("LOCK_TABLE", "sgtm-lock")

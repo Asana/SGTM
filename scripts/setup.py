@@ -1,10 +1,12 @@
 from __future__ import print_function
 import argparse
-import boto3
 from io import BytesIO
 import json
 import os
 import sys
+
+import boto3
+import botocore
 
 REGION = "us-east-1"
 
@@ -12,7 +14,7 @@ REGION = "us-east-1"
 s3_client = boto3.client("s3", region_name=REGION)
 
 
-def set_api_keys():
+def set_api_keys(args):
     user_input = input("Have you ran `terraform apply` yet? (type y/n): ")
     if user_input != "y":
         print(
@@ -20,26 +22,31 @@ def set_api_keys():
         )
         return
 
-    github_api_key = input("Enter your github api key: ")
-    asana_api_key = input("Enter your asana api key: ")
-
-    keys = {"ASANA_API_KEY": asana_api_key, "GITHUB_API_KEY": github_api_key}
-
+    # Get bucket name and key name
     directory = os.path.dirname(__file__)
     file_name = os.path.join(directory, "../terraform/terraform.tfvars.json")
-
-    # Get bucket name
     with open(file_name) as f:
         obj = json.load(f)
         bucket_name = obj["api_key_s3_bucket_name"]
         key_name = obj["api_key_s3_object"]
+
+    keys = {}
+    try:
+        obj = s3_client.get_object(Bucket=bucket_name, Key=key_name)
+        keys = json.loads(obj["Body"].read())
+    except botocore.exceptions.ClientError:
+        # The key file exist doesn't yet
+        pass
+
+    secret = input("Enter the secret here: ")
+    keys[args.secret] = secret
 
     s3_client.put_object(
         Body=bytes(json.dumps(keys).encode("UTF-8")), Bucket=bucket_name, Key=key_name
     )
 
 
-def setup_state():
+def setup_state(args):
     # Setup terraform backend S3 bucket
     bucket_name = "sgtm-terraform-state-bucket"
     table_name = "sgtm_terraform_state_lock"
@@ -74,17 +81,24 @@ def setup_state():
     )
 
 
-COMMAND_MAP = {"state": setup_state, "api-keys": set_api_keys}
+COMMAND_MAP = {"state": setup_state, "secret": set_api_keys}
 
 
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser(description="Set up actions for SGTM")
-    arg_parser.add_argument(
-        "action",
+    subparsers = arg_parser.add_subparsers()
+
+    parser_state = subparsers.add_parser("state", help="Set up state")
+    parser_state.set_defaults(action="state")
+
+    parser_secrets = subparsers.add_parser("secret", help="a hel")
+    parser_secrets.set_defaults(action="secret")
+    parser_secrets.add_argument(
+        "secret",
         type=str,
-        choices=["state", "api-keys"],
-        help="Select which setup action to perform.",
+        choices=["ASANA_API_KEY", "GITHUB_API_KEY", "GITHUB_HMAC_SECRET"],
+        help="Select which secret to change",
     )
 
     args = arg_parser.parse_args()
-    COMMAND_MAP[args.action]()
+    COMMAND_MAP[args.action](args)
