@@ -1,28 +1,39 @@
 # SGTM
 
 ## Installation
-We recommend setting up a virtualenvironment to install and run your python environment.
+We recommend setting up a virtualenvironment to install and run your python environment. By doing so, you can eliminate
+the risk that SGTM's python dependencies and settings will be mixed up with any such dependencies and settings that you
+may be using in other projects.
 
-When first setting up your repository, you should install all required python dependencies using `pip3 install -r requirements.txt -r requirements-dev.txt`.
+When first setting up your repository, you should install all required python dependencies using `pip3 install -r requirements.txt -r requirements-dev.txt` within the virtual environment that you have set up (or globally, if you wish to skip using a virtual environment)
+
+### Installing a Virtual Environment for Python
+
+See [these instructions](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) for help in
+setting up a virtual environment for Python, or use the following TL;DR version:
+
+* run `python3 -m venv v-env` to create a virtual environment
+* run `source v-env/bin/activate` to activate and enter your virtual environment
+* once activated, run `deactivate` to deactivate and leave your virtual environment
 
 ## Running Tests
 
-Select an AWS_DEFAULT_REGIION, if you do not have one already, e.g. via:
+To run the tests, you must set the AWS_DEFAULT_REGION environment variable. This is required because some of the tests
+are integration tests that require DynamoDb. This can be done e.g. via:
 ```bash
 if [ -z "$AWS_DEFAULT_REGION" ]; then AWS_DEFAULT_REGION=us-east-1; fi;
 ```
 
-Run the following via the command line:
+You may then run all tests via the command line:
 
 ```bash
 python3 -m unittest discover
 ```
 
-## Installing a Virtual Environment for Python
+Alternatively, you may run specific tests e.g. via:
 
-See [these instructions](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) for help in
-setting up a virtual environment for Python.
-
-* python3 -m venv sgtm
-* source sgtm/bin/activate
-* deactivate
+```bash
+python3 ./test/<python-test-file-name>.py>
+python3 ./test/<python-test-file-name>.py> <TestClassName>
+python3 ./test/<python-test-file-name>.py> <TestClassName.test_function_name>
+```
