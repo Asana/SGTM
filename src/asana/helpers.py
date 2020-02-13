@@ -68,7 +68,7 @@ def _custom_fields_from_pull_request(pull_request: PullRequest):
 
 def _get_custom_field_id(custom_field_name: str, custom_field_settings: List[dict]) -> Optional[str]:
     filtered_gid = [
-        custom_field_setting['gid'] for custom_field_setting in custom_field_settings
+        custom_field_setting['custom_field']['gid'] for custom_field_setting in custom_field_settings
         if custom_field_setting['custom_field']['name'] == custom_field_name
     ]
     return filtered_gid[0] if filtered_gid else None
