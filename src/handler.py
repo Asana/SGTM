@@ -14,10 +14,6 @@ def handler(event: dict, context: dict) -> None:
             )
         )
 
-    # def verify_signature(payload_body)
-    #   signature = 'sha1=' + OpenSSL::HMAC.hexdigest(OpenSSL::Digest.new('sha1'), ENV['SECRET_TOKEN'], payload_body)
-    #   return halt 500, "Signatures didn't match!" unless Rack::Utils.secure_compare(signature, request.env['HTTP_X_HUB_SIGNATURE'])
-    # end
     event_type = event["headers"].get("X-GitHub-Event")
     signature = event["headers"].get("X-Hub-Signature")
 
