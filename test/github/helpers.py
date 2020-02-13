@@ -2,7 +2,7 @@ from uuid import uuid4
 from random import randint
 from typing import List, Union, Tuple
 from datetime import datetime
-from src.utils import STR_FMT
+from src.utils import create_date_string
 from src.github.models import PullRequest, Comment, Review
 
 
@@ -25,7 +25,7 @@ class CommentBuilder(object):
 
     def with_created_at(self, created_at: Union[str, datetime]):
         if isinstance(created_at, datetime):
-            created_at = created_at.strftime(STR_FMT)
+            created_at = create_date_string(created_at)
         self.raw_comment["created_at"] = created_at
         return self
 
@@ -58,7 +58,7 @@ class ReviewBuilder(object):
 
     def with_submitted_at(self, submitted_at: Union[str, datetime]):
         if isinstance(submitted_at, datetime):
-            submitted_at = submitted_at.strftime(STR_FMT)
+            submitted_at = create_date_string(submitted_at)
         self.raw_review["submitted_at"] = submitted_at
         return self
 
@@ -103,7 +103,7 @@ class PullRequestBuilder(object):
 
     def with_merged_at(self, merged_at: Union[str, datetime]):
         if isinstance(merged_at, datetime):
-            merged_at = merged_at.strftime(STR_FMT)
+            merged_at = create_date_string(merged_at)
         self.raw_pr["merged_at"] = merged_at
         return self
 
