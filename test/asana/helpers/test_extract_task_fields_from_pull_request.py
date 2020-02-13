@@ -197,7 +197,22 @@ class TestExtractsFollowersFromPullRequest(BaseClass):
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertIn("AT_MENTIONED_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
-    # todo xcxcc test reviewers/assignees/authors/... that are not asanas (no longer, not yet configged, etc)
+    def test_non_asana_user_is_not_a_follower(self):
+        unknown_github_user = create_github_user("github_unknown_user_login", "GITHUB_UNKNOWN_USER_NAME")
+        pull_request = create_pull_request(
+            with_body="@github_unknown_user_login",
+            with_author=unknown_github_user,
+            with_assignees=[unknown_github_user],
+            with_reviews=[create_review(
+                            body="@github_unknown_user_login",
+                            with_author=unknown_github_user)],
+            with_comments=[create_comment(
+                            body="@github_unknown_user_login",
+                            with_author=create_github_user("github_commentor_login"))],
+            with_requested_reviewers=[unknown_github_user],
+        )
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
+        self.assertEqual(0, len(task_fields["followers"]))
 
 
 class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
@@ -278,10 +293,14 @@ def create_review(**keywords):
 
 def create_pull_request(**keywords):
     from test.github.helpers import PullRequestBuilder
-    builder = PullRequestBuilder().with_author("github_author_login", "GITHUB_AUTHOR_NAME")
+    builder = PullRequestBuilder()
     for k, v in keywords.items():
         if not k.startswith("with_"):
             builder.raw_pr[k] = v
+    if "with_author" in keywords:
+        builder = builder.with_author(keywords["with_author"])
+    else:
+        builder = builder.with_author("github_author_login", "GITHUB_AUTHOR_NAME")
     if "with_body" in keywords:
         builder = builder.with_body(keywords["with_body"])
     if "with_reviews" in keywords:
