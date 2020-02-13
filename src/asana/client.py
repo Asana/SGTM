@@ -1,6 +1,8 @@
 from typing import List
 import asana
 from src.config import ASANA_API_KEY
+from src.logger import logger
+
 
 client = asana.Client.access_token(ASANA_API_KEY)
 client.headers = {"Asana-Enable": "string_ids"}
@@ -12,7 +14,10 @@ def create_task(project: str) -> str:
 
 
 def update_task(task_id: str, fields: dict):
-    client.tasks.update(task_id, fields)
+    try:
+        client.tasks.update(task_id, fields)
+    except Exception as e:
+        logger.error(e)
 
 
 def add_followers(task_id: str, followers: List[str]):
