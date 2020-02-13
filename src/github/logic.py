@@ -73,18 +73,36 @@ def _is_approval_comment_body(body: str) -> bool:
 
 
 def pull_request_approved_after_merging(pull_request: PullRequest) -> bool:
+    """
+    If changes were requested, addressed, and then the PR merge, the state of the pr will still be
+    "changes requested" unless the original review is dismissed and the reviewer is re-requested
+    to review the pr. This is described here:
+    https://stackoverflow.com/questions/40893008/how-to-resume-review-process-after-updating-pull-request-at-github
+
+    To improve the UX of this process, we will still consider the pr approved if we find a comment on the pr with
+    a marker text, such as "LGTM" or "looks good to me".
+
+    This method handles this part of the logic.
+    """
     merged_at = pull_request.merged_at()
+    # the marker text may occur in any comment in the pr that occurred post-merge
+    # TODO: consider whether we should allow pre-merge comments to have the same effect? It seems likely that
+    # this limitation is just intended to ensure that the asana task is not closed due to a marker text unless
+    # the PR has been merged into next-master, otherwise it might be forgotten in an approved state
     postmerge_comments = [
         comment
         for comment in pull_request.comments()
-        if comment.published_at() > merged_at
+        if comment.created_at() >= merged_at
+        # TODO: consider inspecting updated_at timestamp for comments
     ]
+    # or it may occur in the summary text of a review that was submitted after the pr was merged
     postmerge_reviews = [
-        review for review in pull_request.reviews() if review.submitted_at() > merged_at
+        review for review in pull_request.reviews() if review.submitted_at() >= merged_at
     ]
     body_texts = [c.body() for c in postmerge_comments] + [
         r.body() for r in postmerge_reviews
     ]
+    # TODO: consider whether we should disallow the pr author to approve their own pr via a LGTM comment
     return bool(
         [body_text for body_text in body_texts if _is_approval_comment_body(body_text)]
     )

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 from src.logger import logger
 from src.utils import parse_date_string
 from .review import Review
@@ -87,8 +87,10 @@ class PullRequest(object):
     def merged(self) -> bool:
         return self.raw_pull_request["merged"]
 
-    def merged_at(self) -> datetime:
-        return parse_date_string(self.raw_pull_request["mergedAt"])
+    def merged_at(self) -> Optional[datetime]:
+        if "merged_at" not in self.raw_pull_request:
+            return None
+        return parse_date_string(self.raw_pull_request["merged_at"])
 
     def reviews(self) -> List[Review]:
         return [Review(review) for review in self.raw_pull_request["reviews"]["nodes"]]

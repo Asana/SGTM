@@ -11,7 +11,7 @@ FRAGMENTS = {
       }
       closed
       merged
-      mergedAt
+      merged_at
       url
       number
       repository {
@@ -41,7 +41,7 @@ FRAGMENTS = {
           author {
             login
           }
-          publishedAt
+          created_at
           body
         }
       }
@@ -74,7 +74,7 @@ FRAGMENTS = {
         }
       }
       body
-      submittedAt
+      submitted_at
       state
       comments(last: 20) {
         nodes {

@@ -23,10 +23,10 @@ class CommentBuilder(object):
         self.raw_comment["author"]["name"] = name
         return self
 
-    def with_published_at(self, published_at: Union[str, datetime]):
-        if isinstance(published_at, datetime):
-            published_at = published_at.strftime(STR_FMT)
-        self.raw_comment["publishedAt"] = published_at
+    def with_created_at(self, created_at: Union[str, datetime]):
+        if isinstance(created_at, datetime):
+            created_at = created_at.strftime(STR_FMT)
+        self.raw_comment["created_at"] = created_at
         return self
 
     def build(self) -> Comment:
@@ -59,7 +59,7 @@ class ReviewBuilder(object):
     def with_submitted_at(self, submitted_at: Union[str, datetime]):
         if isinstance(submitted_at, datetime):
             submitted_at = submitted_at.strftime(STR_FMT)
-        self.raw_review["submittedAt"] = submitted_at
+        self.raw_review["submitted_at"] = submitted_at
         return self
 
     def with_comments(self, comments: Union[List[CommentBuilder], List[Comment]]):
@@ -104,7 +104,7 @@ class PullRequestBuilder(object):
     def with_merged_at(self, merged_at: Union[str, datetime]):
         if isinstance(merged_at, datetime):
             merged_at = merged_at.strftime(STR_FMT)
-        self.raw_pr["mergedAt"] = merged_at
+        self.raw_pr["merged_at"] = merged_at
         return self
 
     def with_comments(self, comments: Union[List[CommentBuilder], List[Comment]]):

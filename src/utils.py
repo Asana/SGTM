@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Callable
 
-STR_FMT = "%Y-%m-%dT%H:%M:%SZ"
+STR_FMT = "%Y-%m-%dT%H:%M:%S%z"
 
 
 def parse_date_string(date_string: str) -> datetime:
