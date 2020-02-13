@@ -302,7 +302,7 @@ def populate_subobjects(builder, keywords):
     for sub_object in sub_objects:
         if sub_object in keywords:
             setter = getattr(builder, sub_object)
-            builder = setter(builder, keywords[sub_object])
+            builder = setter(keywords[sub_object])
     return builder
 
 
