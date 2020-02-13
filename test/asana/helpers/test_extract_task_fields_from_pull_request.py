@@ -1,12 +1,10 @@
-from datetime import datetime, timedelta
-
 import src.asana.helpers
 from test.asana.helpers.base_class import BaseClass
 
 
-class TestExtractsFieldsFromPullRequest(BaseClass):
+class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
 
-    def test_none_causes_valueerror(self):
+    def test_extracting_fields_from_pr_none_causes_a_valueerror(self):
         try:
             src.asana.helpers.extract_task_fields_from_pull_request(None)
             self.fail("This code should have been unreachable")
@@ -17,23 +15,6 @@ class TestExtractsFieldsFromPullRequest(BaseClass):
         pull_request = create_pull_request(number="PR_NUMBER", title="PR_TITLE")
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertEqual("#PR_NUMBER - PR_TITLE", task_fields["name"])
-
-    def test_assignee(self):
-        assignee_nodes = [{"login": "GITHUB_ASSIGNEE_LOGIN"}]
-        pull_request = create_pull_request(assignees={"nodes": assignee_nodes})
-        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
-        self.assertEqual("ASSIGNEE_ASANA_DOMAIN_USER_ID", task_fields["assignee"])
-
-    def test_assignee_returns_first_assignee_by_login_if_many(self):
-        assignee_nodes = [{"login": "GITHUB_ASSIGNEE_LOGIN_BILLY"}, {"login": "GITHUB_ASSIGNEE_LOGIN_ANNIE"}]
-        pull_request = create_pull_request(assignees={"nodes": assignee_nodes})
-        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
-        self.assertEqual("ANNIE_ASANA_DOMAIN_USER_ID", task_fields["assignee"])
-
-    def test_assignee_returns_author_when_assignees_are_empty(self):
-        pull_request = create_pull_request()
-        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
-        self.assertEqual("AUTHOR_ASANA_DOMAIN_USER_ID", task_fields["assignee"])
 
     def test_html_body(self):
         pull_request = create_pull_request(url="https://foo.bar/baz", body="BODY")
@@ -56,6 +37,29 @@ class TestExtractsFieldsFromPullRequest(BaseClass):
         ]
         for expected in expected_strings:
             self.assertIn(expected, actual, f"Expected html_notes to contain {expected}")
+
+
+class TestExtractsAssigneeFromPullRequest(BaseClass):
+
+    def test_assignee(self):
+        assignee_nodes = [{"login": "github_assignee_login"}]
+        pull_request = create_pull_request(assignees={"nodes": assignee_nodes})
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
+        self.assertEqual("ASSIGNEE_ASANA_DOMAIN_USER_ID", task_fields["assignee"])
+
+    def test_assignee_returns_first_assignee_by_login_if_many(self):
+        assignee_nodes = [{"login": "github_assignee_login_billy"}, {"login": "github_assignee_login_annie"}]
+        pull_request = create_pull_request(assignees={"nodes": assignee_nodes})
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
+        self.assertEqual("ANNIE_ASANA_DOMAIN_USER_ID", task_fields["assignee"])
+
+    def test_assignee_returns_author_when_assignees_are_empty(self):
+        pull_request = create_pull_request()
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
+        self.assertEqual("AUTHOR_ASANA_DOMAIN_USER_ID", task_fields["assignee"])
+
+
+class TestExtractsCompletedStatusFromPullRequest(BaseClass):
 
     def test_completed_is_false_if_pr_is_not_closed_and_pr_is_not_merged(self):
         pull_request = create_pull_request(closed=False, merged=False)
@@ -126,28 +130,77 @@ class TestExtractsFieldsFromPullRequest(BaseClass):
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertEqual(False, task_fields["completed"])
 
-    def test_completed_is_true_if_pr_was_merged_with_changes_requested_and_commented_lgtm_in_a_review_after_merge(self):
-        # this is an edge case supported by the code (presumably ported from previous version), but which is a bit
-        # bizarre. A review was created before the pr was merged, but a comment on it had LGTM! in it after the merge.
-        # This was considered sufficient proof of completion, even though the PR now has a review requesting changes.
-        # The end state may make sense, but the sequence of human interactions leading to this state seems a bit
-        # bizarre.
+    def test_completed_is_true_if_pr_was_merged_with_changes_requested_but_still_said_lgtm_in_review_after_merge(self):
+        # this is a bit of a nuanced case. Here the reviewer has requested changes, but still said LGTM!, so we
+        # interpret this as the reviewer trusting the author to make the changes requested without having to come
+        # back to the reviewer and review that the changes were made
         pull_request = create_pull_request(
             closed=True, merged=True, merged_at="2020-01-13T14:59:59Z", with_reviews=[
-                create_review(submitted_at="2020-01-13T14:59:57Z", state="CHANGES_REQUESTED", with_comments=[
-                    create_comment(created_at="2020-02-02T12:12:12Z", body="LGTM!")
-                ]),
+                create_review(submitted_at="2020-02-13T14:59:57Z", state="CHANGES_REQUESTED", body="LGTM!")
             ])
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertEqual(True, task_fields["completed"])
+        
+
+class TestExtractsFollowersFromPullRequest(BaseClass):
+    pass
+
+    def test_author_is_a_follower(self):
+        pull_request = create_pull_request()
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
+        self.assertIn("AUTHOR_ASANA_DOMAIN_USER_ID", task_fields["followers"])
+
+    def test_assignee_is_a_follower(self):
+        pull_request = create_pull_request(with_assignees=[
+            create_github_user("github_assignee_login", "GITHUB_ASSIGNEE_NAME")
+        ])
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
+        self.assertIn("ASSIGNEE_ASANA_DOMAIN_USER_ID", task_fields["followers"])
+
+    def test_reviewer_is_a_follower(self):
+        pull_request = create_pull_request(with_reviews=[create_review(
+            submitted_at="2020-02-13T14:59:57Z",
+            state="CHANGES_REQUESTED",
+            body="LGTM!",
+            with_author=create_github_user("github_reviewer_login")
+        )])
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
+        self.assertIn("REVIEWER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
+
+    def test_commentor_is_a_follower(self):
+        pull_request = create_pull_request(with_comments=[
+            create_comment(created_at="2020-01-13T14:59:58Z", body="LGTM!",
+                with_author=create_github_user("github_commentor_login"))
+        ])
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
+        self.assertIn("COMMENTOR_ASANA_DOMAIN_USER_ID", task_fields["followers"])
+
+    def test_requested_reviewer_is_a_follower(self):
+        pull_request = create_pull_request(with_comments=[
+            create_comment(created_at="2020-01-13T14:59:58Z", body="LGTM!"),
+        ], with_requested_reviewers=[create_github_user("github_requested_reviewer_login")])
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
+        self.assertIn("REQUESTED_REVIEWER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
+
+    def test_individual_that_is_at_mentioned_in_comments_is_a_follower(self):
+        pull_request = create_pull_request(with_comments=[create_comment(body="@github_at_mentioned_login")])
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
+        self.assertIn("AT_MENTIONED_ASANA_DOMAIN_USER_ID", task_fields["followers"])
+
+    def test_individual_that_is_at_mentioned_in_review_comments_is_a_follower(self):
+        pull_request = create_pull_request(with_reviews=[create_review(body="@github_at_mentioned_login")])
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
+        self.assertIn("AT_MENTIONED_ASANA_DOMAIN_USER_ID", task_fields["followers"])
+
+    def test_individual_that_is_at_mentioned_in_pr_body_is_a_follower(self):
+        pull_request = create_pull_request(with_body="@github_at_mentioned_login")
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
+        self.assertIn("AT_MENTIONED_ASANA_DOMAIN_USER_ID", task_fields["followers"])
+
+    # todo xcxcc test reviewers/assignees/authors/... that are not asanas (no longer, not yet configged, etc)
 
 
-"""
-        "followers": _task_followers_from_pull_request(pull_request),
-"""
-
-
-class TestExtractsFieldsFromPullRequestInconsistentData(BaseClass):
+class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
     """
         This test case asserts that our behaviour is properly defined, even when some of our assumptions about GitHub
         are proven to be broken.
@@ -194,11 +247,18 @@ class TestExtractsFieldsFromPullRequestInconsistentData(BaseClass):
         self.assertEqual(True, task_fields["completed"])
 
 
+def create_github_user(login, name = None):
+    return login, name
+
+
 def create_comment(**keywords):
     from test.github.helpers import CommentBuilder
     builder = CommentBuilder()
     for k, v in keywords.items():
         builder.raw_comment[k] = v
+    if "with_author" in keywords:
+        login, name = keywords["with_author"]
+        builder = builder.with_author(login, name)
     return builder.build()
 
 
@@ -210,19 +270,29 @@ def create_review(**keywords):
             builder.raw_review[k] = v
     if "with_comments" in keywords:
         builder = builder.with_comments(keywords["with_comments"])
+    if "with_author" in keywords:
+        login, name = keywords["with_author"]
+        builder = builder.with_author(login, name)
     return builder.build()
 
 
 def create_pull_request(**keywords):
     from test.github.helpers import PullRequestBuilder
-    builder = PullRequestBuilder().with_author("GITHUB_AUTHOR_LOGIN", "GITHUB_AUTHOR_NAME")
+    builder = PullRequestBuilder().with_author("github_author_login", "GITHUB_AUTHOR_NAME")
     for k, v in keywords.items():
         if not k.startswith("with_"):
             builder.raw_pr[k] = v
+    if "with_body" in keywords:
+        builder = builder.with_body(keywords["with_body"])
     if "with_reviews" in keywords:
         builder = builder.with_reviews(keywords["with_reviews"])
     if "with_comments" in keywords:
         builder = builder.with_comments(keywords["with_comments"])
+    if "with_assignees" in keywords:
+        builder = builder.with_assignees(keywords["with_assignees"])
+    if "with_requested_reviewers" in keywords:
+        builder = builder.with_requested_reviewers(keywords["with_requested_reviewers"])
+
     return builder.build()
 
 

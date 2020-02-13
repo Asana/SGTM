@@ -1,6 +1,6 @@
 from uuid import uuid4
 from random import randint
-from typing import List, Union
+from typing import List, Union, Tuple
 from datetime import datetime
 from src.utils import STR_FMT
 from src.github.models import PullRequest, Comment, Review
@@ -51,7 +51,7 @@ class ReviewBuilder(object):
         self.raw_review["body"] = body
         return self
 
-    def with_author(self, login="", name=""):
+    def with_author(self, login, name):
         self.raw_review["author"]["login"] = login
         self.raw_review["author"]["name"] = name
         return self
@@ -123,9 +123,25 @@ class PullRequestBuilder(object):
                 self.raw_pr["reviews"]["nodes"].append(review.build().raw_review)
         return self
 
-    def with_author(self, login="", name=""):
+    def with_author(self, login: str, name: str):
         self.raw_pr["author"]["login"] = login
         self.raw_pr["author"]["name"] = name
+        return self
+
+    def with_assignees(self, assignees: List[Tuple[str, str]]):
+        for login, name in assignees:
+            self.raw_pr["assignees"]["nodes"].append({
+                "login": login,
+                "name": name
+            })
+        return self
+
+    def with_requested_reviewers(self, reviewers: List[Tuple[str, str]]):
+        for login, name in reviewers:
+            self.raw_pr["reviewRequests"]["nodes"].append({"requestedReviewer": {
+                "login": login,
+                "name": name
+            }})
         return self
 
     def build(self):
