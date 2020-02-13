@@ -269,11 +269,9 @@ def create_comment(**keywords):
     from test.github.helpers import CommentBuilder
     builder = CommentBuilder()
     for k, v in keywords.items():
-        builder.raw_comment[k] = v
-    if "with_author" in keywords:
-        login, name = keywords["with_author"]
-        builder = builder.with_author(login, name)
-    return builder.build()
+        if not k.startswith("with_"):
+            builder.raw_comment[k] = v
+    return populate_subobjects(builder, keywords).build()
 
 
 def create_review(**keywords):
@@ -282,12 +280,7 @@ def create_review(**keywords):
     for k, v in keywords.items():
         if not k.startswith("with_"):
             builder.raw_review[k] = v
-    if "with_comments" in keywords:
-        builder = builder.with_comments(keywords["with_comments"])
-    if "with_author" in keywords:
-        login, name = keywords["with_author"]
-        builder = builder.with_author(login, name)
-    return builder.build()
+    return populate_subobjects(builder, keywords).build()
 
 
 def create_pull_request(**keywords):
@@ -296,23 +289,21 @@ def create_pull_request(**keywords):
     for k, v in keywords.items():
         if not k.startswith("with_"):
             builder.raw_pr[k] = v
+    return populate_subobjects(builder, keywords).build()
+
+
+def populate_subobjects(builder, keywords):
     if "with_author" in keywords:
         login, name = keywords["with_author"]
         builder = builder.with_author(login, name)
     else:
         builder = builder.with_author("github_author_login", "GITHUB_AUTHOR_NAME")
-    if "with_body" in keywords:
-        builder = builder.with_body(keywords["with_body"])
-    if "with_reviews" in keywords:
-        builder = builder.with_reviews(keywords["with_reviews"])
-    if "with_comments" in keywords:
-        builder = builder.with_comments(keywords["with_comments"])
-    if "with_assignees" in keywords:
-        builder = builder.with_assignees(keywords["with_assignees"])
-    if "with_requested_reviewers" in keywords:
-        builder = builder.with_requested_reviewers(keywords["with_requested_reviewers"])
-
-    return builder.build()
+    sub_objects = ["with_body", "with_reviews", "with_comments", "with_assignees", "with_requested_reviewers"]
+    for sub_object in sub_objects:
+        if sub_object in keywords:
+            setter = getattr(builder, sub_object)
+            builder = setter(builder, keywords[sub_object])
+    return builder
 
 
 if __name__ == '__main__':
