@@ -153,9 +153,14 @@ def _task_completion_from_pull_request(pull_request: PullRequest) -> bool:
 
 
 def _task_followers_from_pull_request(pull_request: PullRequest):
-    return [
+    asana_domain_user_ids = [
         _asana_user_id_from_github_handle(gh_handle)
         for gh_handle in github_logic.all_pull_request_participants(pull_request)
+    ]
+    return [
+        asana_domain_user_id
+        for asana_domain_user_id in asana_domain_user_ids
+        if asana_domain_user_id is not None
     ]
 
 

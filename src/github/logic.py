@@ -109,6 +109,7 @@ def pull_request_approved_after_merging(pull_request: PullRequest) -> bool:
 
 
 def all_pull_request_participants(pull_request: PullRequest) -> List[str]:
+
     return list(
         set(
             gh_handle
@@ -122,6 +123,6 @@ def all_pull_request_participants(pull_request: PullRequest) -> List[str]:
                 + _pull_request_review_mentions(pull_request)
                 + _pull_request_body_mentions(pull_request)
             )
-            if gh_handle
+            if gh_handle and gh_handle is not None
         )
     )

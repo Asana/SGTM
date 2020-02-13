@@ -143,7 +143,6 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
         
 
 class TestExtractsFollowersFromPullRequest(BaseClass):
-    pass
 
     def test_author_is_a_follower(self):
         pull_request = create_pull_request()
@@ -208,7 +207,7 @@ class TestExtractsFollowersFromPullRequest(BaseClass):
                             with_author=unknown_github_user)],
             with_comments=[create_comment(
                             body="@github_unknown_user_login",
-                            with_author=create_github_user("github_commentor_login"))],
+                            with_author=unknown_github_user)],
             with_requested_reviewers=[unknown_github_user],
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
@@ -298,7 +297,8 @@ def create_pull_request(**keywords):
         if not k.startswith("with_"):
             builder.raw_pr[k] = v
     if "with_author" in keywords:
-        builder = builder.with_author(keywords["with_author"])
+        login, name = keywords["with_author"]
+        builder = builder.with_author(login, name)
     else:
         builder = builder.with_author("github_author_login", "GITHUB_AUTHOR_NAME")
     if "with_body" in keywords:
