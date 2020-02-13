@@ -17,6 +17,7 @@ def update_task(task_id: str, fields: dict):
     try:
         client.tasks.update(task_id, fields)
     except Exception as e:
+        logger.error("Error while trying to update task")
         logger.error(e)
 
 
