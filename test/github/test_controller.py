@@ -108,7 +108,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
 
     @patch.object(github_client, "set_pull_request_assignee")
     def test_assign_pull_request_to_author(self, set_pr_assignee_mock):
-        pull_request = PullRequestBuilder().with_author(login="the_author").build()
+        pull_request = PullRequestBuilder().with_author(login="the_author", name="dont-care").build()
         with patch.object(pull_request, "set_assignees") as set_assignees_mock:
             github_controller.assign_pull_request_to_author(pull_request)
             set_assignees_mock.assert_called_with([pull_request.author_handle()])
