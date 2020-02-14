@@ -9,8 +9,12 @@ client.headers = {"Asana-Enable": "string_ids"}
 
 
 def create_task(project: str) -> str:
-    response = client.tasks.create({"projects": project})
-    return response["gid"]
+    try:
+        response = client.tasks.create({"projects": project})
+        return response["gid"]
+    except Exception as e:
+        logger.error("Error while trying to create task")
+        logger.error(e)
 
 
 def update_task(task_id: str, fields: dict):
