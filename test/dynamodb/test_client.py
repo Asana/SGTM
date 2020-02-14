@@ -39,3 +39,8 @@ class DynamodbClientTest(MockDynamoDbTestCase):
             dynamodb_client.get_asana_domain_user_id_from_github_handle(gh_handle),
             asana_user_id,
         )
+
+
+if __name__ == '__main__':
+    from unittest import main as run_tests
+    run_tests()
