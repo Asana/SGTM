@@ -1,4 +1,4 @@
-import src.dynamodb.client
+import src.dynamodb.client as dynamodb_client
 
 
 class DynamoDbClient(object):
@@ -17,7 +17,11 @@ class DynamoDbClient(object):
 
     @classmethod
     def initialize(cls):
-        src.dynamodb.client.set_singleton(DynamoDbClient())
+        dynamodb_client.inject(DynamoDbClient())
+
+    @classmethod
+    def finalize(cls):
+        dynamodb_client.inject(None)
 
     def get_asana_domain_user_id_from_github_handle(self, github_handle):
         return self.github_users.get(github_handle, None)

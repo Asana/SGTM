@@ -32,7 +32,7 @@ class GithubLogicTest(unittest.TestCase):
     def test_pull_request_comment_mentions(self):
         pull_request = (
             PullRequestBuilder()
-            .comments(
+            .with_comments(
                 [
                     CommentBuilder(""),
                     CommentBuilder("@one @two @three"),
@@ -49,12 +49,12 @@ class GithubLogicTest(unittest.TestCase):
     def test_pull_request_review_mentions(self):
         pull_request = (
             PullRequestBuilder()
-            .reviews(
+            .with_reviews(
                 [
-                    ReviewBuilder("").comments(
+                    ReviewBuilder("").with_comments(
                         [CommentBuilder("@one @two @three"), CommentBuilder("@four"),]
                     ),
-                    ReviewBuilder("@a @b @c").comments(
+                    ReviewBuilder("@a @b @c").with_comments(
                         [CommentBuilder(""), CommentBuilder("@five"),]
                     ),
                 ]
@@ -75,10 +75,10 @@ class GithubLogicTest(unittest.TestCase):
     def test_pull_request_commenters(self):
         pull_request = (
             PullRequestBuilder()
-            .comments(
+            .with_comments(
                 [
-                    CommentBuilder().author(login="foo"),
-                    CommentBuilder().author(login="bar"),
+                    CommentBuilder().with_author(login="foo"),
+                    CommentBuilder().with_author(login="bar"),
                 ]
             )
             .build()
@@ -94,14 +94,14 @@ class GithubLogicTest(unittest.TestCase):
 
         pull_request = (
             PullRequestBuilder()
-            .reviews(
+            .with_reviews(
                 [
                     ReviewBuilder()
-                    .submitted_at(submitted_at)
-                    .state(Review.STATE_APPROVED)
+                    .with_submitted_at(submitted_at)
+                    .with_state(Review.STATE_APPROVED)
                 ]
             )
-            .merged_at(merged_at)
+            .with_merged_at(merged_at)
             .build()
         )
         self.assertFalse(
@@ -114,14 +114,14 @@ class GithubLogicTest(unittest.TestCase):
 
         pull_request = (
             PullRequestBuilder()
-            .reviews(
+            .with_reviews(
                 [
                     ReviewBuilder()
-                    .submitted_at(submitted_at)
-                    .state(Review.STATE_APPROVED)
+                    .with_submitted_at(submitted_at)
+                    .with_state(Review.STATE_APPROVED)
                 ]
             )
-            .merged_at(merged_at)
+            .with_merged_at(merged_at)
             .build()
         )
         self.assertTrue(github_logic.pull_request_approved_before_merging(pull_request))
@@ -134,14 +134,14 @@ class GithubLogicTest(unittest.TestCase):
 
         pull_request = (
             PullRequestBuilder()
-            .reviews(
+            .with_reviews(
                 [
                     ReviewBuilder()
-                    .submitted_at(submitted_at)
-                    .state(Review.STATE_CHANGES_REQUESTED)
+                    .with_submitted_at(submitted_at)
+                    .with_state(Review.STATE_CHANGES_REQUESTED)
                 ]
             )
-            .merged_at(merged_at)
+            .with_merged_at(merged_at)
             .build()
         )
         self.assertFalse(
@@ -149,13 +149,13 @@ class GithubLogicTest(unittest.TestCase):
         )
 
     def test_pull_request_approved_before_merging_no_reviews(self):
-        pull_request = PullRequestBuilder().merged_at(datetime.now()).build()
+        pull_request = PullRequestBuilder().with_merged_at(datetime.now()).build()
         self.assertFalse(
             github_logic.pull_request_approved_before_merging(pull_request)
         )
 
     def test_pull_request_approved_after_merging_no_reviews_or_comments(self):
-        pull_request = PullRequestBuilder().merged_at(datetime.now()).build()
+        pull_request = PullRequestBuilder().with_merged_at(datetime.now()).build()
         self.assertFalse(github_logic.pull_request_approved_after_merging(pull_request))
 
     def test_pull_request_approved_after_merging_reviews_and_comments_no_approvals(
@@ -168,12 +168,12 @@ class GithubLogicTest(unittest.TestCase):
         commented_at = merged_at + timedelta(days=2)
         pull_request = (
             PullRequestBuilder()
-            .merged_at(datetime.now())
-            .reviews(
-                [ReviewBuilder("This looks OK").submitted_at(reviewed_at)]
+            .with_merged_at(datetime.now())
+            .with_reviews(
+                [ReviewBuilder("This looks OK").with_submitted_at(reviewed_at)]
             )
-            .comments(
-                [CommentBuilder("v cool use of emojis").published_at(commented_at)]
+            .with_comments(
+                [CommentBuilder("v cool use of emojis").with_published_at(commented_at)]
             )
             .build()
         )
@@ -185,11 +185,11 @@ class GithubLogicTest(unittest.TestCase):
         commented_at = merged_at + timedelta(days=2)
         pull_request = (
             PullRequestBuilder()
-            .merged_at(datetime.now())
-            .reviews(
-                [ReviewBuilder("This looks OK").submitted_at(reviewed_at)]
+            .with_merged_at(datetime.now())
+            .with_reviews(
+                [ReviewBuilder("This looks OK").with_submitted_at(reviewed_at)]
             )
-            .comments([CommentBuilder("LGTM!").published_at(commented_at)])
+            .with_comments([CommentBuilder("LGTM!").with_published_at(commented_at)])
             .build()
         )
         self.assertTrue(github_logic.pull_request_approved_after_merging(pull_request))
@@ -200,12 +200,12 @@ class GithubLogicTest(unittest.TestCase):
         commented_at = merged_at + timedelta(days=2)
         pull_request = (
             PullRequestBuilder()
-            .merged_at(datetime.now())
-            .reviews(
-                [ReviewBuilder("This looks great! :+1:").submitted_at(reviewed_at)]
+            .with_merged_at(datetime.now())
+            .with_reviews(
+                [ReviewBuilder("This looks great! :+1:").with_submitted_at(reviewed_at)]
             )
-            .comments(
-                [CommentBuilder("v cool use of emojis").published_at(commented_at)]
+            .with_comments(
+                [CommentBuilder("v cool use of emojis").with_published_at(commented_at)]
             )
             .build()
         )

@@ -9,16 +9,9 @@ class ConfigurationError(Exception):
     pass
 
 
-_client = None
-
-
-def get_singleton():
-    global _client
-    if _client is not None:
-        return _client
+def _create_client():
     try:
-        _client = boto3.client("dynamodb")
-        return _client
+        return boto3.client("dynamodb")
     except NoRegionError:
         pass
     # by raising the new error outside of the except clause, the ConfigurationError does not automatically contain
@@ -26,40 +19,62 @@ def get_singleton():
     raise ConfigurationError("Configuration error: Please select a region, e.g. via `AWS_DEFAULT_REGION=us-east-1`")
 
 
-def set_singleton(client):
-    global _client
-    _client = client
+class DynamoDbClient(object):
+
+    def __init__(self):
+        self.client = _create_client()
+
+    # OBJECTS TABLE
+    def get_asana_id_from_github_node_id(self, gh_node_id: str) -> Optional[str]:
+        response = self.client.get_item(
+            TableName=OBJECTS_TABLE, Key={"github-node": {"S": gh_node_id}}
+        )
+        if "Item" in response:
+            return response["Item"]["asana-id"]["S"]
+        else:
+            return None
+
+    def insert_github_node_to_asana_id_mapping(self, gh_node_id: str, asana_id: str):
+        response = self.client.put_item(
+            TableName=OBJECTS_TABLE,
+            Item={"github-node": {"S": gh_node_id}, "asana-id": {"S": asana_id}},
+        )
+
+    # USERS TABLE
+
+    @memoize
+    def get_asana_domain_user_id_from_github_handle(self, github_handle: str) -> Optional[str]:
+        response = self.client.get_item(
+            TableName=USERS_TABLE, Key={"github/handle": {"S": github_handle}}
+        )
+        if "Item" in response:
+            return response["Item"]["asana/domain-user-id"]["S"]
+        else:
+            return None
 
 
-### OBJECTS TABLE
+_dynamodb_client = None
 
 
-def get_asana_id_from_github_node_id(gh_node_id: str) -> Optional[str]:
-    response = get_singleton().get_item(
-        TableName=OBJECTS_TABLE, Key={"github-node": {"S": gh_node_id}}
-    )
-    if "Item" in response:
-        return response["Item"]["asana-id"]["S"]
-    else:
-        return None
+def inject(dynamodb_client):
+    global _dynamodb_client
+    _dynamodb_client = dynamodb_client
 
 
-def insert_github_node_to_asana_id_mapping(gh_node_id: str, asana_id: str):
-    response = get_singleton().put_item(
-        TableName=OBJECTS_TABLE,
-        Item={"github-node": {"S": gh_node_id}, "asana-id": {"S": asana_id}},
-    )
+def _singleton():
+    global _dynamodb_client
+    if _dynamodb_client is None:
+        _dynamodb_client = DynamoDbClient()
+    return _dynamodb_client
 
 
-### USERS TABLE
+def get_asana_id_from_github_node_id(*args, **keywords):
+    return _singleton().get_asana_id_from_github_node_id(*args, **keywords)
 
 
-@memoize
-def get_asana_domain_user_id_from_github_handle(github_handle: str) -> Optional[str]:
-    response = get_singleton().get_item(
-        TableName=USERS_TABLE, Key={"github/handle": {"S": github_handle}}
-    )
-    if "Item" in response:
-        return response["Item"]["asana/domain-user-id"]["S"]
-    else:
-        return None
+def insert_github_node_to_asana_id_mapping(*args, **keywords):
+    return _singleton().insert_github_node_to_asana_id_mapping(*args, **keywords)
+
+
+def get_asana_domain_user_id_from_github_handle(*args, **keywords):
+    return _singleton().get_asana_domain_user_id_from_github_handle(*args, **keywords)

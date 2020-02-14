@@ -8,6 +8,9 @@ class BaseClass(TestCase):
     def setUp(self):
         DynamoDbClient.initialize()
 
+    def tearDown(self):
+        DynamoDbClient.finalize()
+
     def assertContainsStrings(self, actual: str, expected_strings: List[str], field_name: str = None):
         if field_name is None:
             message = f"Expected '{actual}' to contain {{}}"

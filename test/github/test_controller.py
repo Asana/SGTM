@@ -4,7 +4,7 @@ from test.dynamodb.mock_dynamodb_test_case import MockDynamoDbTestCase
 import src.github.client as github_client
 import src.github.controller as github_controller
 import src.asana.controller as asana_controller
-from src.dynamodb.client import get_singleton as dynamodb_client
+import src.dynamodb.client as dynamodb_client
 from test.impl.builders import (
     PullRequestBuilder,
     CommentBuilder,
@@ -33,7 +33,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
         update_task_mock.assert_called_with(pull_request, new_task_id)
 
         # Assert that the new task id was inserted into the table
-        task_id = dynamodb_client().get_asana_id_from_github_node_id(pull_request.id())
+        task_id = dynamodb_client.get_asana_id_from_github_node_id(pull_request.id())
         self.assertEqual(task_id, new_task_id)
 
     @patch.object(asana_controller, "update_task")
@@ -47,7 +47,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
 
         # Insert the mapping first
         existing_task_id = uuid4().hex
-        dynamodb_client().insert_github_node_to_asana_id_mapping(
+        dynamodb_client.insert_github_node_to_asana_id_mapping(
             pull_request.id(), existing_task_id
         )
 
@@ -82,7 +82,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
 
         # Insert the mapping first
         existing_task_id = uuid4().hex
-        dynamodb_client().insert_github_node_to_asana_id_mapping(
+        dynamodb_client.insert_github_node_to_asana_id_mapping(
             pull_request.id(), existing_task_id
         )
 
@@ -104,7 +104,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
 
     @patch.object(github_client, "set_pull_request_assignee")
     def test_assign_pull_request_to_author(self, set_pr_assignee_mock):
-        pull_request = PullRequestBuilder().author(login="the_author", name="dont-care").build()
+        pull_request = PullRequestBuilder().with_author(login="the_author", name="dont-care").build()
         with patch.object(pull_request, "set_assignees") as set_assignees_mock:
             github_controller.assign_pull_request_to_author(pull_request)
             set_assignees_mock.assert_called_with([pull_request.author_handle()])

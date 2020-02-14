@@ -1,8 +1,5 @@
 from typing import Optional
-from src.dynamodb.client import (
-    get_asana_id_from_github_node_id,
-    insert_github_node_to_asana_id_mapping,
-)
+import src.dynamodb.client as dynamodb_client
 from . import client as asana_client
 from . import helpers as asana_helpers
 from src.github.models import Comment, PullRequest, Review

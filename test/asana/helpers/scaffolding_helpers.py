@@ -33,14 +33,14 @@ def _snake_case_to_lower_camel_case(snake_cased_string: str) -> str:
 
 def _populate_subobjects(builder, raw_content, keywords):
     for k, v in keywords.items():
-        if not k.startswith(""):
+        if not k.startswith("with_"):
             raw_content[_snake_case_to_lower_camel_case(k)] = v
-    if "author" in keywords:
-        login, name = keywords["author"]
-        builder = builder.author(login, name)
+    if "with_author" in keywords:
+        login, name = keywords["with_author"]
+        builder = builder.with_author(login, name)
     else:
-        builder = builder.author("github_author_login", "GITHUB_AUTHOR_NAME")
-    sub_objects = ["body", "reviews", "comments", "assignees", "requested_reviewers"]
+        builder = builder.with_author("github_author_login", "GITHUB_AUTHOR_NAME")
+    sub_objects = ["with_body", "with_reviews", "with_comments", "with_assignees", "with_requested_reviewers"]
     for sub_object in sub_objects:
         if sub_object in keywords:
             setter = getattr(builder, sub_object)

@@ -40,12 +40,12 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
 class TestExtractsAssigneeFromPullRequest(BaseClass):
 
     def test_assignee(self):
-        pull_request = create_pull_request(assignees=[create_github_user("github_assignee_login")])
+        pull_request = create_pull_request(with_assignees=[create_github_user("github_assignee_login")])
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertEqual("ASSIGNEE_ASANA_DOMAIN_USER_ID", task_fields["assignee"])
 
     def test_assignee_returns_first_assignee_by_login_if_many(self):
-        pull_request = create_pull_request(assignees=[
+        pull_request = create_pull_request(with_assignees=[
             create_github_user("github_assignee_login_billy"),
             create_github_user("github_assignee_login_annie")
         ])
@@ -77,7 +77,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
 
     def test_completed_is_true_if_pr_is_closed_and_pr_was_approved_before_merging(self):
         pull_request = create_pull_request(
-            closed=True, merged=False, reviews=[
+            closed=True, merged=False, with_reviews=[
                 create_review(submitted_at="2020-01-13T14:59:58Z", state="APPROVED")
             ])
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
@@ -85,7 +85,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
 
     def test_completed_is_false_if_pr_is_closed_and_was_approved_before_merging_but_changes_were_then_requested(self):
         pull_request = create_pull_request(
-            closed=True, merged=True, merged_at="2020-01-13T14:59:59Z", reviews=[
+            closed=True, merged=True, merged_at="2020-01-13T14:59:59Z", with_reviews=[
                 create_review(submitted_at="2020-01-13T14:59:57Z", state="APPROVED"),
                 create_review(submitted_at="2020-01-13T14:59:58Z", state="CHANGES_REQUESTED"),
             ])
@@ -94,7 +94,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
 
     def test_completed_is_true_if_pr_is_closed_and_pr_was_approved_before_merging(self):
         pull_request = create_pull_request(
-            closed=True, merged=False, merged_at="2020-01-13T14:59:58Z", reviews=[
+            closed=True, merged=False, merged_at="2020-01-13T14:59:58Z", with_reviews=[
                 create_review(submitted_at="2020-01-13T14:59:59Z", state="APPROVED")
             ])
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
@@ -102,7 +102,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
 
     def test_completed_is_true_if_pr_is_closed_and_was_approved_before_merging_even_if_changes_had_been_requested(self):
         pull_request = create_pull_request(
-            closed=True, merged=True, merged_at="2020-01-13T14:59:59Z", reviews=[
+            closed=True, merged=True, merged_at="2020-01-13T14:59:59Z", with_reviews=[
                 create_review(submitted_at="2020-01-13T14:59:57Z", state="CHANGES_REQUESTED"),
                 create_review(submitted_at="2020-01-13T14:59:58Z", state="APPROVED"),
             ])
@@ -111,9 +111,9 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
 
     def test_completed_is_true_if_pr_was_merged_and_changes_requested_and_commented_lgtm_on_the_pr_after_merge(self):
         pull_request = create_pull_request(
-            closed=True, merged=True, merged_at="2020-01-13T14:59:59Z", reviews=[
+            closed=True, merged=True, merged_at="2020-01-13T14:59:59Z", with_reviews=[
                 create_review(submitted_at="2020-01-13T14:59:57Z", state="CHANGES_REQUESTED"),
-            ], comments=[
+            ], with_comments=[
                 create_comment(published_at="2020-02-02T12:12:12Z", body="LGTM!")
             ])
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
@@ -121,9 +121,9 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
 
     def test_completed_is_false_if_pr_was_merged_and_changes_requested_and_commented_lgtm_on_the_pr_before_merge(self):
         pull_request = create_pull_request(
-            closed=True, merged=True, merged_at="2020-01-13T14:59:59Z", reviews=[
+            closed=True, merged=True, merged_at="2020-01-13T14:59:59Z", with_reviews=[
                 create_review(submitted_at="2020-01-13T14:59:57Z", state="CHANGES_REQUESTED"),
-            ], comments=[
+            ], with_comments=[
                 create_comment(published_at="2020-01-13T14:59:58Z", body="LGTM!")
             ])
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
@@ -134,7 +134,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
         # interpret this as the reviewer trusting the author to make the changes requested without having to come
         # back to the reviewer and review that the changes were made
         pull_request = create_pull_request(
-            closed=True, merged=True, merged_at="2020-01-13T14:59:59Z", reviews=[
+            closed=True, merged=True, merged_at="2020-01-13T14:59:59Z", with_reviews=[
                 create_review(submitted_at="2020-02-13T14:59:57Z", state="CHANGES_REQUESTED", body="LGTM!")
             ])
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
@@ -149,65 +149,65 @@ class TestExtractsFollowersFromPullRequest(BaseClass):
         self.assertIn("AUTHOR_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_assignee_is_a_follower(self):
-        pull_request = create_pull_request(assignees=[
+        pull_request = create_pull_request(with_assignees=[
             create_github_user("github_assignee_login", "GITHUB_ASSIGNEE_NAME")
         ])
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertIn("ASSIGNEE_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_reviewer_is_a_follower(self):
-        pull_request = create_pull_request(reviews=[create_review(
+        pull_request = create_pull_request(with_reviews=[create_review(
             submitted_at="2020-02-13T14:59:57Z",
             state="CHANGES_REQUESTED",
             body="LGTM!",
-            author=create_github_user("github_reviewer_login")
+            with_author=create_github_user("github_reviewer_login")
         )])
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertIn("REVIEWER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_commentor_is_a_follower(self):
-        pull_request = create_pull_request(comments=[
+        pull_request = create_pull_request(with_comments=[
             create_comment(published_at="2020-01-13T14:59:58Z", body="LGTM!",
-                author=create_github_user("github_commentor_login"))
+                with_author=create_github_user("github_commentor_login"))
         ])
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertIn("COMMENTOR_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_requested_reviewer_is_a_follower(self):
-        pull_request = create_pull_request(comments=[
+        pull_request = create_pull_request(with_comments=[
             create_comment(published_at="2020-01-13T14:59:58Z", body="LGTM!"),
-        ], requested_reviewers=[create_github_user("github_requested_reviewer_login")])
+        ], with_requested_reviewers=[create_github_user("github_requested_reviewer_login")])
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertIn("REQUESTED_REVIEWER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_individual_that_is_at_mentioned_in_comments_is_a_follower(self):
-        pull_request = create_pull_request(comments=[create_comment(body="@github_at_mentioned_login")])
+        pull_request = create_pull_request(with_comments=[create_comment(body="@github_at_mentioned_login")])
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertIn("AT_MENTIONED_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_individual_that_is_at_mentioned_in_review_comments_is_a_follower(self):
-        pull_request = create_pull_request(reviews=[create_review(body="@github_at_mentioned_login")])
+        pull_request = create_pull_request(with_reviews=[create_review(body="@github_at_mentioned_login")])
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertIn("AT_MENTIONED_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_individual_that_is_at_mentioned_in_pr_body_is_a_follower(self):
-        pull_request = create_pull_request(body="@github_at_mentioned_login")
+        pull_request = create_pull_request(with_body="@github_at_mentioned_login")
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertIn("AT_MENTIONED_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_non_asana_user_is_not_a_follower(self):
         unknown_github_user = create_github_user("github_unknown_user_login", "GITHUB_UNKNOWN_USER_NAME")
         pull_request = create_pull_request(
-            body="@github_unknown_user_login",
-            author=unknown_github_user,
-            assignees=[unknown_github_user],
-            reviews=[create_review(
+            with_body="@github_unknown_user_login",
+            with_author=unknown_github_user,
+            with_assignees=[unknown_github_user],
+            with_reviews=[create_review(
                             body="@github_unknown_user_login",
-                            author=unknown_github_user)],
-            comments=[create_comment(
+                            with_author=unknown_github_user)],
+            with_comments=[create_comment(
                             body="@github_unknown_user_login",
-                            author=unknown_github_user)],
-            requested_reviewers=[unknown_github_user],
+                            with_author=unknown_github_user)],
+            with_requested_reviewers=[unknown_github_user],
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertEqual(0, len(task_fields["followers"]))
@@ -227,7 +227,7 @@ class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
             # operator such as < > <= >=)
             pass
         pull_request = create_pull_request(
-            closed=True, merged=False, merged_at=illegal_value_that_will_be_ignored, reviews=[
+            closed=True, merged=False, merged_at=illegal_value_that_will_be_ignored, with_reviews=[
                 create_review(submitted_at="2020-01-13T14:59:58Z", state="APPROVED")
             ])
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
@@ -244,7 +244,7 @@ class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
         # this would be a plausible state during a race condition, as two simultaneously submitted reviews could be
         # returned by github in the order they were inserted in a database, yet have slightly out-of-order timestamps
         pull_request = create_pull_request(
-            closed=True, merged=True, merged_at="2020-01-13T14:59:59Z", reviews=[
+            closed=True, merged=True, merged_at="2020-01-13T14:59:59Z", with_reviews=[
                 create_review(submitted_at="2020-01-13T14:59:58Z", state="CHANGES_REQUESTED"),
                 create_review(submitted_at="2020-01-13T14:59:57Z", state="APPROVED"),
             ])
@@ -252,7 +252,7 @@ class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
         self.assertEqual(False, task_fields["completed"])
 
         pull_request = create_pull_request(
-            closed=True, merged=True, merged_at="2020-01-13T14:59:59Z", reviews=[
+            closed=True, merged=True, merged_at="2020-01-13T14:59:59Z", with_reviews=[
                 create_review(submitted_at="2020-01-13T14:59:58Z", state="APPROVED"),
                 create_review(submitted_at="2020-01-13T14:59:57Z", state="CHANGES_REQUESTED"),
             ])

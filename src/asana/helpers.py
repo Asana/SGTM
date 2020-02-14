@@ -1,7 +1,7 @@
 import re
 from html import escape
 from typing import Callable, Match, Optional
-from src.dynamodb.client import get_singleton as dynamodb_client
+import src.dynamodb.client as dynamodb_client
 from src.github.models import Comment, PullRequest, Review
 from src.github import logic as github_logic
 
@@ -38,7 +38,7 @@ def _task_assignee_from_pull_request(pull_request: PullRequest) -> Optional[str]
 
 
 def _asana_user_id_from_github_handle(github_handle: str) -> Optional[str]:
-    return dynamodb_client().get_asana_domain_user_id_from_github_handle(github_handle)
+    return dynamodb_client.get_asana_domain_user_id_from_github_handle(github_handle)
 
 
 def _asana_display_name_for_github_user(github_user: dict) -> str:
