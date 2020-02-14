@@ -33,7 +33,7 @@ def _asana_user_id_from_github_handle(github_handle: str) -> Optional[str]:
     return dynamodb_client.get_asana_domain_user_id_from_github_handle(github_handle)
 
 
-def asana_author_from_github_author(author: dict) -> str:
+def _asana_author_from_github_author(author: dict) -> str:
     author_handle = author.get("login")
     author_name = author.get("name")
     if author_handle is not None:
@@ -67,7 +67,7 @@ def _transform_github_mentions_to_asana_mentions(text: str) -> str:
 
 
 def asana_comment_from_github_comment(comment: Comment) -> str:
-    asana_author = asana_author_from_github_author(comment.author())
+    asana_author = _asana_author_from_github_author(comment.author())
     comment_text = _transform_github_mentions_to_asana_mentions(
         escape(comment.body(), quote=False)
     )
@@ -86,7 +86,7 @@ _review_action_to_text_map = {
 
 
 def asana_comment_from_github_review(review: Review) -> str:
-    asana_author = asana_author_from_github_author(review.author())
+    asana_author = _asana_author_from_github_author(review.author())
     review_action = _review_action_to_text_map.get(review.state(), "commented")
     review_body = _transform_github_mentions_to_asana_mentions(
         escape(review.body(), quote=False)

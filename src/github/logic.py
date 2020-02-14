@@ -109,7 +109,6 @@ def pull_request_approved_after_merging(pull_request: PullRequest) -> bool:
 
 
 def all_pull_request_participants(pull_request: PullRequest) -> List[str]:
-
     return list(
         set(
             gh_handle
