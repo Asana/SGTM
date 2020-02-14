@@ -74,7 +74,7 @@ def _task_name_from_pull_request(pull_request: PullRequest) -> str:
 
 
 def _transform_github_mentions_to_asana_mentions(text: str) -> str:
-    def _replace_with_asana_mention(match: Match[str]) -> str:
+    def _github_mention_to_asana_mention(match: Match[str]) -> str:
         github_handle = match.group(1)
         asana_user_id = _asana_user_id_from_github_handle(github_handle)
         if asana_user_id is None:
@@ -83,7 +83,7 @@ def _transform_github_mentions_to_asana_mentions(text: str) -> str:
         else:
             return _asana_user_url_from_github_user_handle(github_handle)
 
-    return re.sub(github_logic.GITHUB_MENTION_REGEX, _replace_with_asana_mention, text)
+    return re.sub(github_logic.GITHUB_MENTION_REGEX, _github_mention_to_asana_mention, text)
 
 
 def asana_comment_from_github_comment(comment: Comment) -> str:

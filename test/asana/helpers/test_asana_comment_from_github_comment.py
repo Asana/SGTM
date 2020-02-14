@@ -16,19 +16,19 @@ class TestAsanaCommentFromGitHubComment(BaseClass):
 
     def test_includes_asana_comment_author(self):
         github_author = create_github_user("github_author_login")
-        github_comment = create_comment(with_author=github_author)
+        github_comment = create_comment(author=github_author)
         asana_comment = src.asana.helpers.asana_comment_from_github_comment(github_comment)
         self.assertContainsStrings(asana_comment, ["AUTHOR_ASANA_DOMAIN_USER_ID"])
 
     def test_handles_non_asana_comment_author_gracefully(self):
         github_author = create_github_user("github_unknown_user_login", "GITHUB_UNKNOWN_USER_NAME")
-        github_comment = create_comment(with_author=github_author)
+        github_comment = create_comment(author=github_author)
         asana_comment = src.asana.helpers.asana_comment_from_github_comment(github_comment)
         self.assertContainsStrings(asana_comment, ["github_unknown_user_login", "GITHUB_UNKNOWN_USER_NAME"])
 
-    def test_handles_non_asana_comment_author_with_no_name_gracefully(self):
+    def test_handles_non_asana_comment_author_that_has_no_name_gracefully(self):
         github_author = create_github_user("github_unknown_user_login")
-        github_comment = create_comment(with_author=github_author)
+        github_comment = create_comment(author=github_author)
         asana_comment = src.asana.helpers.asana_comment_from_github_comment(github_comment)
         self.assertContainsStrings(asana_comment, ["github_unknown_user_login"])
 
