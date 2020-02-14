@@ -9,9 +9,16 @@ class ConfigurationError(Exception):
     pass
 
 
-def _create_dynamodb_client():
+_client = None
+
+
+def get_singleton():
+    global _client
+    if _client is not None:
+        return _client
     try:
-        return boto3.client("dynamodb")
+        _client = boto3.client("dynamodb")
+        return _client
     except NoRegionError:
         pass
     # by raising the new error outside of the except clause, the ConfigurationError does not automatically contain
@@ -19,14 +26,16 @@ def _create_dynamodb_client():
     raise ConfigurationError("Configuration error: Please select a region, e.g. via `AWS_DEFAULT_REGION=us-east-1`")
 
 
-client = _create_dynamodb_client()
+def set_singleton(client):
+    global _client
+    _client = client
 
 
 ### OBJECTS TABLE
 
 
 def get_asana_id_from_github_node_id(gh_node_id: str) -> Optional[str]:
-    response = client.get_item(
+    response = get_singleton().get_item(
         TableName=OBJECTS_TABLE, Key={"github-node": {"S": gh_node_id}}
     )
     if "Item" in response:
@@ -36,7 +45,7 @@ def get_asana_id_from_github_node_id(gh_node_id: str) -> Optional[str]:
 
 
 def insert_github_node_to_asana_id_mapping(gh_node_id: str, asana_id: str):
-    response = client.put_item(
+    response = get_singleton().put_item(
         TableName=OBJECTS_TABLE,
         Item={"github-node": {"S": gh_node_id}, "asana-id": {"S": asana_id}},
     )
@@ -47,7 +56,7 @@ def insert_github_node_to_asana_id_mapping(gh_node_id: str, asana_id: str):
 
 @memoize
 def get_asana_domain_user_id_from_github_handle(github_handle: str) -> Optional[str]:
-    response = client.get_item(
+    response = get_singleton().get_item(
         TableName=USERS_TABLE, Key={"github/handle": {"S": github_handle}}
     )
     if "Item" in response:

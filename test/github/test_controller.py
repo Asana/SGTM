@@ -1,16 +1,12 @@
 from unittest.mock import patch
 from uuid import uuid4
-from datetime import datetime, timedelta
-from test.mock_dynamodb_test_case import MockDynamoDbTestCase
+from test.dynamodb.mock_dynamodb_test_case import MockDynamoDbTestCase
 import src.github.client as github_client
-import src.github.logic as github_logic
 import src.github.controller as github_controller
 import src.asana.controller as asana_controller
-import src.dynamodb.client as dynamodb_client
-from src.github.models import Review
-from test.github.helpers import (
+from src.dynamodb.client import get_singleton as dynamodb_client
+from test.impl.builders import (
     PullRequestBuilder,
-    ReviewBuilder,
     CommentBuilder,
 )
 
@@ -37,7 +33,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
         update_task_mock.assert_called_with(pull_request, new_task_id)
 
         # Assert that the new task id was inserted into the table
-        task_id = dynamodb_client.get_asana_id_from_github_node_id(pull_request.id())
+        task_id = dynamodb_client().get_asana_id_from_github_node_id(pull_request.id())
         self.assertEqual(task_id, new_task_id)
 
     @patch.object(asana_controller, "update_task")
@@ -51,7 +47,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
 
         # Insert the mapping first
         existing_task_id = uuid4().hex
-        dynamodb_client.insert_github_node_to_asana_id_mapping(
+        dynamodb_client().insert_github_node_to_asana_id_mapping(
             pull_request.id(), existing_task_id
         )
 
@@ -86,7 +82,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
 
         # Insert the mapping first
         existing_task_id = uuid4().hex
-        dynamodb_client.insert_github_node_to_asana_id_mapping(
+        dynamodb_client().insert_github_node_to_asana_id_mapping(
             pull_request.id(), existing_task_id
         )
 

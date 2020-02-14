@@ -1,4 +1,4 @@
-from test.github.helpers import CommentBuilder, ReviewBuilder, PullRequestBuilder
+from test.impl.builders import CommentBuilder, ReviewBuilder, PullRequestBuilder
 
 
 def create_github_user(login, name = None):

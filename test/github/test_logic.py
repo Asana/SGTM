@@ -2,7 +2,7 @@ import unittest
 from datetime import datetime, timedelta
 import src.github.logic as github_logic
 from src.github.models import Review
-from test.github.helpers import (
+from test.impl.builders import (
     PullRequestBuilder,
     ReviewBuilder,
     CommentBuilder,

@@ -1,8 +1,7 @@
 import boto3
-from test.mock_dynamodb_test_case import MockDynamoDbTestCase
+from test.dynamodb.mock_dynamodb_test_case import MockDynamoDbTestCase
 from src.config import USERS_TABLE
-from src.dynamodb import client as dynamodb_client
-
+from src.dynamodb.client import get_singleton as dynamodb_client
 
 class DynamodbClientTest(MockDynamoDbTestCase):
     def test_get_asana_id_from_github_node_id_and_insert_github_node_to_asana_id_mapping(
@@ -13,13 +12,13 @@ class DynamodbClientTest(MockDynamoDbTestCase):
 
         # First, no mapping exists
         self.assertEqual(
-            dynamodb_client.get_asana_id_from_github_node_id(gh_node_id), None
+            dynamodb_client().get_asana_id_from_github_node_id(gh_node_id), None
         )
         # Then, add the mapping
-        dynamodb_client.insert_github_node_to_asana_id_mapping(gh_node_id, asana_id)
+        dynamodb_client().insert_github_node_to_asana_id_mapping(gh_node_id, asana_id)
         # Now we get the asana_id
         self.assertEqual(
-            dynamodb_client.get_asana_id_from_github_node_id(gh_node_id), asana_id
+            dynamodb_client().get_asana_id_from_github_node_id(gh_node_id), asana_id
         )
 
     def test_get_asana_domain_user_id_from_github_handle(self):
@@ -36,7 +35,7 @@ class DynamodbClientTest(MockDynamoDbTestCase):
         )
 
         self.assertEqual(
-            dynamodb_client.get_asana_domain_user_id_from_github_handle(gh_handle),
+            dynamodb_client().get_asana_domain_user_id_from_github_handle(gh_handle),
             asana_user_id,
         )
 

@@ -1,4 +1,4 @@
-import src.dynamodb.client as dynamodb_client
+from src.dynamodb.client import get_singleton as dynamodb_client
 import src.asana.controller as asana_controller
 from . import logic as github_logic
 from . import client as github_client
@@ -9,7 +9,7 @@ from src.logger import logger
 
 def upsert_pull_request(pull_request: PullRequest):
     pull_request_id = pull_request.id()
-    task_id = dynamodb_client.get_asana_id_from_github_node_id(pull_request_id)
+    task_id = dynamodb_client().get_asana_id_from_github_node_id(pull_request_id)
     if task_id is None:
         task_id = asana_controller.create_task(pull_request.repository_id())
         if task_id is None:
@@ -17,7 +17,7 @@ def upsert_pull_request(pull_request: PullRequest):
             return
 
         logger.info(f"Task created for pull request {pull_request_id}: {task_id}")
-        dynamodb_client.insert_github_node_to_asana_id_mapping(pull_request_id, task_id)
+        dynamodb_client().insert_github_node_to_asana_id_mapping(pull_request_id, task_id)
         _add_asana_task_to_pull_request(pull_request, task_id)
     else:
         logger.info(
@@ -43,7 +43,7 @@ def _add_asana_task_to_pull_request(pull_request: PullRequest, task_id: str):
 
 def upsert_comment(pull_request: PullRequest, comment: Comment):
     pull_request_id = pull_request.id()
-    task_id = dynamodb_client.get_asana_id_from_github_node_id(pull_request_id)
+    task_id = dynamodb_client().get_asana_id_from_github_node_id(pull_request_id)
     if task_id is None:
         logger.info(
             f"Task not found for pull request {pull_request_id}. Running a full sync!"
@@ -56,7 +56,7 @@ def upsert_comment(pull_request: PullRequest, comment: Comment):
 
 def upsert_review(pull_request: PullRequest, review: Review):
     pull_request_id = pull_request.id()
-    task_id = dynamodb_client.get_asana_id_from_github_node_id(pull_request_id)
+    task_id = dynamodb_client().get_asana_id_from_github_node_id(pull_request_id)
     if task_id is None:
         logger.info(
             f"Task not found for pull request {pull_request_id}. Running a full sync!"
