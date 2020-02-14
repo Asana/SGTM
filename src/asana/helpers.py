@@ -32,8 +32,8 @@ def _task_status_from_pull_request(pull_request: PullRequest) -> str:
         return "Closed"
 
 
-def _build_status_from_pull_request(pull_request: PullRequest) -> str:
-    return pull_request.build_status().capitalize()
+def _build_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
+    return pull_request.build_status().capitalize() if pull_request.build_status() else None
 
 
 _custom_fields_to_extract_map = {
@@ -56,12 +56,15 @@ def _custom_fields_from_pull_request(pull_request: PullRequest):
         custom_field_settings = list(get_project_custom_fields(project_id))
         data = {}
         for custom_field_name, action in _custom_fields_to_extract_map.items():
-            custom_field_id = _get_custom_field_id(custom_field_name, custom_field_settings)
-            enum_option_id = _get_custom_field_enum_option_id(
-                custom_field_name, action(pull_request), custom_field_settings
-            )
-            if custom_field_id and enum_option_id:
-                data[custom_field_id] = enum_option_id
+            enum_option_name = action(pull_request)
+
+            if enum_option_name:
+                custom_field_id = _get_custom_field_id(custom_field_name, custom_field_settings)
+                enum_option_id = _get_custom_field_enum_option_id(
+                    custom_field_name, enum_option_name, custom_field_settings
+                )
+                if custom_field_id and enum_option_id:
+                    data[custom_field_id] = enum_option_id
 
         return data
 

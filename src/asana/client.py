@@ -1,28 +1,18 @@
 from typing import List
 import asana
 from src.config import ASANA_API_KEY
-from src.logger import logger
-
 
 client = asana.Client.access_token(ASANA_API_KEY)
 client.headers = {"Asana-Enable": "string_ids"}
 
 
 def create_task(project: str) -> str:
-    try:
-        response = client.tasks.create({"projects": project})
-        return response["gid"]
-    except Exception as e:
-        logger.error("Error while trying to create task")
-        logger.error(e)
+    response = client.tasks.create({"projects": project})
+    return response["gid"]
 
 
 def update_task(task_id: str, fields: dict):
-    try:
-        client.tasks.update(task_id, fields)
-    except Exception as e:
-        logger.error("Error while trying to update task")
-        logger.error(e)
+    client.tasks.update(task_id, fields)
 
 
 def add_followers(task_id: str, followers: List[str]):

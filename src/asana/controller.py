@@ -34,7 +34,6 @@ def update_task(pull_request: PullRequest, task_id: str):
         for k, v in fields.items()
         if k in ("assignee", "name", "html_notes", "completed", "custom_fields")
     }
-    logger.info(f"Update task custom fields: {update_task_fields['custom_fields']}")
     asana_client.update_task(task_id, update_task_fields)
     asana_client.add_followers(task_id, fields["followers"])
 
