@@ -38,8 +38,10 @@ def set_api_keys(args):
         # The key file exist doesn't yet
         pass
 
-    secret = input("Enter the secret here: ")
-    keys[args.secret] = secret
+    for secret_name in args.keys:
+        secret = input("Enter the secret for {} (press enter without typing to skip): ".format(secret_name))
+        if secret != "":
+            keys[secret_name] = secret
 
     s3_client.put_object(
         Body=bytes(json.dumps(keys).encode("UTF-8")), Bucket=bucket_name, Key=key_name
@@ -81,7 +83,7 @@ def setup_state(args):
     )
 
 
-COMMAND_MAP = {"state": setup_state, "secret": set_api_keys}
+COMMAND_MAP = {"state": setup_state, "secrets": set_api_keys}
 
 
 if __name__ == "__main__":
@@ -91,13 +93,14 @@ if __name__ == "__main__":
     parser_state = subparsers.add_parser("state", help="Set up state")
     parser_state.set_defaults(action="state")
 
-    parser_secrets = subparsers.add_parser("secret", help="a hel")
-    parser_secrets.set_defaults(action="secret")
+    parser_secrets = subparsers.add_parser("secrets", help="Add api keys and secrets for SGTM to use")
+    parser_secrets.set_defaults(action="secrets")
     parser_secrets.add_argument(
-        "secret",
-        type=str,
-        choices=["ASANA_API_KEY", "GITHUB_API_KEY", "GITHUB_HMAC_SECRET"],
+        "--keys",
+        default=("ASANA_API_KEY", "GITHUB_API_KEY", "GITHUB_HMAC_SECRET"),
+        choices=("ASANA_API_KEY", "GITHUB_API_KEY", "GITHUB_HMAC_SECRET"),
         help="Select which secret to change",
+        nargs='+'
     )
 
     args = arg_parser.parse_args()

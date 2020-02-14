@@ -7,6 +7,7 @@ __api_keys_s3_key = os.getenv("API_KEYS_S3_KEY")
 if __api_keys_s3_bucket is None or __api_keys_s3_key is None:
     ASANA_API_KEY = os.getenv("ASANA_API_KEY")
     GITHUB_API_KEY = os.getenv("GITHUB_API_KEY")
+    GITHUB_HMAC_SECRET = os.getenv("GITHUB_HMAC_SECRET")
 else:
     s3 = boto3.client("s3")
     obj = s3.get_object(Bucket=__api_keys_s3_bucket, Key=__api_keys_s3_key)
