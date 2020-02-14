@@ -74,7 +74,7 @@ FRAGMENTS = {
         }
       }
       body
-      submitted_at
+      submittedAt
       state
       comments(last: 20) {
         nodes {

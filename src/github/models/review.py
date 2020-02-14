@@ -18,7 +18,7 @@ class Review(object):
         return self.raw_review["id"]
 
     def submitted_at(self) -> datetime:
-        return parse_date_string(self.raw_review["submitted_at"])
+        return parse_date_string(self.raw_review["submittedAt"])
 
     def state(self) -> str:
         return self.raw_review["state"]
