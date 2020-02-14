@@ -2,7 +2,7 @@
 
 ## API
 
-SGTM uses the GitHub GraphQL API v4, as described [here, on the GitHub developer site](https://developer.github.com/v4/).
+SGTM uses the GitHub API v4, as described [here, on the GitHub developer site](https://developer.github.com/v4/).  The API is implemented as a [GraphQL](https://graphql.org/learn/) service.
 
 ### Objects
 
