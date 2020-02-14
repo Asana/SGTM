@@ -88,9 +88,10 @@ class PullRequest(object):
         return self.raw_pull_request["merged"]
 
     def merged_at(self) -> Optional[datetime]:
-        if "mergedAt" not in self.raw_pull_request:
+        merged_at = self.raw_pull_request.get("mergedAt", None)
+        if merged_at is None:
             return None
-        return parse_date_string(self.raw_pull_request["mergedAt"])
+        return parse_date_string(merged_at)
 
     def reviews(self) -> List[Review]:
         return [Review(review) for review in self.raw_pull_request["reviews"]["nodes"]]
