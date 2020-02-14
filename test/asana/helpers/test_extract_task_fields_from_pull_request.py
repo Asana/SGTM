@@ -7,11 +7,8 @@ from test.asana.helpers.scaffolding_helpers import create_github_user,\
 class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
 
     def test_extracting_fields_from_pr_none_causes_a_valueerror(self):
-        try:
+        with self.assertRaises(ValueError):
             src.asana.helpers.extract_task_fields_from_pull_request(None)
-            self.fail("This code should have been unreachable")
-        except ValueError:
-            pass
 
     def test_name(self):
         pull_request = create_pull_request(number="PR_NUMBER", title="PR_TITLE")

@@ -6,11 +6,8 @@ from test.asana.helpers.scaffolding_helpers import create_github_user, create_co
 class TestAsanaCommentFromGitHubComment(BaseClass):
 
     def test_handles_illegal_args_gracefully(self):
-        try:
+        with self.assertRaises(ValueError):
             src.asana.helpers.asana_comment_from_github_comment(None)
-            self.fail("This code should have been unreachable")
-        except ValueError:
-            pass
 
     def test_includes_comment_text(self):
         github_comment = create_comment(body="GITHUB_COMMENT_TEXT")

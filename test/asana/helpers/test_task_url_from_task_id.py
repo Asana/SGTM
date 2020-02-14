@@ -14,18 +14,12 @@ class TestTaskUrlFromTaskId(BaseClass):
             "Expected task_url_from_task_id to refer to an Asana task")
 
     def test_none_causes_valueerror(self):
-        try:
+        with self.assertRaises(ValueError):
             src.asana.helpers.task_url_from_task_id(None)
-            self.fail("This code should have been unreachable")
-        except ValueError:
-            pass
 
     def test_empty_string_causes_valueerror(self):
-        try:
+        with self.assertRaises(ValueError):
             src.asana.helpers.task_url_from_task_id("")
-            self.fail("This code should have been unreachable")
-        except ValueError:
-            pass
 
 
 if __name__ == '__main__':
