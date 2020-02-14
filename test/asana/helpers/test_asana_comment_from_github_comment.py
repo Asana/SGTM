@@ -1,7 +1,6 @@
 import src.asana.helpers
 from test.asana.helpers.base_class import BaseClass
-from test.asana.helpers.scaffolding_helpers import create_github_user, \
-    create_pull_request, create_comment, create_review
+from test.asana.helpers.scaffolding_helpers import create_github_user, create_comment
 
 
 class TestAsanaCommentFromGitHubComment(BaseClass):
@@ -77,22 +76,3 @@ class TestAsanaCommentFromGitHubComment(BaseClass):
 if __name__ == '__main__':
     from unittest import main as run_tests
     run_tests()
-
-
-"""
-
-    return self.raw_comment["id"]
-
-    def published_at(self) -> datetime:
-        return parse_date_string(self.raw_comment["publishedAt"])
-
-    def body(self) -> str:
-        return self.raw_comment["body"]
-
-    def author_handle(self) -> str:
-        return self.author()["login"]
-
-    def author(self) -> dict:
-        return self.raw_comment["author"]
-        
-"""
