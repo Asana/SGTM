@@ -12,8 +12,10 @@ class ConfigurationError(Exception):
 def _create_dynamodb_client():
     try:
         return boto3.client("dynamodb")
-    except NoRegionError as e:
+    except NoRegionError:
         pass
+    # by raising the new error outside of the except clause, the ConfigurationError does not automatically contain
+    # the stack trace of the NoRegionError, which provides no extra value and clutters the console.
     raise ConfigurationError("Configuration error: Please select a region, e.g. via `AWS_DEFAULT_REGION=us-east-1`")
 
 
