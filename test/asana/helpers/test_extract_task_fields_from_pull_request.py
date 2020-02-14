@@ -115,7 +115,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
             closed=True, merged=True, merged_at="2020-01-13T14:59:59Z", with_reviews=[
                 create_review(submitted_at="2020-01-13T14:59:57Z", state="CHANGES_REQUESTED"),
             ], with_comments=[
-                create_comment(created_at="2020-02-02T12:12:12Z", body="LGTM!")
+                create_comment(published_at="2020-02-02T12:12:12Z", body="LGTM!")
             ])
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertEqual(True, task_fields["completed"])
@@ -125,7 +125,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
             closed=True, merged=True, merged_at="2020-01-13T14:59:59Z", with_reviews=[
                 create_review(submitted_at="2020-01-13T14:59:57Z", state="CHANGES_REQUESTED"),
             ], with_comments=[
-                create_comment(created_at="2020-01-13T14:59:58Z", body="LGTM!")
+                create_comment(published_at="2020-01-13T14:59:58Z", body="LGTM!")
             ])
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertEqual(False, task_fields["completed"])
@@ -168,7 +168,7 @@ class TestExtractsFollowersFromPullRequest(BaseClass):
 
     def test_commentor_is_a_follower(self):
         pull_request = create_pull_request(with_comments=[
-            create_comment(created_at="2020-01-13T14:59:58Z", body="LGTM!",
+            create_comment(published_at="2020-01-13T14:59:58Z", body="LGTM!",
                 with_author=create_github_user("github_commentor_login"))
         ])
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
@@ -176,7 +176,7 @@ class TestExtractsFollowersFromPullRequest(BaseClass):
 
     def test_requested_reviewer_is_a_follower(self):
         pull_request = create_pull_request(with_comments=[
-            create_comment(created_at="2020-01-13T14:59:58Z", body="LGTM!"),
+            create_comment(published_at="2020-01-13T14:59:58Z", body="LGTM!"),
         ], with_requested_reviewers=[create_github_user("github_requested_reviewer_login")])
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertIn("REQUESTED_REVIEWER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
@@ -241,7 +241,7 @@ class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertEqual(False, task_fields["completed"])
 
-    def test_does_not_rely_on_github_to_return_reviews_sorted_by_created_at_timestamp(self):
+    def test_does_not_rely_on_github_to_return_reviews_sorted_by_submitted_at_timestamp(self):
         # this would be a plausible state during a race condition, as two simultaneously submitted reviews could be
         # returned by github in the order they were inserted in a database, yet have slightly out-of-order timestamps
         pull_request = create_pull_request(
@@ -268,31 +268,36 @@ def create_github_user(login, name = None):
 def create_comment(**keywords):
     from test.github.helpers import CommentBuilder
     builder = CommentBuilder()
-    for k, v in keywords.items():
-        if not k.startswith("with_"):
-            builder.raw_comment[k] = v
-    return populate_subobjects(builder, keywords).build()
+    return populate_subobjects(builder, builder.raw_comment, keywords).build()
 
 
 def create_review(**keywords):
     from test.github.helpers import ReviewBuilder
     builder = ReviewBuilder()
-    for k, v in keywords.items():
-        if not k.startswith("with_"):
-            builder.raw_review[k] = v
-    return populate_subobjects(builder, keywords).build()
+    return populate_subobjects(builder, builder.raw_review, keywords).build()
 
 
 def create_pull_request(**keywords):
     from test.github.helpers import PullRequestBuilder
     builder = PullRequestBuilder()
+    return populate_subobjects(builder, builder.raw_pr, keywords).build()
+
+
+def snake_case_to_lower_camel_case(snake_cased_string: str) -> str:
+    """
+    Converts a string that is known to be in snake_case to a lowerCamelCase string
+    """
+    snake_segments = snake_cased_string.split('_')
+    snake_head, snake_tail = snake_segments[0], snake_segments[1:]
+    lowered_camel_head = snake_head.lower()
+    camel_humps = [snake_segment.title() for snake_segment in snake_tail]
+    return lowered_camel_head + "".join(camel_humps)
+
+
+def populate_subobjects(builder, raw_content, keywords):
     for k, v in keywords.items():
         if not k.startswith("with_"):
-            builder.raw_pr[k] = v
-    return populate_subobjects(builder, keywords).build()
-
-
-def populate_subobjects(builder, keywords):
+            raw_content[snake_case_to_lower_camel_case(k)] = v
     if "with_author" in keywords:
         login, name = keywords["with_author"]
         builder = builder.with_author(login, name)

@@ -173,7 +173,7 @@ class GithubLogicTest(unittest.TestCase):
                 [ReviewBuilder("This looks OK").with_submitted_at(reviewed_at)]
             )
             .with_comments(
-                [CommentBuilder("v cool use of emojis").with_created_at(commented_at)]
+                [CommentBuilder("v cool use of emojis").with_published_at(commented_at)]
             )
             .build()
         )
@@ -189,7 +189,7 @@ class GithubLogicTest(unittest.TestCase):
             .with_reviews(
                 [ReviewBuilder("This looks OK").with_submitted_at(reviewed_at)]
             )
-            .with_comments([CommentBuilder("LGTM!").with_created_at(commented_at)])
+            .with_comments([CommentBuilder("LGTM!").with_published_at(commented_at)])
             .build()
         )
         self.assertTrue(github_logic.pull_request_approved_after_merging(pull_request))
@@ -205,7 +205,7 @@ class GithubLogicTest(unittest.TestCase):
                 [ReviewBuilder("This looks great! :+1:").with_submitted_at(reviewed_at)]
             )
             .with_comments(
-                [CommentBuilder("v cool use of emojis").with_created_at(commented_at)]
+                [CommentBuilder("v cool use of emojis").with_published_at(commented_at)]
             )
             .build()
         )
