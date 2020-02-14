@@ -11,7 +11,7 @@ FRAGMENTS = {
       }
       closed
       merged
-      merged_at
+      mergedAt
       url
       number
       repository {
