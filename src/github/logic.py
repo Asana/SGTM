@@ -87,13 +87,15 @@ def pull_request_approved_after_merging(pull_request: PullRequest) -> bool:
     merged_at = pull_request.merged_at()
     # the marker text may occur in any comment in the pr that occurred post-merge
     # TODO: consider whether we should allow pre-merge comments to have the same effect? It seems likely that
-    # this limitation is just intended to ensure that the asana task is not closed due to a marker text unless
-    # the PR has been merged into next-master, otherwise it might be forgotten in an approved state
+    #       this limitation is just intended to ensure that the asana task is not closed due to a marker text unless
+    #       the PR has been merged into next-master, otherwise it might be forgotten in an approved state
     postmerge_comments = [
         comment
         for comment in pull_request.comments()
         if comment.published_at() >= merged_at
-        # TODO: consider inspecting updated_at timestamp for comments
+        # TODO: consider using the lastEditedAt timestamp. A reviewer might comment: "noice!" prior to the PR being
+        #       merged, then update their comment to "noice! LGTM!!!" after it had been merged.  This would however not
+        #       suffice to cause the PR to be considered approved after merging.
     ]
     # or it may occur in the summary text of a review that was submitted after the pr was merged
     postmerge_reviews = [
