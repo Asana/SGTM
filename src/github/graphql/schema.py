@@ -41,7 +41,7 @@ FRAGMENTS = {
           author {
             login
           }
-          created_at
+          publishedAt
           body
         }
       }

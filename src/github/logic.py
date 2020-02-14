@@ -92,7 +92,7 @@ def pull_request_approved_after_merging(pull_request: PullRequest) -> bool:
     postmerge_comments = [
         comment
         for comment in pull_request.comments()
-        if comment.created_at() >= merged_at
+        if comment.published_at() >= merged_at
         # TODO: consider inspecting updated_at timestamp for comments
     ]
     # or it may occur in the summary text of a review that was submitted after the pr was merged

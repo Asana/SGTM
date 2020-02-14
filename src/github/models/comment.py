@@ -11,8 +11,8 @@ class Comment(object):
     def id(self) -> str:
         return self.raw_comment["id"]
 
-    def created_at(self) -> datetime:
-        return parse_date_string(self.raw_comment["created_at"])
+    def published_at(self) -> datetime:
+        return parse_date_string(self.raw_comment["publishedAt"])
 
     def body(self) -> str:
         return self.raw_comment["body"]
