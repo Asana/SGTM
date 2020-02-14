@@ -3,7 +3,7 @@ import unittest
 from src.utils import memoize, parse_date_string
 
 
-class ParseDateString(unittest.TestCase):
+class TestParseDateString(unittest.TestCase):
 
     def test_parse_date_string(self):
         date_strings = [
@@ -21,7 +21,7 @@ class ParseDateString(unittest.TestCase):
             self.assertEqual(3, dt.second)
 
 
-class Memoize(unittest.TestCase):
+class TestMemoize(unittest.TestCase):
 
     def test_decorated_functions_should_always_return_the_same_value(self):
         tmp_remember_me = 0
