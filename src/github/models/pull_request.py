@@ -73,7 +73,10 @@ class PullRequest(object):
         return self.raw_pull_request["repository"]["owner"]["login"]
 
     def author_handle(self) -> str:
-        return self.raw_pull_request["author"]["login"]
+        return self.author()["login"]
+
+    def author(self) -> dict:
+        return self.raw_pull_request["author"]
 
     def body(self) -> str:
         return self.__body

@@ -1,5 +1,7 @@
 import src.asana.helpers
 from test.asana.helpers.base_class import BaseClass
+from test.asana.helpers.scaffolding_helpers import create_github_user,\
+    create_pull_request, create_comment, create_review
 
 
 class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
@@ -35,21 +37,21 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
             "BODY",
             "</body>"
         ]
-        for expected in expected_strings:
-            self.assertIn(expected, actual, f"Expected html_notes to contain {expected}")
+        self.assertContainsStrings(actual, expected_strings)
 
 
 class TestExtractsAssigneeFromPullRequest(BaseClass):
 
     def test_assignee(self):
-        assignee_nodes = [{"login": "github_assignee_login"}]
-        pull_request = create_pull_request(assignees={"nodes": assignee_nodes})
+        pull_request = create_pull_request(with_assignees=[create_github_user("github_assignee_login")])
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertEqual("ASSIGNEE_ASANA_DOMAIN_USER_ID", task_fields["assignee"])
 
     def test_assignee_returns_first_assignee_by_login_if_many(self):
-        assignee_nodes = [{"login": "github_assignee_login_billy"}, {"login": "github_assignee_login_annie"}]
-        pull_request = create_pull_request(assignees={"nodes": assignee_nodes})
+        pull_request = create_pull_request(with_assignees=[
+            create_github_user("github_assignee_login_billy"),
+            create_github_user("github_assignee_login_annie")
+        ])
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertEqual("ANNIE_ASANA_DOMAIN_USER_ID", task_fields["assignee"])
 
@@ -259,56 +261,6 @@ class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
             ])
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertEqual(True, task_fields["completed"])
-
-
-def create_github_user(login, name = None):
-    return login, name
-
-
-def create_comment(**keywords):
-    from test.github.helpers import CommentBuilder
-    builder = CommentBuilder()
-    return populate_subobjects(builder, builder.raw_comment, keywords).build()
-
-
-def create_review(**keywords):
-    from test.github.helpers import ReviewBuilder
-    builder = ReviewBuilder()
-    return populate_subobjects(builder, builder.raw_review, keywords).build()
-
-
-def create_pull_request(**keywords):
-    from test.github.helpers import PullRequestBuilder
-    builder = PullRequestBuilder()
-    return populate_subobjects(builder, builder.raw_pr, keywords).build()
-
-
-def snake_case_to_lower_camel_case(snake_cased_string: str) -> str:
-    """
-    Converts a string that is known to be in snake_case to a lowerCamelCase string
-    """
-    snake_segments = snake_cased_string.split('_')
-    snake_head, snake_tail = snake_segments[0], snake_segments[1:]
-    lowered_camel_head = snake_head.lower()
-    camel_humps = [snake_segment.title() for snake_segment in snake_tail]
-    return lowered_camel_head + "".join(camel_humps)
-
-
-def populate_subobjects(builder, raw_content, keywords):
-    for k, v in keywords.items():
-        if not k.startswith("with_"):
-            raw_content[snake_case_to_lower_camel_case(k)] = v
-    if "with_author" in keywords:
-        login, name = keywords["with_author"]
-        builder = builder.with_author(login, name)
-    else:
-        builder = builder.with_author("github_author_login", "GITHUB_AUTHOR_NAME")
-    sub_objects = ["with_body", "with_reviews", "with_comments", "with_assignees", "with_requested_reviewers"]
-    for sub_object in sub_objects:
-        if sub_object in keywords:
-            setter = getattr(builder, sub_object)
-            builder = setter(keywords[sub_object])
-    return builder
 
 
 if __name__ == '__main__':
