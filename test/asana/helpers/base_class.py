@@ -6,10 +6,12 @@ from test.asana.helpers.dynamodb_client import DynamoDbClient
 
 class BaseClass(TestCase):
     def setUp(self):
-        DynamoDbClient.initialize()
+        pass
+        #DynamoDbClient.initialize()
 
     def tearDown(self):
-        DynamoDbClient.finalize()
+        pass
+        #DynamoDbClient.finalize()
 
     def assertContainsStrings(self, actual: str, expected_strings: List[str], field_name: str = None):
         if field_name is None:
