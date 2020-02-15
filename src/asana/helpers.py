@@ -2,7 +2,7 @@ import re
 from html import escape
 from typing import Callable, Match, Optional
 import src.dynamodb.client as dynamodb_client
-from src.github.models import Comment, PullRequest, Review
+from src.github.models import Comment, PullRequest, Review, User
 from src.github import logic as github_logic
 
 
@@ -41,25 +41,22 @@ def _asana_user_id_from_github_handle(github_handle: str) -> Optional[str]:
     return dynamodb_client.get_asana_domain_user_id_from_github_handle(github_handle)
 
 
-def _asana_display_name_for_github_user(github_user: dict) -> str:
+def _asana_display_name_for_github_user(github_user: User) -> str:
     """
         Retrieves a display name for a GitHub user that is usable in Asana. If the GitHub user is known by SGTM to
         be an Asana user, then an Asana user URL will be returned, otherwise the display name will be of the form:
                 GitHub user 'David Brandt (padresmurfa)'
             or  Github user 'padresmurfa'
     """
-    if github_user is None or "login" not in github_user or not github_user["login"].strip():
-        raise ValueError("_asana_display_name_for_github_user requires a github_user with a 'login' value")
-    github_user_handle = github_user.get("login")
-    if github_user_handle is not None:
-        asana_author_user = _asana_user_url_from_github_user_handle(github_user_handle)
-        if asana_author_user is not None:
-            return asana_author_user
+    if github_user is None:
+        raise ValueError("_asana_display_name_for_github_user requires a github_user")
+    asana_author_user = _asana_user_url_from_github_user_handle(github_user.login())
+    if asana_author_user is not None:
+        return asana_author_user
     # default to returning GitHub user details, if Asana user details are not available
-    github_user_name = github_user.get("name", None)
-    if github_user_name is not None and github_user_name.strip():
-        return f"GitHub user '{github_user_name} ({github_user_handle})'"
-    return f"GitHub user '{github_user_handle}'"
+    if github_user.name() is not None and github_user.name():
+        return f"GitHub user '{github_user.name()} ({github_user.login()})'"
+    return f"GitHub user '{github_user.login()}'"
 
 
 def _asana_user_url_from_github_user_handle(github_handle: str) -> Optional[str]:
@@ -81,7 +78,10 @@ def _transform_github_mentions_to_asana_mentions(text: str) -> str:
             # Return the full matched string, including the "@"
             return match.group(0)
         else:
-            return _asana_user_url_from_github_user_handle(github_handle)
+            asana_user_url = _asana_user_url_from_github_user_handle(github_handle)
+            if asana_user_url is None:
+                return github_handle
+            return asana_user_url
 
     return re.sub(github_logic.GITHUB_MENTION_REGEX, _github_mention_to_asana_mention, text)
 
@@ -152,10 +152,9 @@ def asana_comment_from_github_review(review: Review) -> str:
 
 def _task_description_from_pull_request(pull_request: PullRequest) -> str:
     url = pull_request.url()
-    github_author_handle = pull_request.author_handle()
-    author = _asana_user_url_from_github_user_handle(github_author_handle)
+    github_author = pull_request.author()
+    author = _asana_user_url_from_github_user_handle(github_author.login())
     if author is None:
-        github_author = pull_request.author()
         author = _asana_display_name_for_github_user(github_author)
     return _wrap_in_tag("body")(
         _wrap_in_tag("em")(

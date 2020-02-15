@@ -51,15 +51,16 @@ def pull_request_approved_before_merging(pull_request: PullRequest) -> bool:
     requested) before merging was an approval
     """
     merged_at = pull_request.merged_at()
-    premerge_reviews = [
-        review
-        for review in pull_request.reviews()
-        if review.is_approval_or_changes_requested()
-        and review.submitted_at() < merged_at
-    ]
-    if premerge_reviews:
-        latest_review = sorted(premerge_reviews, key=lambda r: r.submitted_at())[-1]
-        return latest_review.is_approval()
+    if merged_at is not None:
+        premerge_reviews = [
+            review
+            for review in pull_request.reviews()
+            if review.is_approval_or_changes_requested()
+            and review.submitted_at() < merged_at
+        ]
+        if premerge_reviews:
+            latest_review = sorted(premerge_reviews, key=lambda r: r.submitted_at())[-1]
+            return latest_review.is_approval()
     return False
 
 
@@ -85,29 +86,31 @@ def pull_request_approved_after_merging(pull_request: PullRequest) -> bool:
     This method handles this part of the logic.
     """
     merged_at = pull_request.merged_at()
-    # the marker text may occur in any comment in the pr that occurred post-merge
-    # TODO: consider whether we should allow pre-merge comments to have the same effect? It seems likely that
-    #       this limitation is just intended to ensure that the asana task is not closed due to a marker text unless
-    #       the PR has been merged into next-master, otherwise it might be forgotten in an approved state
-    postmerge_comments = [
-        comment
-        for comment in pull_request.comments()
-        if comment.published_at() >= merged_at
-        # TODO: consider using the lastEditedAt timestamp. A reviewer might comment: "noice!" prior to the PR being
-        #       merged, then update their comment to "noice! LGTM!!!" after it had been merged.  This would however not
-        #       suffice to cause the PR to be considered approved after merging.
-    ]
-    # or it may occur in the summary text of a review that was submitted after the pr was merged
-    postmerge_reviews = [
-        review for review in pull_request.reviews() if review.submitted_at() >= merged_at
-    ]
-    body_texts = [c.body() for c in postmerge_comments] + [
-        r.body() for r in postmerge_reviews
-    ]
-    # TODO: consider whether we should disallow the pr author to approve their own pr via a LGTM comment
-    return bool(
-        [body_text for body_text in body_texts if _is_approval_comment_body(body_text)]
-    )
+    if merged_at is not None:
+        # the marker text may occur in any comment in the pr that occurred post-merge
+        # TODO: consider whether we should allow pre-merge comments to have the same effect? It seems likely that
+        #       this limitation is just intended to ensure that the asana task is not closed due to a marker text unless
+        #       the PR has been merged into next-master, otherwise it might be forgotten in an approved state
+        postmerge_comments = [
+            comment
+            for comment in pull_request.comments()
+            if comment.published_at() >= merged_at
+            # TODO: consider using the lastEditedAt timestamp. A reviewer might comment: "noice!" prior to the PR being
+            #       merged, then update their comment to "noice! LGTM!!!" after it had been merged.  This would however not
+            #       suffice to cause the PR to be considered approved after merging.
+        ]
+        # or it may occur in the summary text of a review that was submitted after the pr was merged
+        postmerge_reviews = [
+            review for review in pull_request.reviews() if review.submitted_at() >= merged_at
+        ]
+        body_texts = [c.body() for c in postmerge_comments] + [
+            r.body() for r in postmerge_reviews
+        ]
+        # TODO: consider whether we should disallow the pr author to approve their own pr via a LGTM comment
+        return bool(
+            [body_text for body_text in body_texts if _is_approval_comment_body(body_text)]
+        )
+    return False
 
 
 def all_pull_request_participants(pull_request: PullRequest) -> List[str]:

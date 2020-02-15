@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Callable
+from typing import Callable, Dict, Any
 
 
 def parse_date_string(date_string: str) -> datetime:
@@ -11,7 +11,7 @@ def create_date_string(from_datetime: datetime) -> str:
 
 
 def memoize(func: Callable) -> Callable:
-    memo = {}
+    memo:Dict[Any,Any] = {}
 
     def inner(*args):
         if args in memo:

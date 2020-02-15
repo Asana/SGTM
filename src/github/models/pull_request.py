@@ -1,32 +1,37 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from src.logger import logger
 from src.utils import parse_date_string
 from .review import Review
 from .comment import Comment
+from .user import User
+import copy
 
 
 class PullRequest(object):
-    def __init__(self, raw_pull_request):
-        self.raw_pull_request = raw_pull_request
+    def __init__(self, raw_pull_request: Dict[str, Any]):
+        self.__raw = copy.deepcopy(raw_pull_request)
         self.__assignees = self._assignees_from_raw()
-        self.__body = raw_pull_request["body"]
 
     def _assignees_from_raw(self) -> List[str]:
         return sorted(
-            [node["login"] for node in self.raw_pull_request["assignees"]["nodes"]]
+            [node["login"] for node in self.__raw["assignees"]["nodes"]]
         )
 
     def assignees(self) -> List[str]:
         return self.__assignees
 
     def set_assignees(self, assignees: List[str]):
-        self.__assignees = assignees
+        self.__raw = copy.deepcopy(self.__raw)
+        self.__raw["assignees"]["nodes"] = [
+            {"login": assignee_login} for assignee_login in assignees
+        ]
+        self.__assignees = self._assignees_from_raw()
 
     def requested_reviewers(self) -> List[str]:
         return sorted(
             node["requestedReviewer"]["login"]
-            for node in self.raw_pull_request["reviewRequests"]["nodes"]
+            for node in self.__raw["reviewRequests"]["nodes"]
         )
 
     def reviewers(self) -> List[str]:
@@ -49,57 +54,64 @@ class PullRequest(object):
             return assignee
 
     def id(self) -> str:
-        return self.raw_pull_request["id"]
+        return self.__raw["id"]
 
     def number(self) -> int:
-        return self.raw_pull_request["number"]
+        return self.__raw["number"]
 
     def title(self) -> int:
-        return self.raw_pull_request["title"]
+        return self.__raw["title"]
 
     def url(self) -> str:
-        return self.raw_pull_request["url"]
+        return self.__raw["url"]
 
     def repository_id(self) -> str:
-        return self.raw_pull_request["repository"]["id"]
+        return self.__raw["repository"]["id"]
 
     def repository_name(self) -> str:
-        return self.raw_pull_request["repository"]["name"]
+        return self.__raw["repository"]["name"]
 
     def owner_handle(self) -> str:
-        return self.raw_pull_request["owner"]["login"]
+        return self.owner().login()
+
+    def owner(self) -> User:
+        return User(self.__raw["owner"])
 
     def repository_owner_handle(self) -> str:
-        return self.raw_pull_request["repository"]["owner"]["login"]
+        return self.__raw["repository"]["owner"]["login"]
+
+    def author(self) -> User:
+        return User(self.__raw["author"])
 
     def author_handle(self) -> str:
-        return self.author()["login"]
-
-    def author(self) -> dict:
-        return self.raw_pull_request["author"]
+        return self.author().login()
 
     def body(self) -> str:
-        return self.__body
+        return self.__raw["body"]
 
     def set_body(self, body: str):
-        self.__body = body
+        self.__raw = copy.deepcopy(self.__raw)
+        self.__raw["body"] = copy.deepcopy(body)
 
     def closed(self) -> bool:
-        return self.raw_pull_request["closed"]
+        return self.__raw["closed"]
 
     def merged(self) -> bool:
-        return self.raw_pull_request["merged"]
+        return self.__raw["merged"]
 
     def merged_at(self) -> Optional[datetime]:
-        merged_at = self.raw_pull_request.get("mergedAt", None)
+        merged_at = self.__raw.get("mergedAt", None)
         if merged_at is None:
             return None
         return parse_date_string(merged_at)
 
     def reviews(self) -> List[Review]:
-        return [Review(review) for review in self.raw_pull_request["reviews"]["nodes"]]
+        return [Review(review) for review in self.__raw["reviews"]["nodes"]]
 
     def comments(self) -> List[Comment]:
         return [
-            Comment(comment) for comment in self.raw_pull_request["comments"]["nodes"]
+            Comment(comment) for comment in self.__raw["comments"]["nodes"]
         ]
+
+    def to_raw(self) -> Dict[str, Any]:
+        return copy.deepcopy(self.__raw)
