@@ -35,18 +35,18 @@ EOF
 }
 
 resource "aws_iam_role_policy_attachment" "lambda-function-dynamo-db-access" {
-  role       = "${aws_iam_role.iam_for_lambda_function.name}"
-  policy_arn = "${data.aws_iam_policy.AmazonDynamoDBFullAccess.arn}"
+  role       = aws_iam_role.iam_for_lambda_function.name
+  policy_arn = data.aws_iam_policy.AmazonDynamoDBFullAccess.arn
 }
 
 resource "aws_iam_role_policy_attachment" "lambda-function-basic-execution-role" {
-  role       = "${aws_iam_role.iam_for_lambda_function.name}"
-  policy_arn = "${data.aws_iam_policy.AWSLambdaBasicExecutionRole.arn}"
+  role       = aws_iam_role.iam_for_lambda_function.name
+  policy_arn = data.aws_iam_policy.AWSLambdaBasicExecutionRole.arn
 }
 
 resource "aws_iam_role_policy_attachment" "lambda-function-api-keys" {
-  role       = "${aws_iam_role.iam_for_lambda_function.name}"
-  policy_arn = "${aws_iam_policy.LambdaFunctionApiKeysBucketAccess.arn}"
+  role       = aws_iam_role.iam_for_lambda_function.name
+  policy_arn = aws_iam_policy.LambdaFunctionApiKeysBucketAccess.arn
 }
 
 resource "aws_iam_policy" "LambdaFunctionApiKeysBucketAccess" {
@@ -83,21 +83,21 @@ EOF
 resource "aws_lambda_function" "sgtm" {
   filename      = "../build/function.zip"
   function_name = "sgtm"
-  role          = "${aws_iam_role.iam_for_lambda_function.arn}"
+  role          = aws_iam_role.iam_for_lambda_function.arn
   handler       = "src.handler.handler"
 
   # The filebase64sha256() function is available in Terraform 0.11.12 and later
   # For Terraform 0.11.11 and earlier, use the base64sha256() function and the file() function:
-  # source_code_hash = "${base64sha256(file("lambda_function_payload.zip"))}"
-  source_code_hash = "${filebase64sha256("../build/function.zip")}"
+  # source_code_hash = base64sha256(file("lambda_function_payload.zip"))
+  source_code_hash = filebase64sha256("../build/function.zip")
 
   runtime = "python3.7"
 
   timeout = var.lambda_function_timeout
   environment {
     variables = {
-      API_KEYS_S3_BUCKET  = "${var.api_key_s3_bucket_name}",
-      API_KEYS_S3_KEY     = "${var.api_key_s3_object}"
+      API_KEYS_S3_BUCKET  = var.api_key_s3_bucket_name,
+      API_KEYS_S3_KEY     = var.api_key_s3_object
     }
   }
 
@@ -114,52 +114,52 @@ resource "aws_api_gateway_rest_api" "sgtm_rest_api" {
 }
 
 resource "aws_api_gateway_resource" "sgtm_resource" {
-  rest_api_id = "${aws_api_gateway_rest_api.sgtm_rest_api.id}"
-  parent_id   = "${aws_api_gateway_rest_api.sgtm_rest_api.root_resource_id}"
+  rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api.id
+  parent_id   = aws_api_gateway_rest_api.sgtm_rest_api.root_resource_id
   path_part   = "sgtm"
 }
 
 resource "aws_api_gateway_method" "sgtm_post" {
-  rest_api_id   = "${aws_api_gateway_rest_api.sgtm_rest_api.id}"
-  resource_id   = "${aws_api_gateway_resource.sgtm_resource.id}"
+  rest_api_id   = aws_api_gateway_rest_api.sgtm_rest_api.id
+  resource_id   = aws_api_gateway_resource.sgtm_resource.id
   http_method   = "POST"
   authorization = "NONE"
 }
 
 resource "aws_api_gateway_deployment" "sgtm_deployment" {
-  depends_on  = ["aws_api_gateway_integration.sgtm_lambda_integration"]
-  rest_api_id = "${aws_api_gateway_rest_api.sgtm_rest_api.id}"
+  depends_on  = [aws_api_gateway_integration.sgtm_lambda_integration]
+  rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api.id
   stage_name  = "default"
 }
 
 resource "aws_api_gateway_method_response" "proxy" {
-  rest_api_id = "${aws_api_gateway_rest_api.sgtm_rest_api.id}"
-  resource_id = "${aws_api_gateway_resource.sgtm_resource.id}"
-  http_method = "${aws_api_gateway_method.sgtm_post.http_method}"
+  rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api.id
+  resource_id = aws_api_gateway_resource.sgtm_resource.id
+  http_method = aws_api_gateway_method.sgtm_post.http_method
   status_code = "200"
 }
 
 resource "aws_api_gateway_integration" "sgtm_lambda_integration" {
-  rest_api_id             = "${aws_api_gateway_rest_api.sgtm_rest_api.id}"
-  resource_id             = "${aws_api_gateway_resource.sgtm_resource.id}"
-  http_method             = "${aws_api_gateway_method.sgtm_post.http_method}"
+  rest_api_id             = aws_api_gateway_rest_api.sgtm_rest_api.id
+  resource_id             = aws_api_gateway_resource.sgtm_resource.id
+  http_method             = aws_api_gateway_method.sgtm_post.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
-  uri                     = "${aws_lambda_function.sgtm.invoke_arn}"
+  uri                     = aws_lambda_function.sgtm.invoke_arn
 }
 
 resource "aws_api_gateway_integration_response" "sgtm_proxy_response" {
-  depends_on = ["aws_api_gateway_integration.sgtm_lambda_integration"]
-  rest_api_id = "${aws_api_gateway_rest_api.sgtm_rest_api.id}"
-  resource_id = "${aws_api_gateway_resource.sgtm_resource.id}"
-  http_method = "${aws_api_gateway_method.sgtm_post.http_method}"
-  status_code = "${aws_api_gateway_method_response.proxy.status_code}"
+  depends_on = [aws_api_gateway_integration.sgtm_lambda_integration]
+  rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api.id
+  resource_id = aws_api_gateway_resource.sgtm_resource.id
+  http_method = aws_api_gateway_method.sgtm_post.http_method
+  status_code = aws_api_gateway_method_response.proxy.status_code
 }
 
 resource "aws_lambda_permission" "lambda_permission_for_sgtm_rest_api" {
   statement_id  = "AllowSGTMAPIInvoke"
   action        = "lambda:InvokeFunction"
-  function_name = "${aws_lambda_function.sgtm.function_name}"
+  function_name = aws_lambda_function.sgtm.function_name
   principal     = "apigateway.amazonaws.com"
 
   # More: http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-control-access-using-iam-policies-to-invoke-api.html
@@ -221,7 +221,7 @@ resource "aws_s3_bucket" "api_key_bucket" {
   server_side_encryption_configuration {
     rule {
       apply_server_side_encryption_by_default {
-        kms_master_key_id = "${aws_kms_key.api_encryption_key.arn}"
+        kms_master_key_id = aws_kms_key.api_encryption_key.arn
         sse_algorithm     = "aws:kms"
       }
     }
