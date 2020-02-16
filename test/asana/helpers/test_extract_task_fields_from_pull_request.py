@@ -153,7 +153,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
         self.assertEqual(False, task_fields["completed"])
 
     def test_completed_handles_gracefully_if_pr_is_closed_and_pr_was_approved_before_merging_with_merged_glitch(self):
-        pull_request = (
+        pull_request = build(
             builder.pull_request().
             closed(True).
             merged(False).
@@ -162,13 +162,13 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
                 builder.review().
                 submitted_at("2020-01-13T14:59:59Z").
                 state("APPROVED")
-            ]).build()
+            ])
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertEqual(True, task_fields["completed"])
 
     def test_completed_is_true_if_pr_is_closed_and_was_approved_before_merging_even_if_changes_had_been_requested(self):
-        pull_request = (
+        pull_request = build(
             builder.pull_request().
             closed(True).
             merged(True).
@@ -183,13 +183,13 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
                     submitted_at("2020-01-13T14:59:58Z").
                     state("APPROVED")
                 )
-            ]).build()
+            ])
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertEqual(True, task_fields["completed"])
 
     def test_completed_is_true_if_pr_was_merged_and_changes_requested_and_commented_lgtm_on_the_pr_after_merge(self):
-        pull_request = (
+        pull_request = build(
             builder.pull_request().
             closed(True).
             merged(True).
@@ -202,13 +202,13 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
                 builder.comment().
                 published_at("2020-02-02T12:12:12Z").
                 body("LGTM!")
-            ]).build()
+            ])
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertEqual(True, task_fields["completed"])
 
     def test_completed_is_false_if_pr_was_merged_and_changes_requested_and_commented_lgtm_on_the_pr_before_merge(self):
-        pull_request = (
+        pull_request = build(
             builder.pull_request().
             closed(True).
             merged(True).
@@ -221,7 +221,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
                 builder.comment().
                 published_at("2020-01-13T14:59:58Z").
                 body("LGTM!")
-            ]).build()
+            ])
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertEqual(False, task_fields["completed"])
@@ -230,7 +230,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
         # this is a bit of a nuanced case. Here the reviewer has requested changes, but still said LGTM!, so we
         # interpret this as the reviewer trusting the author to make the changes requested without having to come
         # back to the reviewer and review that the changes were made
-        pull_request = (
+        pull_request = build(
             builder.pull_request().
             closed(True).
             merged(True).
@@ -240,7 +240,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
                 submitted_at("2020-02-13T14:59:57Z").
                 state("CHANGES_REQUESTED").
                 body("LGTM!")
-            ]).build()
+            ])
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertEqual(True, task_fields["completed"])
@@ -249,25 +249,23 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
 class TestExtractsFollowersFromPullRequest(BaseClass):
 
     def test_author_is_a_follower(self):
-        pull_request = (
+        pull_request = build(
             builder.pull_request().
-            author(builder.user("github_test_user_login")).
-            build()
+            author(builder.user("github_test_user_login"))
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_assignee_is_a_follower(self):
-        pull_request = (
+        pull_request = build(
             builder.pull_request().
-            assignee(builder.user("github_test_user_login", "TEST_USER_ASANA_DOMAIN_USER_ID")).
-            build()
+            assignee(builder.user("github_test_user_login", "TEST_USER_ASANA_DOMAIN_USER_ID"))
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_reviewer_is_a_follower(self):
-        pull_request = (
+        pull_request = build(
             builder.pull_request().
             reviews([
                 builder.review().
@@ -275,26 +273,26 @@ class TestExtractsFollowersFromPullRequest(BaseClass):
                 state("CHANGES_REQUESTED").
                 body("LGTM!").
                 author(builder.user("github_test_user_login"))
-            ]).build()
+            ])
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_commentor_is_a_follower(self):
-        pull_request = (
+        pull_request = build(
             builder.pull_request().
             comments([
                 builder.comment().
                 published_at("2020-01-13T14:59:58Z").
                 body("LGTM!").
                 author(builder.user("github_test_user_login"))
-            ]).build()
+            ])
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_requested_reviewer_is_a_follower(self):
-        pull_request = (
+        pull_request = build(
             builder.pull_request().
             comments([
                 builder.comment().
@@ -302,48 +300,46 @@ class TestExtractsFollowersFromPullRequest(BaseClass):
                 body("LGTM!"),
             ]).requested_reviewers([
                 builder.user("github_test_user_login")
-            ]).build()
+            ])
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_individual_that_is_at_mentioned_in_comments_is_a_follower(self):
-        pull_request = (
+        pull_request = build(
             builder.pull_request().
             comments([
                 builder.comment().
                 body("@github_test_user_login")
-            ]).build()
+            ])
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_individual_that_is_at_mentioned_in_review_comments_is_a_follower(self):
-        pull_request = (
+        pull_request = build(
             builder.pull_request().
             reviews([
                 builder.review().
                 body("@github_test_user_login")
-            ]).build()
+            ])
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_individual_that_is_at_mentioned_in_pr_body_is_a_follower(self):
-        pull_request = (
+        pull_request = build(
             builder.pull_request().
-            body("@github_test_user_login").
-            build()
+            body("@github_test_user_login")
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_non_asana_user_is_not_a_follower(self):
-        unknown_github_user = (
-            builder.user("github_unknown_user_login", "GITHUB_UNKNOWN_USER_NAME").
-            build()
+        unknown_github_user = build(
+            builder.user("github_unknown_user_login", "GITHUB_UNKNOWN_USER_NAME")
         )
-        pull_request = (
+        pull_request = build(
             builder.pull_request().
             body("@github_unknown_user_login").
             author(unknown_github_user).
@@ -356,8 +352,7 @@ class TestExtractsFollowersFromPullRequest(BaseClass):
                 builder.comment().
                 body("@github_unknown_user_login").
                 author(unknown_github_user)
-            ).requested_reviewer(unknown_github_user).
-            build()
+            ).requested_reviewer(unknown_github_user)
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertEqual(0, len(task_fields["followers"]))
@@ -377,7 +372,7 @@ class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
             # operator such as < > <= >=)
             pass
 
-        pull_request = (
+        pull_request = build(
             builder.pull_request().
             closed(True).
             merged(False).
@@ -386,7 +381,7 @@ class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
                 builder.review().
                 submitted_at("2020-01-13T14:59:58Z").
                 state("APPROVED")
-            ]).build()
+            ])
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertEqual(True, task_fields["completed"])
@@ -394,11 +389,10 @@ class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
     def test_completed_is_false_if_pr_is_not_closed_but_still_merged(self):
         # this should be a totally illegal state that we received from GitHub, but it could theoretically exist due
         # to poorly implemented failure modes, concurrency issues, or data corruption due to errors
-        pull_request = (
+        pull_request = build(
             builder.pull_request().
             closed(False).
-            merged(True).
-            build()
+            merged(True)
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertEqual(False, task_fields["completed"])
@@ -406,7 +400,7 @@ class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
     def test_does_not_rely_on_github_to_return_reviews_sorted_by_submitted_at_timestamp(self):
         # this would be a plausible state during a race condition, as two simultaneously submitted reviews could be
         # returned by github in the order they were inserted in a database, yet have slightly out-of-order timestamps
-        pull_request = (
+        pull_request = build(
             builder.pull_request().
             closed(True).
             merged(True).
@@ -421,10 +415,11 @@ class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
                     submitted_at("2020-01-13T14:59:57Z").
                     state("APPROVED")
                 ),
-            ]).build())
+            ])
+        )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertEqual(False, task_fields["completed"])
-        pull_request = (
+        pull_request = build(
             builder.pull_request().
             closed(True).
             merged(True).
@@ -439,7 +434,7 @@ class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
                     submitted_at("2020-01-13T14:59:57Z").
                     state("CHANGES_REQUESTED")
                 ),
-            ]).build()
+            ])
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
         self.assertEqual(True, task_fields["completed"])
