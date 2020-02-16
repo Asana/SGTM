@@ -1,12 +1,12 @@
 import src.asana.helpers
-from test.asana.helpers.base_class import BaseClass as GenericBaseClass
+from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 from test.impl.builders import builder, build
 
 
-class BaseClass(GenericBaseClass):
+class BaseClass(MockDynamoDbTestCase):
     @classmethod
     def setUpClass(cls):
-        GenericBaseClass.setUpClass()
+        MockDynamoDbTestCase.setUpClass()
         cls.insert_test_user_into_user_table("github_test_user_login", "TEST_USER_ASANA_DOMAIN_USER_ID")
 
 

@@ -1,6 +1,6 @@
 import src.asana.helpers
 
-from test.asana.helpers.base_class import BaseClass
+from test.impl.base_test_case_class import BaseClass
 
 
 class TestTaskUrlFromTaskId(BaseClass):

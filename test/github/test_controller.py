@@ -1,11 +1,11 @@
 from unittest.mock import patch
 from uuid import uuid4
-from test.dynamodb.mock_dynamodb_test_case import MockDynamoDbTestCase
+from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 import src.github.client as github_client
 import src.github.controller as github_controller
 import src.asana.controller as asana_controller
 import src.dynamodb.client as dynamodb_client
-from test.impl.builders import builder, build
+from test.impl.builders import builder
 
 
 class GithubControllerTest(MockDynamoDbTestCase):

@@ -2,15 +2,13 @@
 Test case that should be used for tests that require integration with dynamodb
 or other external resources.
 """
-from unittest import TestCase
 import boto3
-
 from moto import mock_dynamodb2
 from src.config import OBJECTS_TABLE, USERS_TABLE, LOCK_TABLE
-
+from .base_test_case_class import BaseClass
 
 @mock_dynamodb2
-class MockDynamoDbTestCase(TestCase):
+class MockDynamoDbTestCase(BaseClass):
 
     @classmethod
     def tearDownClass(cls):

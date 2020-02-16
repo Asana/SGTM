@@ -1,5 +1,5 @@
 import boto3
-from test.dynamodb.mock_dynamodb_test_case import MockDynamoDbTestCase
+from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 from src.config import USERS_TABLE
 import src.dynamodb.client as dynamodb_client
 

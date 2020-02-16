@@ -1,9 +1,8 @@
+from unittest import TestCase
 from typing import List
 
-from test.dynamodb.mock_dynamodb_test_case import MockDynamoDbTestCase
 
-
-class BaseClass(MockDynamoDbTestCase):
+class BaseClass(TestCase):
 
     def assertContainsStrings(self, actual: str, expected_strings: List[str], field_name: str = None):
         if field_name is None:
