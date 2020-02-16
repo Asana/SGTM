@@ -5,6 +5,10 @@ from test.asana.helpers.base_class import BaseClass
 
 class TestTaskUrlFromTaskId(BaseClass):
 
+    def test_none_causes_valueerror(self):
+        with self.assertRaises(ValueError):
+            src.asana.helpers.task_url_from_task_id(None)
+
     def test_correct_by_default(self):
         task_id = "foo"
         task_url = src.asana.helpers.task_url_from_task_id(task_id)
@@ -12,10 +16,6 @@ class TestTaskUrlFromTaskId(BaseClass):
             task_url,
             "https://app.asana.com/0/0/foo",
             "Expected task_url_from_task_id to refer to an Asana task")
-
-    def test_none_causes_valueerror(self):
-        with self.assertRaises(ValueError):
-            src.asana.helpers.task_url_from_task_id(None)
 
     def test_empty_string_causes_valueerror(self):
         with self.assertRaises(ValueError):

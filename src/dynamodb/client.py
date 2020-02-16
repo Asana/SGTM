@@ -53,28 +53,21 @@ class DynamoDbClient(object):
             return None
 
 
-_dynamodb_client = None
-
-
-def inject(dynamodb_client):
-    global _dynamodb_client
-    _dynamodb_client = dynamodb_client
-
-
-def _singleton():
-    global _dynamodb_client
-    if _dynamodb_client is None:
-        _dynamodb_client = DynamoDbClient()
-    return _dynamodb_client
+_singleton = None
+def _get_singleton():
+    global _singleton
+    if _singleton is None:
+        _singleton = DynamoDbClient()
+    return _singleton
 
 
 def get_asana_id_from_github_node_id(*args, **keywords):
-    return _singleton().get_asana_id_from_github_node_id(*args, **keywords)
+    return _get_singleton().get_asana_id_from_github_node_id(*args, **keywords)
 
 
 def insert_github_node_to_asana_id_mapping(*args, **keywords):
-    return _singleton().insert_github_node_to_asana_id_mapping(*args, **keywords)
+    return _get_singleton().insert_github_node_to_asana_id_mapping(*args, **keywords)
 
 
 def get_asana_domain_user_id_from_github_handle(*args, **keywords):
-    return _singleton().get_asana_domain_user_id_from_github_handle(*args, **keywords)
+    return _get_singleton().get_asana_domain_user_id_from_github_handle(*args, **keywords)

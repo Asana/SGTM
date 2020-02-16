@@ -90,7 +90,8 @@ def asana_comment_from_github_comment(comment: Comment) -> str:
     """
     Extracts the GitHub author and comment text from a GitHub Comment, and transforms them into
     a suitable html comment string for Asana. This will involve looking up the GitHub author in
-    DynamoDb to determine the Asana userid.
+    DynamoDb to determine the Asana domain user id of the comment author and any @mentioned
+    GitHub users.
     """
     if comment is None:
         raise ValueError("asana_comment_from_github_comment requires a comment")
@@ -112,6 +113,14 @@ _review_action_to_text_map = {
 
 
 def asana_comment_from_github_review(review: Review) -> str:
+    """
+    Extracts the GitHub author and comments from a GitHub Review, and transforms them into
+    a suitable html comment string for Asana. This will involve looking up the GitHub author in
+    DynamoDb to determine the Asana domain user id of the review author and any @mentioned GitHub
+    users.
+    """
+    if review is None:
+        raise ValueError("asana_comment_from_github_review requires a review")
     user_display_name = _asana_display_name_for_github_user(review.author())
     review_action = _review_action_to_text_map.get(review.state(), "commented")
     review_body = _transform_github_mentions_to_asana_mentions(

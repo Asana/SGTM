@@ -5,14 +5,19 @@ from test.impl.builders import builder, build
 
 class TestAsanaCommentFromGitHubComment(BaseClass):
 
-    def test_handles_illegal_args_gracefully(self):
+    @classmethod
+    def setUpClass(cls):
+        BaseClass.setUpClass()
+        cls.insert_test_user_into_user_table("github_test_user_login", "TEST_USER_ASANA_DOMAIN_USER_ID")
+                
+    def test_none_causes_valueerror(self):
         with self.assertRaises(ValueError):
             src.asana.helpers.asana_comment_from_github_comment(None)
 
     def test_includes_comment_text(self):
         github_comment = build(
             builder.comment().
-            author(builder.user("nobody")).
+            author(builder.user("github_unknown_user_login")).
             body("GITHUB_COMMENT_TEXT")
         )
         asana_comment = src.asana.helpers.asana_comment_from_github_comment(github_comment)
@@ -21,10 +26,10 @@ class TestAsanaCommentFromGitHubComment(BaseClass):
     def test_includes_asana_comment_author(self):
         github_comment = build(
             builder.comment().
-            author(builder.user("github_author_login"))
+            author(builder.user("github_test_user_login"))
         )
         asana_comment = src.asana.helpers.asana_comment_from_github_comment(github_comment)
-        self.assertContainsStrings(asana_comment, ["AUTHOR_ASANA_DOMAIN_USER_ID"])
+        self.assertContainsStrings(asana_comment, ["TEST_USER_ASANA_DOMAIN_USER_ID"])
 
     def test_handles_non_asana_comment_author_gracefully(self):
         github_comment = build(
@@ -46,7 +51,7 @@ class TestAsanaCommentFromGitHubComment(BaseClass):
         placeholder = "💣"
         github_placeholder_comment = build(
             builder.comment().
-            author(builder.user("nobody")).
+            author(builder.user("github_unknown_user_login")).
             body(placeholder)
         )
         asana_placeholder_comment = src.asana.helpers.asana_comment_from_github_comment(github_placeholder_comment)
@@ -54,7 +59,7 @@ class TestAsanaCommentFromGitHubComment(BaseClass):
         for unsafe_character in unsafe_characters:
             github_comment = build(
                 builder.comment().
-                author(builder.user("nobody")).
+                author(builder.user("github_unknown_user_login")).
                 body(unsafe_character)
             )
             asana_comment = src.asana.helpers.asana_comment_from_github_comment(github_comment)
@@ -84,16 +89,16 @@ class TestAsanaCommentFromGitHubComment(BaseClass):
     def test_transforms_github_at_mentions_to_asana_at_mentions(self):
         github_comment = build(
             builder.comment().
-            author(builder.user("nobody")).
-            body("@github_author_login")
+            author(builder.user("github_unknown_user_login")).
+            body("@github_test_user_login")
         )
         asana_comment = src.asana.helpers.asana_comment_from_github_comment(github_comment)
-        self.assertContainsStrings(asana_comment, ["AUTHOR_ASANA_DOMAIN_USER_ID"])
+        self.assertContainsStrings(asana_comment, ["TEST_USER_ASANA_DOMAIN_USER_ID"])
 
     def test_handles_non_asana_comment_at_mention_gracefully(self):
         github_comment = build(
             builder.comment().
-            author(builder.user("nobody")).
+            author(builder.user("github_unknown_user_login")).
             body("@github_unknown_user_login")
         )
         asana_comment = src.asana.helpers.asana_comment_from_github_comment(github_comment)
@@ -102,7 +107,7 @@ class TestAsanaCommentFromGitHubComment(BaseClass):
     def test_handles_at_sign_in_comment_gracefully(self):
         github_comment = build(
             builder.comment().
-            author(builder.user("nobody")).
+            author(builder.user("github_unknown_user_login")).
             body("hello@world.asana.com")
         )
         asana_comment = src.asana.helpers.asana_comment_from_github_comment(github_comment)

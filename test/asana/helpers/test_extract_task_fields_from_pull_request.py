@@ -1,11 +1,18 @@
 import src.asana.helpers
-from test.asana.helpers.base_class import BaseClass
+from test.asana.helpers.base_class import BaseClass as GenericBaseClass
 from test.impl.builders import builder, build
+
+
+class BaseClass(GenericBaseClass):
+    @classmethod
+    def setUpClass(cls):
+        GenericBaseClass.setUpClass()
+        cls.insert_test_user_into_user_table("github_test_user_login", "TEST_USER_ASANA_DOMAIN_USER_ID")
 
 
 class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
 
-    def test_extracting_fields_from_pr_none_causes_a_valueerror(self):
+    def test_none_causes_valueerror(self):
         with self.assertRaises(ValueError):
             src.asana.helpers.extract_task_fields_from_pull_request(None)
 
@@ -21,7 +28,7 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
     def test_html_body(self):
         pull_request = build(
             builder.pull_request().
-            author(builder.user("github_author_login")).
+            author(builder.user("github_test_user_login")).
             url("https://foo.bar/baz").
             body("BODY")
         )
@@ -35,7 +42,7 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
             "\uD83D\uDD17",
             "https://foo.bar/baz",
             "✍",
-            "AUTHOR_ASANA_DOMAIN_USER_ID",
+            "TEST_USER_ASANA_DOMAIN_USER_ID",
             "<strong>",
             "Description:",
             "</strong>",
@@ -47,13 +54,19 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
 
 class TestExtractsAssigneeFromPullRequest(BaseClass):
 
+    @classmethod
+    def setUpClass(cls):
+        BaseClass.setUpClass()
+        cls.insert_test_user_into_user_table("github_assignee_login_annie", "ANNIE_ASANA_DOMAIN_USER_ID")
+        cls.insert_test_user_into_user_table("github_assignee_login_billy", "BILLY_ASANA_DOMAIN_USER_ID")
+
     def test_assignee(self):
         pull_request = build(
             builder.pull_request().
-            assignee(builder.user("github_assignee_login"))
+            assignee(builder.user("github_test_user_login"))
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
-        self.assertEqual("ASSIGNEE_ASANA_DOMAIN_USER_ID", task_fields["assignee"])
+        self.assertEqual("TEST_USER_ASANA_DOMAIN_USER_ID", task_fields["assignee"])
 
     def test_assignee_returns_first_assignee_by_login_if_many(self):
         pull_request = build(
@@ -69,10 +82,10 @@ class TestExtractsAssigneeFromPullRequest(BaseClass):
     def test_assignee_returns_author_when_assignees_are_empty(self):
         pull_request = build(
             builder.pull_request().
-            author(builder.user("github_author_login"))
+            author(builder.user("github_test_user_login"))
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
-        self.assertEqual("AUTHOR_ASANA_DOMAIN_USER_ID", task_fields["assignee"])
+        self.assertEqual("TEST_USER_ASANA_DOMAIN_USER_ID", task_fields["assignee"])
 
 
 class TestExtractsCompletedStatusFromPullRequest(BaseClass):
@@ -238,20 +251,20 @@ class TestExtractsFollowersFromPullRequest(BaseClass):
     def test_author_is_a_follower(self):
         pull_request = (
             builder.pull_request().
-            author(builder.user("github_author_login")).
+            author(builder.user("github_test_user_login")).
             build()
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
-        self.assertIn("AUTHOR_ASANA_DOMAIN_USER_ID", task_fields["followers"])
+        self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_assignee_is_a_follower(self):
         pull_request = (
             builder.pull_request().
-            assignee(builder.user("github_assignee_login", "GITHUB_ASSIGNEE_NAME")).
+            assignee(builder.user("github_test_user_login", "TEST_USER_ASANA_DOMAIN_USER_ID")).
             build()
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
-        self.assertIn("ASSIGNEE_ASANA_DOMAIN_USER_ID", task_fields["followers"])
+        self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_reviewer_is_a_follower(self):
         pull_request = (
@@ -261,11 +274,11 @@ class TestExtractsFollowersFromPullRequest(BaseClass):
                 submitted_at("2020-02-13T14:59:57Z").
                 state("CHANGES_REQUESTED").
                 body("LGTM!").
-                author(builder.user("github_reviewer_login"))
+                author(builder.user("github_test_user_login"))
             ]).build()
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
-        self.assertIn("REVIEWER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
+        self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_commentor_is_a_follower(self):
         pull_request = (
@@ -274,11 +287,11 @@ class TestExtractsFollowersFromPullRequest(BaseClass):
                 builder.comment().
                 published_at("2020-01-13T14:59:58Z").
                 body("LGTM!").
-                author(builder.user("github_commentor_login"))
+                author(builder.user("github_test_user_login"))
             ]).build()
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
-        self.assertIn("COMMENTOR_ASANA_DOMAIN_USER_ID", task_fields["followers"])
+        self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_requested_reviewer_is_a_follower(self):
         pull_request = (
@@ -288,42 +301,42 @@ class TestExtractsFollowersFromPullRequest(BaseClass):
                 published_at("2020-01-13T14:59:58Z").
                 body("LGTM!"),
             ]).requested_reviewers([
-                builder.user("github_requested_reviewer_login")
+                builder.user("github_test_user_login")
             ]).build()
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
-        self.assertIn("REQUESTED_REVIEWER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
+        self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_individual_that_is_at_mentioned_in_comments_is_a_follower(self):
         pull_request = (
             builder.pull_request().
             comments([
                 builder.comment().
-                body("@github_at_mentioned_login")
+                body("@github_test_user_login")
             ]).build()
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
-        self.assertIn("AT_MENTIONED_ASANA_DOMAIN_USER_ID", task_fields["followers"])
+        self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_individual_that_is_at_mentioned_in_review_comments_is_a_follower(self):
         pull_request = (
             builder.pull_request().
             reviews([
                 builder.review().
-                body("@github_at_mentioned_login")
+                body("@github_test_user_login")
             ]).build()
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
-        self.assertIn("AT_MENTIONED_ASANA_DOMAIN_USER_ID", task_fields["followers"])
+        self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_individual_that_is_at_mentioned_in_pr_body_is_a_follower(self):
         pull_request = (
             builder.pull_request().
-            body("@github_at_mentioned_login").
+            body("@github_test_user_login").
             build()
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(pull_request)
-        self.assertIn("AT_MENTIONED_ASANA_DOMAIN_USER_ID", task_fields["followers"])
+        self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", task_fields["followers"])
 
     def test_non_asana_user_is_not_a_follower(self):
         unknown_github_user = (

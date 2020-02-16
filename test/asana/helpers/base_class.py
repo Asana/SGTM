@@ -1,17 +1,9 @@
 from typing import List
-from unittest import TestCase
 
-from test.asana.helpers.dynamodb_client import DynamoDbClient
+from test.dynamodb.mock_dynamodb_test_case import MockDynamoDbTestCase
 
 
-class BaseClass(TestCase):
-    def setUp(self):
-        pass
-        #DynamoDbClient.initialize()
-
-    def tearDown(self):
-        pass
-        #DynamoDbClient.finalize()
+class BaseClass(MockDynamoDbTestCase):
 
     def assertContainsStrings(self, actual: str, expected_strings: List[str], field_name: str = None):
         if field_name is None:
