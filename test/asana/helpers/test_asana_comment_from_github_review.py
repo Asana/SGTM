@@ -15,7 +15,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
     @classmethod
     def setUpClass(cls):
         MockDynamoDbTestCase.setUpClass()
-        cls.insert_test_user_into_user_table("github_test_user_login", "TEST_USER_ASANA_DOMAIN_USER_ID")
+        cls.test_data.insert_user_into_user_table("github_test_user_login", "TEST_USER_ASANA_DOMAIN_USER_ID")
 
     def test_none_causes_valueerror(self):
         with self.assertRaises(ValueError):

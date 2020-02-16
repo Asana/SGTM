@@ -7,7 +7,7 @@ class BaseClass(MockDynamoDbTestCase):
     @classmethod
     def setUpClass(cls):
         MockDynamoDbTestCase.setUpClass()
-        cls.insert_test_user_into_user_table("github_test_user_login", "TEST_USER_ASANA_DOMAIN_USER_ID")
+        cls.test_data.insert_user_into_user_table("github_test_user_login", "TEST_USER_ASANA_DOMAIN_USER_ID")
 
 
 class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
@@ -57,8 +57,8 @@ class TestExtractsAssigneeFromPullRequest(BaseClass):
     @classmethod
     def setUpClass(cls):
         BaseClass.setUpClass()
-        cls.insert_test_user_into_user_table("github_assignee_login_annie", "ANNIE_ASANA_DOMAIN_USER_ID")
-        cls.insert_test_user_into_user_table("github_assignee_login_billy", "BILLY_ASANA_DOMAIN_USER_ID")
+        cls.test_data.insert_user_into_user_table("github_assignee_login_annie", "ANNIE_ASANA_DOMAIN_USER_ID")
+        cls.test_data.insert_user_into_user_table("github_assignee_login_billy", "BILLY_ASANA_DOMAIN_USER_ID")
 
     def test_assignee(self):
         pull_request = build(
