@@ -34,7 +34,7 @@ class MockDynamoDbTestCase(BaseClass):
         mock_dynamodb2().__enter__()
         client = boto3.client("dynamodb")
 
-        # our DynamoDb Schema
+        # our DynamoDb Schema #DynamoDbSchema
         client.create_table(
             AttributeDefinitions=[
                 {"AttributeName": "github-node", "AttributeType": "S",}

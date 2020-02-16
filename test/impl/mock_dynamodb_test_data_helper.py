@@ -10,6 +10,7 @@ class MockDynamoDbTestDataHelper(object):
         self.client = client
 
     def insert_user_into_user_table(self, login: str, asana_domain_user_id: str):
+        # #DynamoDbSchema
         self.client.put_item(
             TableName=USERS_TABLE,
             Item={
