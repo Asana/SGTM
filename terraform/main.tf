@@ -209,6 +209,11 @@ resource "aws_dynamodb_table" "sgtm-users" {
     name = "github/handle"
     type = "S"
   }
+
+  attribute {
+    name = "asana/domain-user-id"
+    type = "S"
+  }
 }
 
 resource "aws_kms_key" "api_encryption_key" {
