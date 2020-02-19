@@ -19,7 +19,7 @@ def extract_task_fields_from_pull_request(pull_request: PullRequest) -> dict:
         "html_notes": _task_description_from_pull_request(pull_request),
         "completed": _task_completion_from_pull_request(pull_request),
         "followers": _task_followers_from_pull_request(pull_request),
-        "custom_fields": _custom_fields_from_pull_request(pull_request)
+        "custom_fields": _custom_fields_from_pull_request(pull_request),
     }
 
 
@@ -36,12 +36,13 @@ def _task_status_from_pull_request(pull_request: PullRequest) -> str:
 
 
 def _build_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
-    return pull_request.build_status().capitalize() if pull_request.build_status() else None
+    build_status = pull_request.build_status()
+    return build_status.capitalize() if build_status is not None else None
 
 
 _custom_fields_to_extract_map = {
     "PR Status": _task_status_from_pull_request,
-    "Build": _build_status_from_pull_request
+    "Build": _build_status_from_pull_request,
 }
 
 
@@ -70,7 +71,9 @@ def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
             enum_option_name = action(pull_request)
 
             if enum_option_name:
-                custom_field_id = _get_custom_field_id(custom_field_name, custom_field_settings)
+                custom_field_id = _get_custom_field_id(
+                    custom_field_name, custom_field_settings
+                )
                 enum_option_id = _get_custom_field_enum_option_id(
                     custom_field_name, enum_option_name, custom_field_settings
                 )
@@ -80,26 +83,33 @@ def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
         return data
 
 
-def _get_custom_field_id(custom_field_name: str, custom_field_settings: List[dict]) -> Optional[str]:
+def _get_custom_field_id(
+    custom_field_name: str, custom_field_settings: List[dict]
+) -> Optional[str]:
     filtered_gid = [
-        custom_field_setting['custom_field']['gid'] for custom_field_setting in custom_field_settings
-        if custom_field_setting['custom_field']['name'] == custom_field_name
+        custom_field_setting["custom_field"]["gid"]
+        for custom_field_setting in custom_field_settings
+        if custom_field_setting["custom_field"]["name"] == custom_field_name
     ]
     return filtered_gid[0] if filtered_gid else None
 
 
-def _get_custom_field_enum_option_id(custom_field_name: str, enum_option_name: str, custom_field_settings: List[dict]) -> Optional[str]:
+def _get_custom_field_enum_option_id(
+    custom_field_name: str, enum_option_name: str, custom_field_settings: List[dict]
+) -> Optional[str]:
     filtered_enum_options = [
-        custom_field_setting['custom_field']['enum_options'] for custom_field_setting in custom_field_settings
-        if custom_field_setting['custom_field']['name'] == custom_field_name
+        custom_field_setting["custom_field"]["enum_options"]
+        for custom_field_setting in custom_field_settings
+        if custom_field_setting["custom_field"]["name"] == custom_field_name
     ]
 
     if not filtered_enum_options:
         return None
     else:
         filtered_gid = [
-            enum_option['gid'] for enum_option in filtered_enum_options[0]
-            if enum_option['name'] == enum_option_name
+            enum_option["gid"]
+            for enum_option in filtered_enum_options[0]
+            if enum_option["name"] == enum_option_name
         ]
         return filtered_gid[0] if filtered_gid else None
 

@@ -54,7 +54,7 @@ _events_map = {
     "pull_request": _handle_pull_request_webhook,
     "issue_comment": _handle_issue_comment_webhook,
     "pull_request_review": _handle_pull_request_review_webhook,
-    "status": _handle_status_webhook
+    "status": _handle_status_webhook,
 }
 
 

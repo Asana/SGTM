@@ -100,4 +100,4 @@ class PullRequest(object):
 
     def build_status(self) -> Optional[str]:
         commit = self.raw_pull_request["commits"]["nodes"][0]["commit"]
-        return commit["status"]["state"] if commit['status'] else None
+        return commit["status"]["state"] if commit["status"] else None

@@ -198,5 +198,5 @@ QUERIES = {
     + "\n"
     + FRAGMENTS["FullPullRequest"]
     + "\n"
-    + FRAGMENTS["FullReview"]
+    + FRAGMENTS["FullReview"],
 }
