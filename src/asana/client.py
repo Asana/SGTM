@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Iterator, Dict
 import asana
 from src.config import ASANA_API_KEY
 
@@ -24,5 +24,5 @@ def add_comment(task_id: str, comment_body: str) -> str:
     return response["gid"]
 
 
-def get_project_custom_fields(project_id: str):
+def get_project_custom_fields(project_id: str) -> Iterator[Dict]:
     return client.custom_field_settings.find_by_project(project_id)

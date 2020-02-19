@@ -1,7 +1,7 @@
 import re
 from html import escape
-from typing import Callable, Match, Optional, List
-from src.asana.client import get_project_custom_fields
+from typing import Callable, Match, Optional, List, Dict
+from src.asana import client as asana_client
 from src.dynamodb import client as dynamodb_client
 from src.github.models import Comment, PullRequest, Review
 from src.github import logic as github_logic
@@ -30,6 +30,9 @@ def _task_status_from_pull_request(pull_request: PullRequest) -> str:
         return "Merged"
     elif pull_request.closed() and not pull_request.merged():
         return "Closed"
+    else:
+        logger.error("Pull request is in an invalid state")
+        return ""
 
 
 def _build_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
@@ -42,7 +45,15 @@ _custom_fields_to_extract_map = {
 }
 
 
-def _custom_fields_from_pull_request(pull_request: PullRequest):
+def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
+    """
+    We currently expect the project to have two custom fields with its corresponding enum options:
+        • PR Status: "Open", "Closed", "Merged"
+        • Build: "Success", "Failure", "Pending"
+
+    TODO: Write script to set up an Asana project with these custom fields
+    (https://app.asana.com/0/1149418478823393/1162588814088433/f)
+    """
     repository_id = pull_request.repository_id()
     project_id = dynamodb_client.get_asana_id_from_github_node_id(repository_id)
 
@@ -53,7 +64,7 @@ def _custom_fields_from_pull_request(pull_request: PullRequest):
         # TODO: Full sync
         return {}
     else:
-        custom_field_settings = list(get_project_custom_fields(project_id))
+        custom_field_settings = list(asana_client.get_project_custom_fields(project_id))
         data = {}
         for custom_field_name, action in _custom_fields_to_extract_map.items():
             enum_option_name = action(pull_request)
