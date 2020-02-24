@@ -66,7 +66,8 @@ def pull_request_approved_before_merging(pull_request: PullRequest) -> bool:
 def _is_approval_comment_body(body: str) -> bool:
     return (
         re.search(
-            "lgtm|looks good|look good|looks great|look great|\+1|👍", body.lower()
+            "lgtm|looks good|look good|looks great|look great|\+1|ship\s?it|👍|🚢",
+            body.lower(),
         )
         is not None
     )
