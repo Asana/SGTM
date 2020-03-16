@@ -4,7 +4,7 @@ from datetime import datetime
 from src.logger import logger
 from src.github.models import PullRequest
 
-GITHUB_MENTION_REGEX = "\B@([a-z0-9_\-]+)"
+GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
 
 
 def inject_asana_task_into_pull_request_body(body: str, task_url: str) -> str:

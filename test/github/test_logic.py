@@ -21,7 +21,7 @@ class GithubLogicTest(unittest.TestCase):
 
     def test_extract_mentions(self):
         self.assertEqual(github_logic._extract_mentions("hello"), [])
-        self.assertEqual(github_logic._extract_mentions("hello @there"), ["there"])
+        self.assertEqual(github_logic._extract_mentions("Hello @There"), ["There"])
         self.assertEqual(github_logic._extract_mentions("@hello there"), ["hello"])
         self.assertEqual(
             github_logic._extract_mentions("@hello @to-all123 there"),
