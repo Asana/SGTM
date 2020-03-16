@@ -32,7 +32,7 @@ def insert_github_node_to_asana_id_mapping(gh_node_id: str, asana_id: str):
 @memoize
 def get_asana_domain_user_id_from_github_handle(github_handle: str) -> Optional[str]:
     response = client.get_item(
-        TableName=USERS_TABLE, Key={"github/handle": {"S": github_handle}}
+        TableName=USERS_TABLE, Key={"github/handle": {"S": github_handle.lower()}}
     )
     if "Item" in response:
         return response["Item"]["asana/domain-user-id"]["S"]
