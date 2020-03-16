@@ -30,7 +30,7 @@ class DynamodbClientTest(MockDynamoDbTestCase):
         client.put_item(
             TableName=USERS_TABLE,
             Item={
-                "github/handle": {"S": gh_handle},
+                "github/handle": {"S": gh_handle.lower()},
                 "asana/domain-user-id": {"S": asana_user_id},
             },
         )
