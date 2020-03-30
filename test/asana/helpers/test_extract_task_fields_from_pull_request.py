@@ -13,10 +13,6 @@ class BaseClass(MockDynamoDbTestCase):
 
 
 class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
-    def test_none_causes_valueerror(self):
-        with self.assertRaises(ValueError):
-            src.asana.helpers.extract_task_fields_from_pull_request(None)
-
     def test_name(self):
         pull_request = build(
             builder.pull_request().number("PR_NUMBER").title("PR_TITLE")

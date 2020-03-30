@@ -11,10 +11,6 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
             "github_test_user_login", "TEST_USER_ASANA_DOMAIN_USER_ID"
         )
 
-    def test_none_causes_valueerror(self):
-        with self.assertRaises(ValueError):
-            src.asana.helpers.asana_comment_from_github_comment(None)
-
     def test_includes_comment_text(self):
         github_comment = build(
             builder.comment()
