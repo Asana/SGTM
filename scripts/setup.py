@@ -6,7 +6,7 @@ import os
 import sys
 
 import boto3  # type: ignore
-import botocore
+import botocore  # type: ignore
 
 REGION = "us-east-1"
 # TODO: REGION should not be hardcoded

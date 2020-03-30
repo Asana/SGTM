@@ -8,7 +8,8 @@ from src.config import USERS_TABLE
 class MockDynamoDbTestDataHelper(object):
     def __init__(self, client):
         self.client = client
-    def insert_user_into_user_table(self, login: str, asana_domain_user_id: str):
+
+    def insert_user_into_user_table(self, gh_handle: str, asana_domain_user_id: str):
         # #DynamoDbSchema
         self.client.put_item(
             TableName=USERS_TABLE,

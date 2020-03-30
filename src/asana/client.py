@@ -8,7 +8,12 @@ def validate_object_id(object_id: str, message: str):
         Validates that object_id seems to be a valid Asana object-id, raising a ValueError with the message 'message'
         if this is not the case
     """
-    if object_id is None or not object_id or not isinstance(object_id, str) or not object_id.strip():
+    if (
+        object_id is None
+        or not object_id
+        or not isinstance(object_id, str)
+        or not object_id.strip()
+    ):
         raise ValueError(message)
 
 
@@ -44,27 +49,31 @@ class AsanaClient(object):
         validate_object_id(project_id, "AsanaClient.create_task requires a project_id")
         response = self.asana_api_client.tasks.create({"projects": project_id})
         return response["gid"]
-    
+
     def update_task(self, task_id: str, fields: dict):
         """
             Updates the specified Asana task, setting the provided fields
         """
         validate_object_id(task_id, "AsanaClient.update_task requires a task_id")
         if fields is None or not fields:
-            raise ValueError("AsanaClient.update_task requires a collection of fields to upsert")
+            raise ValueError(
+                "AsanaClient.update_task requires a collection of fields to upsert"
+            )
         self.asana_api_client.tasks.update(task_id, fields)
-    
+
     def add_followers(self, task_id: str, followers: List[str]):
         """
             Adds followers to the specified task. The followers should be Asana domain-user ids.
         """
         validate_object_id(task_id, "AsanaClient.add_followers requires a task_id")
         if followers is None or not followers:
-            raise ValueError("AsanaClient.add_followers requires a list of followers to add")
+            raise ValueError(
+                "AsanaClient.add_followers requires a list of followers to add"
+            )
         for follower in followers:
             validate_object_id(follower, "Followers should be Asana domain-user-ids")
         self.asana_api_client.tasks.add_followers(task_id, {"followers": followers})
-    
+
     def add_comment(self, task_id: str, comment_body: str) -> str:
         """
             Adds a html-formatted comment to the specified task. The comment will be posted on behalf of the SGTM
@@ -73,7 +82,9 @@ class AsanaClient(object):
         validate_object_id(task_id, "AsanaClient.add_comment requires a task_id")
         if comment_body is None or not comment_body:
             raise ValueError("AsanaClient.add_comment requires a comment body")
-        response = self.asana_api_client.tasks.add_comment(task_id, {"html_text": comment_body})
+        response = self.asana_api_client.tasks.add_comment(
+            task_id, {"html_text": comment_body}
+        )
         return response["gid"]
 
     def get_project_custom_fields(self, project_id: str) -> Iterator[Dict]:
