@@ -3,7 +3,7 @@ Test case that should be used for tests that require integration with dynamodb
 or other external resources.
 """
 import boto3  # type: ignore
-from moto import mock_dynamodb2
+from moto import mock_dynamodb2  # type: ignore
 from src.config import OBJECTS_TABLE, USERS_TABLE, LOCK_TABLE
 from .base_test_case_class import BaseClass
 from .mock_dynamodb_test_data_helper import MockDynamoDbTestDataHelper
@@ -35,7 +35,7 @@ class MockDynamoDbTestCase(BaseClass):
         mock_dynamodb2().__enter__()
         client = boto3.client("dynamodb")
 
-        # our DynamoDb Schema
+        # our DynamoDb Schema #DynamoDbSchema
         client.create_table(
             AttributeDefinitions=[
                 {"AttributeName": "github-node", "AttributeType": "S",}

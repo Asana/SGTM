@@ -6,10 +6,10 @@ import os
 import sys
 
 import boto3  # type: ignore
-import botocore
+import botocore  # type: ignore
 
 REGION = "us-east-1"
-
+# TODO: REGION should not be hardcoded
 
 s3_client = boto3.client("s3", region_name=REGION)
 
@@ -77,7 +77,7 @@ def setup_state(args):
         },
     )
 
-    # Setup DynamoDB table
+    # Setup DynamoDB table #DynamoDbSchema
     client = boto3.client("dynamodb", region_name=REGION)
     client.create_table(
         AttributeDefinitions=[{"AttributeName": "LockID", "AttributeType": "S"},],
