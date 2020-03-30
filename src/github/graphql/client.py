@@ -1,5 +1,5 @@
 from typing import Tuple
-from sgqlc.endpoint.http import HTTPEndpoint
+from sgqlc.endpoint.http import HTTPEndpoint  # type: ignore
 from src.config import GITHUB_API_KEY
 from .schema import QUERIES
 from src.github.models import Comment, PullRequest, Review

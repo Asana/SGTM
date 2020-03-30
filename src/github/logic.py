@@ -101,14 +101,20 @@ def pull_request_approved_after_merging(pull_request: PullRequest) -> bool:
         ]
         # or it may occur in the summary text of a review that was submitted after the pr was merged
         postmerge_reviews = [
-            review for review in pull_request.reviews() if review.submitted_at() >= merged_at
+            review
+            for review in pull_request.reviews()
+            if review.submitted_at() >= merged_at
         ]
         body_texts = [c.body() for c in postmerge_comments] + [
             r.body() for r in postmerge_reviews
         ]
         # TODO: consider whether we should disallow the pr author to approve their own pr via a LGTM comment
         return bool(
-            [body_text for body_text in body_texts if _is_approval_comment_body(body_text)]
+            [
+                body_text
+                for body_text in body_texts
+                if _is_approval_comment_body(body_text)
+            ]
         )
     return False
 

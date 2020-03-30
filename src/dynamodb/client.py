@@ -1,7 +1,7 @@
 from typing import Optional
-import boto3
+import boto3  # type: ignore
 from src.config import OBJECTS_TABLE, USERS_TABLE
-from botocore.exceptions import NoRegionError
+from botocore.exceptions import NoRegionError  # type: ignore
 from src.utils import memoize
 
 
@@ -60,7 +60,9 @@ class DynamoDbClient(object):
     # USERS TABLE
 
     @memoize
-    def get_asana_domain_user_id_from_github_handle(self, github_handle: str) -> Optional[str]:
+    def get_asana_domain_user_id_from_github_handle(
+        self, github_handle: str
+    ) -> Optional[str]:
         """
             Retrieves the Asana domain user-id associated with a specific GitHub user login, or None,
             if no such association exists. User-id associations are created manually via an external process.
@@ -83,7 +85,9 @@ class DynamoDbClient(object):
             pass
         # by raising the new error outside of the except clause, the ConfigurationError does not automatically contain
         # the stack trace of the NoRegionError, which provides no extra value and clutters the console.
-        raise ConfigurationError("Configuration error: Please select a region, e.g. via `AWS_DEFAULT_REGION=us-east-1`")
+        raise ConfigurationError(
+            "Configuration error: Please select a region, e.g. via `AWS_DEFAULT_REGION=us-east-1`"
+        )
 
 
 def get_asana_id_from_github_node_id(gh_node_id: str) -> Optional[str]:
@@ -103,7 +107,9 @@ def insert_github_node_to_asana_id_mapping(gh_node_id: str, asana_id: str):
 
         Creates an association between a GitHub node-id and an Asana object-id
     """
-    return DynamoDbClient.singleton().insert_github_node_to_asana_id_mapping(gh_node_id, asana_id)
+    return DynamoDbClient.singleton().insert_github_node_to_asana_id_mapping(
+        gh_node_id, asana_id
+    )
 
 
 def get_asana_domain_user_id_from_github_handle(github_handle: str) -> Optional[str]:
@@ -113,4 +119,6 @@ def get_asana_domain_user_id_from_github_handle(github_handle: str) -> Optional[
         Retrieves the Asana domain user-id associated with a specific GitHub user login, or None,
         if no such association exists. User-id associations are created manually via an external process.
     """
-    return DynamoDbClient.singleton().get_asana_domain_user_id_from_github_handle(github_handle)
+    return DynamoDbClient.singleton().get_asana_domain_user_id_from_github_handle(
+        github_handle
+    )

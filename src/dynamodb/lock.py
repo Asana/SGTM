@@ -1,7 +1,7 @@
-import boto3
+import boto3  # type: ignore
 from contextlib import contextmanager
 from src.config import LOCK_TABLE
-from python_dynamodb_lock.python_dynamodb_lock import DynamoDBLockClient
+from python_dynamodb_lock.python_dynamodb_lock import DynamoDBLockClient  # type: ignore
 
 
 dynamodb_resource = boto3.resource("dynamodb")

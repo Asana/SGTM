@@ -2,7 +2,7 @@
 Test case that should be used for tests that require integration with dynamodb
 or other external resources.
 """
-import boto3
+import boto3  # type: ignore
 from moto import mock_dynamodb2
 from src.config import OBJECTS_TABLE, USERS_TABLE, LOCK_TABLE
 from .base_test_case_class import BaseClass
@@ -15,6 +15,7 @@ class MockDynamoDbTestCase(BaseClass):
     """
         The boto3.client instance, mocked by moto, that should be used in the tests.
     """
+
     client = None
 
     """
@@ -46,7 +47,7 @@ class MockDynamoDbTestCase(BaseClass):
         client.create_table(
             AttributeDefinitions=[
                 {"AttributeName": "github/handle", "AttributeType": "S",},
-                {"AttributeName": "asana/domain-user-id", "AttributeType": "S",}
+                {"AttributeName": "asana/domain-user-id", "AttributeType": "S",},
             ],
             TableName=USERS_TABLE,
             KeySchema=[{"AttributeName": "github/handle", "KeyType": "HASH",}],

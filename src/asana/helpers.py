@@ -10,7 +10,7 @@ def task_url_from_task_id(task_id: str) -> str:
     """
     Transforms an Asana Task's object-id into an url referring to the task in the Asana app
     """
-    if task_id is None or not task_id:
+    if not task_id:
         raise ValueError("task_url_from_task_id requires a task_id")
     return f"https://app.asana.com/0/0/{task_id}"
 
@@ -21,8 +21,6 @@ def extract_task_fields_from_pull_request(pull_request: PullRequest) -> dict:
     equivalent fields, as relevant to an Asana Task
     :return: Returns the following fields: assignee, name, html_notes and followers
     """
-    if pull_request is None:
-        raise ValueError("extract_task_fields_from_pull_request requires a pull_request")
     return {
         "assignee": _task_assignee_from_pull_request(pull_request),
         "name": _task_name_from_pull_request(pull_request),
@@ -48,8 +46,6 @@ def _asana_display_name_for_github_user(github_user: User) -> str:
                 GitHub user 'David Brandt (padresmurfa)'
             or  Github user 'padresmurfa'
     """
-    if github_user is None:
-        raise ValueError("_asana_display_name_for_github_user requires a github_user")
     asana_author_user = _asana_user_url_from_github_user_handle(github_user.login())
     if asana_author_user is not None:
         return asana_author_user
@@ -83,7 +79,9 @@ def _transform_github_mentions_to_asana_mentions(text: str) -> str:
                 return github_handle
             return asana_user_url
 
-    return re.sub(github_logic.GITHUB_MENTION_REGEX, _github_mention_to_asana_mention, text)
+    return re.sub(
+        github_logic.GITHUB_MENTION_REGEX, _github_mention_to_asana_mention, text
+    )
 
 
 def asana_comment_from_github_comment(comment: Comment) -> str:
@@ -93,11 +91,11 @@ def asana_comment_from_github_comment(comment: Comment) -> str:
     DynamoDb to determine the Asana domain user id of the comment author and any @mentioned
     GitHub users.
     """
-    if comment is None:
-        raise ValueError("asana_comment_from_github_comment requires a comment")
     github_author = comment.author()
     display_name = _asana_display_name_for_github_user(github_author)
-    comment_text = _transform_github_mentions_to_asana_mentions(escape(comment.body(), quote=False))
+    comment_text = _transform_github_mentions_to_asana_mentions(
+        escape(comment.body(), quote=False)
+    )
     return _wrap_in_tag("body")(
         _wrap_in_tag("strong")(f"{display_name} commented:\n") + comment_text
     )
@@ -119,8 +117,6 @@ def asana_comment_from_github_review(review: Review) -> str:
     DynamoDb to determine the Asana domain user id of the review author and any @mentioned GitHub
     users.
     """
-    if review is None:
-        raise ValueError("asana_comment_from_github_review requires a review")
     user_display_name = _asana_display_name_for_github_user(review.author())
     review_action = _review_action_to_text_map.get(review.state(), "commented")
     review_body = _transform_github_mentions_to_asana_mentions(
@@ -135,7 +131,8 @@ def asana_comment_from_github_review(review: Review) -> str:
     if not review_body and inline_comments:
         return _wrap_in_tag("body")(
             _wrap_in_tag("strong")(
-                f"{user_display_name} left inline comments:\n" + "\n\n".join(inline_comments)
+                f"{user_display_name} left inline comments:\n"
+                + "\n\n".join(inline_comments)
             )
         )
 

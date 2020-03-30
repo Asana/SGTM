@@ -1,3 +1,4 @@
+from .builder_base_class import BuilderBaseClass
 from .comment_builder import CommentBuilder
 from .pull_request_builder import PullRequestBuilder
 from .review_builder import ReviewBuilder
@@ -5,7 +6,6 @@ from .user_builder import UserBuilder
 
 
 class Builder(object):
-
     def comment(self, *args, **keywords):
         return CommentBuilder(*args, **keywords)
 
@@ -19,7 +19,7 @@ class Builder(object):
         return UserBuilder(*args, **keywords)
 
 
-def build(builder):
+def build(builder: BuilderBaseClass):
     return builder.build()
 
 

@@ -1,5 +1,5 @@
 from typing import List
-import asana
+import asana  # type: ignore
 from src.config import ASANA_API_KEY
 
 client = asana.Client.access_token(ASANA_API_KEY)

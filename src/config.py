@@ -1,5 +1,5 @@
 import os
-import boto3
+import boto3  # type: ignore
 import json
 
 __api_keys_s3_bucket = os.getenv("API_KEYS_S3_BUCKET")

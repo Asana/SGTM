@@ -5,7 +5,7 @@ import json
 import os
 import sys
 
-import boto3
+import boto3  # type: ignore
 import botocore
 
 REGION = "us-east-1"
@@ -39,7 +39,11 @@ def set_api_keys(args):
         pass
 
     for secret_name in args.keys:
-        secret = input("Enter the secret for {} (press enter without typing to skip): ".format(secret_name))
+        secret = input(
+            "Enter the secret for {} (press enter without typing to skip): ".format(
+                secret_name
+            )
+        )
         if secret != "":
             keys[secret_name] = secret
 
@@ -93,14 +97,16 @@ if __name__ == "__main__":
     parser_state = subparsers.add_parser("state", help="Set up state")
     parser_state.set_defaults(action="state")
 
-    parser_secrets = subparsers.add_parser("secrets", help="Add api keys and secrets for SGTM to use")
+    parser_secrets = subparsers.add_parser(
+        "secrets", help="Add api keys and secrets for SGTM to use"
+    )
     parser_secrets.set_defaults(action="secrets")
     parser_secrets.add_argument(
         "--keys",
         default=("ASANA_API_KEY", "GITHUB_API_KEY", "GITHUB_HMAC_SECRET"),
         choices=("ASANA_API_KEY", "GITHUB_API_KEY", "GITHUB_HMAC_SECRET"),
         help="Select which secret to change",
-        nargs='+'
+        nargs="+",
     )
 
     args = arg_parser.parse_args()

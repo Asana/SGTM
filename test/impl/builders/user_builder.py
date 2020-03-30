@@ -1,17 +1,12 @@
 from typing import Dict, Any
-
 from src.github.models import User
-
 from .helpers import create_uuid
+from .builder_base_class import BuilderBaseClass
 
 
-class UserBuilder(object):
+class UserBuilder(BuilderBaseClass):
     def __init__(self, login: str = "somebody", name: str = ""):
-        self.raw_user = {
-            "id": create_uuid(),
-            "login": login,
-            "name": name
-        }
+        self.raw_user = {"id": create_uuid(), "login": login, "name": name}
 
     def login(self, login: str):
         self.raw_user["login"] = login

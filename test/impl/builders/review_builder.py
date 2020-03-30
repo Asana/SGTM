@@ -2,18 +2,18 @@ from typing import List, Union, Tuple, Optional, Dict, Any
 from datetime import datetime
 from .helpers import transform_datetime, create_uuid
 from src.github.models import Comment, Review, User
+from .builder_base_class import BuilderBaseClass
 from .comment_builder import CommentBuilder
 from .user_builder import UserBuilder
 
 
-class ReviewBuilder(object):
-
+class ReviewBuilder(BuilderBaseClass):
     def __init__(self, body: str = ""):
         self.raw_review = {
             "id": create_uuid(),
             "body": body,
             "author": {"login": "somebody", "name": ""},
-            "comments": {"nodes": []}
+            "comments": {"nodes": []},
         }
 
     def state(self, state: str):

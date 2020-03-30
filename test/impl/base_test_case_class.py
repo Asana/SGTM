@@ -3,8 +3,9 @@ from typing import List
 
 
 class BaseClass(TestCase):
-
-    def assertContainsStrings(self, actual: str, expected_strings: List[str], field_name: str = None):
+    def assertContainsStrings(
+        self, actual: str, expected_strings: List[str], field_name: str = None
+    ):
         if field_name is None:
             message = f"Expected '{actual}' to contain {{}}"
         else:
