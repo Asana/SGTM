@@ -11,7 +11,7 @@ def create_date_string(from_datetime: datetime) -> str:
 
 
 def memoize(func: Callable) -> Callable:
-    memo:Dict[Any,Any] = {}
+    memo: Dict[Any, Any] = {}
 
     def inner(*args):
         if args in memo:

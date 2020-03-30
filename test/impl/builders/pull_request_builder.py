@@ -3,12 +3,13 @@ from typing import List, Union, Tuple, Optional, Dict, Any
 from datetime import datetime
 from .helpers import transform_datetime, create_uuid
 from src.github.models import PullRequest, Comment, Review, User
+from .builder_base_class import BuilderBaseClass
 from .user_builder import UserBuilder
 from .comment_builder import CommentBuilder
 from .review_builder import ReviewBuilder
 
 
-class PullRequestBuilder(object):
+class PullRequestBuilder(BuilderBaseClass):
     def __init__(self, body: str = ""):
         pr_number = randint(1, 9999999999)
         self.raw_pr = {
@@ -92,7 +93,9 @@ class PullRequestBuilder(object):
 
     def requested_reviewers(self, reviewers: List[Union[User, UserBuilder]]):
         for reviewer in reviewers:
-            self.raw_pr["reviewRequests"]["nodes"].append({"requestedReviewer": reviewer.to_raw()})
+            self.raw_pr["reviewRequests"]["nodes"].append(
+                {"requestedReviewer": reviewer.to_raw()}
+            )
         return self
 
     def build(self) -> PullRequest:

@@ -14,9 +14,7 @@ class PullRequest(object):
         self.__assignees = self._assignees_from_raw()
 
     def _assignees_from_raw(self) -> List[str]:
-        return sorted(
-            [node["login"] for node in self.__raw["assignees"]["nodes"]]
-        )
+        return sorted([node["login"] for node in self.__raw["assignees"]["nodes"]])
 
     def assignees(self) -> List[str]:
         return self.__assignees
@@ -109,9 +107,11 @@ class PullRequest(object):
         return [Review(review) for review in self.__raw["reviews"]["nodes"]]
 
     def comments(self) -> List[Comment]:
-        return [
-            Comment(comment) for comment in self.__raw["comments"]["nodes"]
-        ]
+        return [Comment(comment) for comment in self.__raw["comments"]["nodes"]]
 
     def to_raw(self) -> Dict[str, Any]:
         return copy.deepcopy(self.__raw)
+
+    def build_status(self) -> Optional[str]:
+        commit = self.__raw["commits"]["nodes"][0]["commit"]
+        return commit["status"]["state"] if commit["status"] else None

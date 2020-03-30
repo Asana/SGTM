@@ -1,16 +1,18 @@
 import re
 from html import escape
-from typing import Callable, Match, Optional
-import src.dynamodb.client as dynamodb_client
+from typing import Callable, Match, Optional, List, Dict
+from src.dynamodb import client as dynamodb_client
 from src.github.models import Comment, PullRequest, Review, User
+from src.asana import client as asana_client
 from src.github import logic as github_logic
+from src.logger import logger
 
 
 def task_url_from_task_id(task_id: str) -> str:
     """
     Transforms an Asana Task's object-id into an url referring to the task in the Asana app
     """
-    if task_id is None or not task_id:
+    if not task_id:
         raise ValueError("task_url_from_task_id requires a task_id")
     return f"https://app.asana.com/0/0/{task_id}"
 
@@ -21,15 +23,105 @@ def extract_task_fields_from_pull_request(pull_request: PullRequest) -> dict:
     equivalent fields, as relevant to an Asana Task
     :return: Returns the following fields: assignee, name, html_notes and followers
     """
-    if pull_request is None:
-        raise ValueError("extract_task_fields_from_pull_request requires a pull_request")
     return {
         "assignee": _task_assignee_from_pull_request(pull_request),
         "name": _task_name_from_pull_request(pull_request),
         "html_notes": _task_description_from_pull_request(pull_request),
         "completed": _task_completion_from_pull_request(pull_request),
         "followers": _task_followers_from_pull_request(pull_request),
+        "custom_fields": _custom_fields_from_pull_request(pull_request),
     }
+
+
+def _task_status_from_pull_request(pull_request: PullRequest) -> str:
+    if not pull_request.closed():
+        return "Open"
+    elif pull_request.closed() and pull_request.merged():
+        return "Merged"
+    elif pull_request.closed() and not pull_request.merged():
+        return "Closed"
+    else:
+        logger.error("Pull request is in an invalid state")
+        return ""
+
+
+def _build_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
+    build_status = pull_request.build_status()
+    return build_status.capitalize() if build_status is not None else None
+
+
+_custom_fields_to_extract_map = {
+    "PR Status": _task_status_from_pull_request,
+    "Build": _build_status_from_pull_request,
+}
+
+
+def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
+    """
+    We currently expect the project to have two custom fields with its corresponding enum options:
+        • PR Status: "Open", "Closed", "Merged"
+        • Build: "Success", "Failure", "Pending"
+
+    TODO: Write script to set up an Asana project with these custom fields
+    (https://app.asana.com/0/1149418478823393/1162588814088433/f)
+    """
+    repository_id = pull_request.repository_id()
+    project_id = dynamodb_client.get_asana_id_from_github_node_id(repository_id)
+
+    if project_id is None:
+        logger.info(
+            f"Task not found for pull request {pull_request.id()}. Running a full sync!"
+        )
+        # TODO: Full sync
+        return {}
+    else:
+        custom_field_settings = list(asana_client.get_project_custom_fields(project_id))
+        data = {}
+        for custom_field_name, action in _custom_fields_to_extract_map.items():
+            enum_option_name = action(pull_request)
+
+            if enum_option_name:
+                custom_field_id = _get_custom_field_id(
+                    custom_field_name, custom_field_settings
+                )
+                enum_option_id = _get_custom_field_enum_option_id(
+                    custom_field_name, enum_option_name, custom_field_settings
+                )
+                if custom_field_id and enum_option_id:
+                    data[custom_field_id] = enum_option_id
+
+        return data
+
+
+def _get_custom_field_id(
+    custom_field_name: str, custom_field_settings: List[dict]
+) -> Optional[str]:
+    filtered_gid = [
+        custom_field_setting["custom_field"]["gid"]
+        for custom_field_setting in custom_field_settings
+        if custom_field_setting["custom_field"]["name"] == custom_field_name
+    ]
+    return filtered_gid[0] if filtered_gid else None
+
+
+def _get_custom_field_enum_option_id(
+    custom_field_name: str, enum_option_name: str, custom_field_settings: List[dict]
+) -> Optional[str]:
+    filtered_enum_options = [
+        custom_field_setting["custom_field"]["enum_options"]
+        for custom_field_setting in custom_field_settings
+        if custom_field_setting["custom_field"]["name"] == custom_field_name
+    ]
+
+    if not filtered_enum_options:
+        return None
+    else:
+        filtered_gid = [
+            enum_option["gid"]
+            for enum_option in filtered_enum_options[0]
+            if enum_option["name"] == enum_option_name
+        ]
+        return filtered_gid[0] if filtered_gid else None
 
 
 def _task_assignee_from_pull_request(pull_request: PullRequest) -> Optional[str]:
@@ -48,8 +140,6 @@ def _asana_display_name_for_github_user(github_user: User) -> str:
                 GitHub user 'David Brandt (padresmurfa)'
             or  Github user 'padresmurfa'
     """
-    if github_user is None:
-        raise ValueError("_asana_display_name_for_github_user requires a github_user")
     asana_author_user = _asana_user_url_from_github_user_handle(github_user.login())
     if asana_author_user is not None:
         return asana_author_user
@@ -83,7 +173,9 @@ def _transform_github_mentions_to_asana_mentions(text: str) -> str:
                 return github_handle
             return asana_user_url
 
-    return re.sub(github_logic.GITHUB_MENTION_REGEX, _github_mention_to_asana_mention, text)
+    return re.sub(
+        github_logic.GITHUB_MENTION_REGEX, _github_mention_to_asana_mention, text
+    )
 
 
 def asana_comment_from_github_comment(comment: Comment) -> str:
@@ -93,11 +185,11 @@ def asana_comment_from_github_comment(comment: Comment) -> str:
     DynamoDb to determine the Asana domain user id of the comment author and any @mentioned
     GitHub users.
     """
-    if comment is None:
-        raise ValueError("asana_comment_from_github_comment requires a comment")
     github_author = comment.author()
     display_name = _asana_display_name_for_github_user(github_author)
-    comment_text = _transform_github_mentions_to_asana_mentions(escape(comment.body(), quote=False))
+    comment_text = _transform_github_mentions_to_asana_mentions(
+        escape(comment.body(), quote=False)
+    )
     return _wrap_in_tag("body")(
         _wrap_in_tag("strong")(f"{display_name} commented:\n") + comment_text
     )
@@ -119,8 +211,6 @@ def asana_comment_from_github_review(review: Review) -> str:
     DynamoDb to determine the Asana domain user id of the review author and any @mentioned GitHub
     users.
     """
-    if review is None:
-        raise ValueError("asana_comment_from_github_review requires a review")
     user_display_name = _asana_display_name_for_github_user(review.author())
     review_action = _review_action_to_text_map.get(review.state(), "commented")
     review_body = _transform_github_mentions_to_asana_mentions(
@@ -135,7 +225,8 @@ def asana_comment_from_github_review(review: Review) -> str:
     if not review_body and inline_comments:
         return _wrap_in_tag("body")(
             _wrap_in_tag("strong")(
-                f"{user_display_name} left inline comments:\n" + "\n\n".join(inline_comments)
+                f"{user_display_name} left inline comments:\n"
+                + "\n\n".join(inline_comments)
             )
         )
 

@@ -1,5 +1,5 @@
 from typing import Tuple
-from sgqlc.endpoint.http import HTTPEndpoint
+from sgqlc.endpoint.http import HTTPEndpoint  # type: ignore
 from src.config import GITHUB_API_KEY
 from .schema import QUERIES
 from src.github.models import Comment, PullRequest, Review
@@ -45,3 +45,9 @@ def get_pull_request_and_review(
         {"pullRequestId": pull_request_id, "reviewId": review_id},
     )
     return PullRequest(data["pullRequest"]), Review(data["review"])
+
+
+def get_pull_request_for_commit(commit_id: str) -> PullRequest:
+    data = _execute_graphql_query("GetPullRequestForCommit", {"id": commit_id})
+    pull_request = data["commit"]["associatedPullRequests"]["edges"][0]["node"]
+    return PullRequest(pull_request)

@@ -115,6 +115,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
         )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from unittest import main as run_tests
+
     run_tests()

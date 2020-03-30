@@ -17,7 +17,7 @@ class GithubLogicTest(unittest.TestCase):
 
     def test_extract_mentions(self):
         self.assertEqual(github_logic._extract_mentions("hello"), [])
-        self.assertEqual(github_logic._extract_mentions("hello @there"), ["there"])
+        self.assertEqual(github_logic._extract_mentions("Hello @There"), ["There"])
         self.assertEqual(github_logic._extract_mentions("@hello there"), ["hello"])
         self.assertEqual(
             github_logic._extract_mentions("@hello @to-all123 there"),
@@ -27,8 +27,7 @@ class GithubLogicTest(unittest.TestCase):
 
     def test_pull_request_comment_mentions(self):
         pull_request = build(
-            builder.pull_request()
-            .comments(
+            builder.pull_request().comments(
                 [
                     builder.comment(""),
                     builder.comment("@one @two @three"),
@@ -43,8 +42,7 @@ class GithubLogicTest(unittest.TestCase):
 
     def test_pull_request_review_mentions(self):
         pull_request = build(
-            builder.pull_request()
-            .reviews(
+            builder.pull_request().reviews(
                 [
                     builder.review("").comments(
                         [builder.comment("@one @two @three"), builder.comment("@four"),]
@@ -68,8 +66,7 @@ class GithubLogicTest(unittest.TestCase):
 
     def test_pull_request_commenters(self):
         pull_request = build(
-            builder.pull_request()
-            .comments(
+            builder.pull_request().comments(
                 [
                     builder.comment().author(builder.user().login("foo")),
                     builder.comment().author(builder.user().login("bar")),
@@ -159,9 +156,7 @@ class GithubLogicTest(unittest.TestCase):
         pull_request = build(
             builder.pull_request()
             .merged_at(datetime.now())
-            .reviews(
-                [builder.review("This looks OK").submitted_at(reviewed_at)]
-            )
+            .reviews([builder.review("This looks OK").submitted_at(reviewed_at)])
             .comments(
                 [builder.comment("v cool use of emojis").published_at(commented_at)]
             )
@@ -175,9 +170,7 @@ class GithubLogicTest(unittest.TestCase):
         pull_request = build(
             builder.pull_request()
             .merged_at(datetime.now())
-            .reviews(
-                [builder.review("This looks OK").submitted_at(reviewed_at)]
-            )
+            .reviews([builder.review("This looks OK").submitted_at(reviewed_at)])
             .comments([builder.comment("LGTM!").published_at(commented_at)])
         )
         self.assertTrue(github_logic.pull_request_approved_after_merging(pull_request))
@@ -199,6 +192,7 @@ class GithubLogicTest(unittest.TestCase):
         self.assertTrue(github_logic.pull_request_approved_after_merging(pull_request))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from unittest import main as run_tests
+
     run_tests()

@@ -50,6 +50,15 @@ FRAGMENTS = {
           login
         }
       }
+      commits(last: 1) {
+        nodes {
+          commit {
+            status {
+              state
+            }
+          }
+        }
+      }
     }
     """,
     "FullComment": """
@@ -161,6 +170,27 @@ QUERIES = {
                 id
                 ... on PullRequestReview {
                   ...FullReview
+                }
+              }
+            }
+        """
+    + "\n"
+    + FRAGMENTS["FullPullRequest"]
+    + "\n"
+    + FRAGMENTS["FullReview"],
+    "GetPullRequestForCommit": """
+            query GetPullRequestForCommit($id: ID!) {
+              commit: node(id: $id) {
+                ... on Commit {
+                  associatedPullRequests(first: 1) {
+                    edges {
+                      node {
+                        ... on PullRequest {
+                            ...FullPullRequest
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }

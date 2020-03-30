@@ -4,7 +4,7 @@ from datetime import datetime
 from src.logger import logger
 from src.github.models import PullRequest
 
-GITHUB_MENTION_REGEX = "\B@([a-z0-9_\-]+)"
+GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
 
 
 def inject_asana_task_into_pull_request_body(body: str, task_url: str) -> str:
@@ -67,7 +67,8 @@ def pull_request_approved_before_merging(pull_request: PullRequest) -> bool:
 def _is_approval_comment_body(body: str) -> bool:
     return (
         re.search(
-            "lgtm|looks good|look good|looks great|look great|\+1|👍", body.lower()
+            "lgtm|looks good|look good|looks great|look great|\+1|ship\s?it|👍|🚢",
+            body.lower(),
         )
         is not None
     )
@@ -101,14 +102,20 @@ def pull_request_approved_after_merging(pull_request: PullRequest) -> bool:
         ]
         # or it may occur in the summary text of a review that was submitted after the pr was merged
         postmerge_reviews = [
-            review for review in pull_request.reviews() if review.submitted_at() >= merged_at
+            review
+            for review in pull_request.reviews()
+            if review.submitted_at() >= merged_at
         ]
         body_texts = [c.body() for c in postmerge_comments] + [
             r.body() for r in postmerge_reviews
         ]
         # TODO: consider whether we should disallow the pr author to approve their own pr via a LGTM comment
         return bool(
-            [body_text for body_text in body_texts if _is_approval_comment_body(body_text)]
+            [
+                body_text
+                for body_text in body_texts
+                if _is_approval_comment_body(body_text)
+            ]
         )
     return False
 

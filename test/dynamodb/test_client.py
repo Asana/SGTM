@@ -23,15 +23,14 @@ class DynamodbClientTest(MockDynamoDbTestCase):
     def test_get_asana_domain_user_id_from_github_handle(self):
         gh_handle = "Elaine Benes"
         asana_user_id = "12345"
-
         self.test_data.insert_user_into_user_table(gh_handle, asana_user_id)
-
         self.assertEqual(
             dynamodb_client.get_asana_domain_user_id_from_github_handle(gh_handle),
             asana_user_id,
         )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from unittest import main as run_tests
+
     run_tests()

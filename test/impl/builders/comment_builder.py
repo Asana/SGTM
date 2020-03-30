@@ -2,10 +2,11 @@ from typing import List, Union, Tuple, Optional, Dict, Any
 from datetime import datetime
 from .helpers import transform_datetime, create_uuid
 from src.github.models import Comment, User
+from .builder_base_class import BuilderBaseClass
 from .user_builder import UserBuilder
 
 
-class CommentBuilder(object):
+class CommentBuilder(BuilderBaseClass):
     def __init__(self, body: str = ""):
         self.raw_comment = {
             "id": create_uuid(),

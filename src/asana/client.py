@@ -1,5 +1,5 @@
-from typing import List
-import asana
+from typing import List, Iterator, Dict
+import asana  # type: ignore
 from src.config import ASANA_API_KEY
 
 
@@ -76,6 +76,9 @@ class AsanaClient(object):
         response = self.asana_api_client.tasks.add_comment(task_id, {"html_text": comment_body})
         return response["gid"]
 
+    def get_project_custom_fields(self, project_id: str) -> Iterator[Dict]:
+        return self.asana_api_client.custom_field_settings.find_by_project(project_id)
+
 
 def create_task(project_id: str) -> str:
     """
@@ -104,3 +107,10 @@ def add_comment(task_id: str, comment_body: str) -> str:
         user. Returns the object id of the comment
     """
     return AsanaClient.singleton().add_comment(task_id, comment_body)
+
+
+def get_project_custom_fields(project_id: str) -> Iterator[Dict]:
+    """
+        Retrieve's the custom fields in the specified project.
+    """
+    return AsanaClient.singleton().get_project_custom_fields(project_id)

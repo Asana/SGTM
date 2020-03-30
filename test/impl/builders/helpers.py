@@ -1,7 +1,6 @@
 from uuid import uuid4
 from datetime import datetime
 from typing import Union
-
 from src.utils import create_date_string
 
 
