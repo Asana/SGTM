@@ -1,4 +1,4 @@
-from github import Github
+from github import Github  # type: ignore
 from src.config import GITHUB_API_KEY
 
 gh_client = Github(GITHUB_API_KEY)

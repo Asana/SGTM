@@ -1,40 +1,124 @@
 from typing import Optional
-import boto3
+import boto3  # type: ignore
 from src.config import OBJECTS_TABLE, USERS_TABLE
+from botocore.exceptions import NoRegionError  # type: ignore
 from src.utils import memoize
 
-client = boto3.client("dynamodb")
+
+class ConfigurationError(Exception):
+    pass
 
 
-### OBJECTS TABLE
+class DynamoDbClient(object):
+    """
+        Encapsulates DynamoDb client interface, as exposed to the world. There is a single (singleton) instance of
+        DynamoDbClient in the process, which is lazily created upon the first request. This pattern supports test code
+        that does not require DynamoDb.
+    """
+
+    # the singleton instance of DynamoDbClient
+    _singleton = None
+
+    def __init__(self):
+        self.client = DynamoDbClient._create_client()
+
+    # getter for the singleton
+    @classmethod
+    def singleton(cls):
+        """
+        Getter for the DynamoDbClient singleton
+        """
+        if cls._singleton is None:
+            cls._singleton = DynamoDbClient()
+        return cls._singleton
+
+    # OBJECTS TABLE
+
+    def get_asana_id_from_github_node_id(self, gh_node_id: str) -> Optional[str]:
+        """
+            Retrieves the Asana object-id associated with the specified GitHub node-id,
+            or None, if no such association exists. Object-table associations are created
+            by SGTM via the insert_github_node_to_asana_id_mapping method, below.
+        """
+        response = self.client.get_item(
+            TableName=OBJECTS_TABLE, Key={"github-node": {"S": gh_node_id}}
+        )
+        if "Item" in response:
+            return response["Item"]["asana-id"]["S"]
+        else:
+            return None
+
+    def insert_github_node_to_asana_id_mapping(self, gh_node_id: str, asana_id: str):
+        """
+            Creates an association between a GitHub node-id and an Asana object-id
+        """
+        self.client.put_item(
+            TableName=OBJECTS_TABLE,
+            Item={"github-node": {"S": gh_node_id}, "asana-id": {"S": asana_id}},
+        )
+
+    # USERS TABLE
+
+    @memoize
+    def get_asana_domain_user_id_from_github_handle(
+        self, github_handle: str
+    ) -> Optional[str]:
+        """
+            Retrieves the Asana domain user-id associated with a specific GitHub user login, or None,
+            if no such association exists. User-id associations are created manually via an external process.
+            TODO: document this process, and create scripts to encapsulate it
+        """
+        response = self.client.get_item(
+            TableName=USERS_TABLE, Key={"github/handle": {"S": github_handle.lower()}}
+        )
+        if "Item" in response:
+            return response["Item"]["asana/domain-user-id"]["S"]
+        else:
+            return None
+
+    @staticmethod
+    def _create_client():
+        # Encapsulates creating a boto3 client connection for DynamoDb with a more user-friendly error case
+        try:
+            return boto3.client("dynamodb")
+        except NoRegionError:
+            pass
+        # by raising the new error outside of the except clause, the ConfigurationError does not automatically contain
+        # the stack trace of the NoRegionError, which provides no extra value and clutters the console.
+        raise ConfigurationError(
+            "Configuration error: Please select a region, e.g. via `AWS_DEFAULT_REGION=us-east-1`"
+        )
 
 
 def get_asana_id_from_github_node_id(gh_node_id: str) -> Optional[str]:
-    response = client.get_item(
-        TableName=OBJECTS_TABLE, Key={"github-node": {"S": gh_node_id}}
-    )
-    if "Item" in response:
-        return response["Item"]["asana-id"]["S"]
-    else:
-        return None
+    """
+        Using the singleton instance of DynamoDbClient, creating it if necessary:
+
+        Retrieves the Asana object-id associated with the specified GitHub node-id,
+        or None, if no such association exists. Object-table associations are created
+        by SGTM via the insert_github_node_to_asana_id_mapping method, below.
+    """
+    return DynamoDbClient.singleton().get_asana_id_from_github_node_id(gh_node_id)
 
 
 def insert_github_node_to_asana_id_mapping(gh_node_id: str, asana_id: str):
-    response = client.put_item(
-        TableName=OBJECTS_TABLE,
-        Item={"github-node": {"S": gh_node_id}, "asana-id": {"S": asana_id}},
+    """
+        Using the singleton instance of DynamoDbClient, creating it if necessary:
+
+        Creates an association between a GitHub node-id and an Asana object-id
+    """
+    return DynamoDbClient.singleton().insert_github_node_to_asana_id_mapping(
+        gh_node_id, asana_id
     )
 
 
-### USERS TABLE
-
-
-@memoize
 def get_asana_domain_user_id_from_github_handle(github_handle: str) -> Optional[str]:
-    response = client.get_item(
-        TableName=USERS_TABLE, Key={"github/handle": {"S": github_handle.lower()}}
+    """
+        Using the singleton instance of DynamoDbClient, creating it if necessary:
+
+        Retrieves the Asana domain user-id associated with a specific GitHub user login, or None,
+        if no such association exists. User-id associations are created manually via an external process.
+    """
+    return DynamoDbClient.singleton().get_asana_domain_user_id_from_github_handle(
+        github_handle
     )
-    if "Item" in response:
-        return response["Item"]["asana/domain-user-id"]["S"]
-    else:
-        return None

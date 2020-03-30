@@ -1,15 +1,17 @@
 from datetime import datetime
-from typing import Callable
-
-STR_FMT = "%Y-%m-%dT%H:%M:%SZ"
+from typing import Callable, Dict, Any
 
 
 def parse_date_string(date_string: str) -> datetime:
-    return datetime.strptime(date_string, STR_FMT)
+    return datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S%z")
+
+
+def create_date_string(from_datetime: datetime) -> str:
+    return from_datetime.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def memoize(func: Callable) -> Callable:
-    memo = {}
+    memo: Dict[Any, Any] = {}
 
     def inner(*args):
         if args in memo:

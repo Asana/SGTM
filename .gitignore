@@ -103,6 +103,8 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+# IntelliJ Idea
+.idea
 
 # Terraform
 terraform/.terraform

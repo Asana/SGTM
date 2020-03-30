@@ -5,11 +5,11 @@ import json
 import os
 import sys
 
-import boto3
-import botocore
+import boto3  # type: ignore
+import botocore  # type: ignore
 
 REGION = "us-east-1"
-
+# TODO: REGION should not be hardcoded
 
 s3_client = boto3.client("s3", region_name=REGION)
 
@@ -39,7 +39,11 @@ def set_api_keys(args):
         pass
 
     for secret_name in args.keys:
-        secret = input("Enter the secret for {} (press enter without typing to skip): ".format(secret_name))
+        secret = input(
+            "Enter the secret for {} (press enter without typing to skip): ".format(
+                secret_name
+            )
+        )
         if secret != "":
             keys[secret_name] = secret
 
@@ -73,7 +77,7 @@ def setup_state(args):
         },
     )
 
-    # Setup DynamoDB table
+    # Setup DynamoDB table #DynamoDbSchema
     client = boto3.client("dynamodb", region_name=REGION)
     client.create_table(
         AttributeDefinitions=[{"AttributeName": "LockID", "AttributeType": "S"},],
@@ -93,14 +97,16 @@ if __name__ == "__main__":
     parser_state = subparsers.add_parser("state", help="Set up state")
     parser_state.set_defaults(action="state")
 
-    parser_secrets = subparsers.add_parser("secrets", help="Add api keys and secrets for SGTM to use")
+    parser_secrets = subparsers.add_parser(
+        "secrets", help="Add api keys and secrets for SGTM to use"
+    )
     parser_secrets.set_defaults(action="secrets")
     parser_secrets.add_argument(
         "--keys",
         default=("ASANA_API_KEY", "GITHUB_API_KEY", "GITHUB_HMAC_SECRET"),
         choices=("ASANA_API_KEY", "GITHUB_API_KEY", "GITHUB_HMAC_SECRET"),
         help="Select which secret to change",
-        nargs='+'
+        nargs="+",
     )
 
     args = arg_parser.parse_args()

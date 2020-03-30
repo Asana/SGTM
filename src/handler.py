@@ -17,11 +17,12 @@ def handler(event: dict, context: dict) -> None:
     event_type = event["headers"].get("X-GitHub-Event")
     signature = event["headers"].get("X-Hub-Signature")
 
+    if GITHUB_HMAC_SECRET is None:
+        raise ValueError("GITHUB_HMAC_SECRET")
+    secret: str = GITHUB_HMAC_SECRET
+
     generated_signature = (
-        "sha1="
-        + hmac.new(
-            bytes(GITHUB_HMAC_SECRET, "utf-8"), digestmod=hashlib.sha1
-        ).hexdigest()
+        "sha1=" + hmac.new(bytes(secret, "utf-8"), digestmod=hashlib.sha1).hexdigest()
     )
 
     if not hmac.compare_digest(generated_signature, signature):

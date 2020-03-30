@@ -1,7 +1,5 @@
-import boto3
-from test.mock_dynamodb_test_case import MockDynamoDbTestCase
-from src.config import USERS_TABLE
-from src.dynamodb import client as dynamodb_client
+from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
+import src.dynamodb.client as dynamodb_client
 
 
 class DynamodbClientTest(MockDynamoDbTestCase):
@@ -23,19 +21,16 @@ class DynamodbClientTest(MockDynamoDbTestCase):
         )
 
     def test_get_asana_domain_user_id_from_github_handle(self):
-        client = boto3.client("dynamodb")
-
         gh_handle = "Elaine Benes"
         asana_user_id = "12345"
-        client.put_item(
-            TableName=USERS_TABLE,
-            Item={
-                "github/handle": {"S": gh_handle.lower()},
-                "asana/domain-user-id": {"S": asana_user_id},
-            },
-        )
-
+        self.test_data.insert_user_into_user_table(gh_handle, asana_user_id)
         self.assertEqual(
             dynamodb_client.get_asana_domain_user_id_from_github_handle(gh_handle),
             asana_user_id,
         )
+
+
+if __name__ == "__main__":
+    from unittest import main as run_tests
+
+    run_tests()

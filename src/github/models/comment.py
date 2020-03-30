@@ -1,24 +1,28 @@
 from datetime import datetime
-from typing import List
-from src.logger import logger
+from typing import Dict, Any
 from src.utils import parse_date_string
+from .user import User
+import copy
 
 
 class Comment(object):
-    def __init__(self, raw_comment):
-        self.raw_comment = raw_comment
+    def __init__(self, raw_comment: Dict[str, Any]):
+        self.__raw = copy.deepcopy(raw_comment)
 
     def id(self) -> str:
-        return self.raw_comment["id"]
+        return self.__raw["id"]
 
     def published_at(self) -> datetime:
-        return parse_date_string(self.raw_comment["publishedAt"])
+        return parse_date_string(self.__raw["publishedAt"])
 
     def body(self) -> str:
-        return self.raw_comment["body"]
+        return self.__raw["body"]
 
     def author_handle(self) -> str:
-        return self.author()["login"]
+        return self.author().login()
 
-    def author(self) -> dict:
-        return self.raw_comment["author"]
+    def author(self) -> User:
+        return User(self.__raw["author"])
+
+    def to_raw(self) -> Dict[str, Any]:
+        return copy.deepcopy(self.__raw)
