@@ -9,11 +9,11 @@ class MockDynamoDbTestDataHelper(object):
     def __init__(self, client):
         self.client = client
 
-    def insert_user_into_user_table(self, login: str, asana_domain_user_id: str):
+    def insert_user_into_user_table(self, gh_handle: str, asana_domain_user_id: str):
         self.client.put_item(
             TableName=USERS_TABLE,
             Item={
-                "github/handle": {"S": login},
+                "github/handle": {"S": gh_handle.lower()},
                 "asana/domain-user-id": {"S": asana_domain_user_id},
             },
         )

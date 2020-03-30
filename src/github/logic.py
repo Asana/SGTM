@@ -4,7 +4,7 @@ from datetime import datetime
 from src.logger import logger
 from src.github.models import PullRequest
 
-GITHUB_MENTION_REGEX = "\B@([a-z0-9_\-]+)"
+GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
 
 
 def inject_asana_task_into_pull_request_body(body: str, task_url: str) -> str:
@@ -67,7 +67,8 @@ def pull_request_approved_before_merging(pull_request: PullRequest) -> bool:
 def _is_approval_comment_body(body: str) -> bool:
     return (
         re.search(
-            "lgtm|looks good|look good|looks great|look great|\+1|👍", body.lower()
+            "lgtm|looks good|look good|looks great|look great|\+1|ship\s?it|👍|🚢",
+            body.lower(),
         )
         is not None
     )

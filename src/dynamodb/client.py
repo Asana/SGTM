@@ -69,7 +69,7 @@ class DynamoDbClient(object):
             TODO: document this process, and create scripts to encapsulate it
         """
         response = self.client.get_item(
-            TableName=USERS_TABLE, Key={"github/handle": {"S": github_handle}}
+            TableName=USERS_TABLE, Key={"github/handle": {"S": github_handle.lower()}}
         )
         if "Item" in response:
             return response["Item"]["asana/domain-user-id"]["S"]

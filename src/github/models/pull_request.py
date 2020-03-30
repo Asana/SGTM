@@ -111,3 +111,7 @@ class PullRequest(object):
 
     def to_raw(self) -> Dict[str, Any]:
         return copy.deepcopy(self.__raw)
+
+    def build_status(self) -> Optional[str]:
+        commit = self.__raw["commits"]["nodes"][0]["commit"]
+        return commit["status"]["state"] if commit["status"] else None
