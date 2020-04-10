@@ -13,7 +13,8 @@ def create_task(repository_id: str) -> Optional[str]:
         logger.warn(f"No project id found for repository id {repository_id}")
         return None
     else:
-        return asana_client.create_task(project_id)
+        due_date_str = asana_helpers.default_due_date_str()
+        return asana_client.create_task(project_id, due_date_str=due_date_str)
 
 
 def update_task(pull_request: PullRequest, task_id: str):
