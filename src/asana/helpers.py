@@ -1,5 +1,6 @@
 import re
 from html import escape
+from datetime import datetime, timedelta
 from typing import Callable, Match, Optional, List, Dict
 from src.dynamodb import client as dynamodb_client
 from src.github.models import Comment, PullRequest, Review, User
@@ -31,6 +32,29 @@ def extract_task_fields_from_pull_request(pull_request: PullRequest) -> dict:
         "followers": _task_followers_from_pull_request(pull_request),
         "custom_fields": _custom_fields_from_pull_request(pull_request),
     }
+
+
+def default_due_date_str(reference_datetime: datetime = None) -> str:
+    if reference_datetime is None:
+        reference_datetime = datetime.now()
+
+    tomorrow = reference_datetime + timedelta(hours=24)
+
+    due_date = None
+    if tomorrow.weekday() < 5:
+        # weekday is 0-indexed at Monday, so 0,1,2,3,4 is Mon,Tues,Wed,Thurs,Fri
+        # tomorrow is a weekday! Return it.
+        due_date = tomorrow
+    elif tomorrow.weekday() == 5:
+        due_date = tomorrow + timedelta(
+            hours=48
+        )  # Tomorrow is Saturday, so add two more days to get to Monday
+    else:
+        due_date = tomorrow + timedelta(
+            hours=24
+        )  # Tomorrow is Sunday, so add one more day to get to Monday
+
+    return due_date.strftime("%Y-%m-%d")
 
 
 def _task_status_from_pull_request(pull_request: PullRequest) -> str:

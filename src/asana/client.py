@@ -1,4 +1,4 @@
-from typing import List, Iterator, Dict
+from typing import List, Iterator, Dict, Optional
 import asana  # type: ignore
 from src.config import ASANA_API_KEY
 
@@ -42,12 +42,16 @@ class AsanaClient(object):
             cls._singleton = AsanaClient()
         return cls._singleton
 
-    def create_task(self, project_id: str) -> str:
+    def create_task(self, project_id: str, due_date_str: str = None) -> str:
         """
             Creates an Asana task in the specified project, returning the task_id
         """
         validate_object_id(project_id, "AsanaClient.create_task requires a project_id")
-        response = self.asana_api_client.tasks.create({"projects": project_id})
+
+        create_task_params = {"projects": project_id}
+        if due_date_str:
+            create_task_params["due_on"] = due_date_str
+        response = self.asana_api_client.tasks.create(create_task_params)
         return response["gid"]
 
     def update_task(self, task_id: str, fields: dict):
@@ -91,11 +95,11 @@ class AsanaClient(object):
         return self.asana_api_client.custom_field_settings.find_by_project(project_id)
 
 
-def create_task(project_id: str) -> str:
+def create_task(project_id: str, due_date_str: str = None) -> str:
     """
         Creates an Asana task in the specified project, returning the task_id
     """
-    return AsanaClient.singleton().create_task(project_id)
+    return AsanaClient.singleton().create_task(project_id, due_date_str=due_date_str)
 
 
 def update_task(task_id: str, fields: dict):

@@ -13,6 +13,8 @@ class TestAsanaClientCreateTask(BaseClass):
             src.asana.client.create_task("")
         with self.assertRaises(ValueError):
             src.asana.client.create_task(1)
+        with self.assertRaises(ValueError):
+            src.asana.client.create_task(1)
 
     def test_creates_task(self):
         task_id = "TASK_ID"
@@ -29,6 +31,16 @@ class TestAsanaClientCreateTask(BaseClass):
         ) as create_task:
             src.asana.client.create_task("PROJECT_ID")
             create_task.assert_called_once_with({"projects": "PROJECT_ID"})
+
+    def test_creates_task_with_due_date(self):
+        task_id = "TASK_ID"
+        with patch.object(
+            asana_api_client.tasks, "create", return_value={"gid": task_id}
+        ) as create_task:
+            src.asana.client.create_task("PROJECT_ID", "Tomorrow")
+            create_task.assert_called_once_with(
+                {"projects": "PROJECT_ID", "due_on": "Tomorrow"}
+            )
 
 
 class TestAsanaClientUpdateTask(BaseClass):
