@@ -22,7 +22,12 @@ def handler(event: dict, context: dict) -> None:
     secret: str = GITHUB_HMAC_SECRET
 
     generated_signature = (
-        "sha1=" + hmac.new(bytes(secret, "utf-8"), digestmod=hashlib.sha1).hexdigest()
+        "sha1="
+        + hmac.new(
+            bytes(secret, "utf-8"),
+            msg=bytes(event["body"], "utf-8"),
+            digestmod=hashlib.sha1,
+        ).hexdigest()
     )
 
     if not hmac.compare_digest(generated_signature, signature):
