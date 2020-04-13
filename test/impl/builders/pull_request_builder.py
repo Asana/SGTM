@@ -63,17 +63,17 @@ class PullRequestBuilder(BuilderBaseClass):
     def comment(self, comment: Union[CommentBuilder, Comment]):
         return self.comments([comment])
 
-    def comments(self, comments: Union[List[CommentBuilder], List[Comment]]):
+    def comments(self, comments: List[Union[CommentBuilder, Comment]]):
         for comment in comments:
-            self.raw_pr["comments"]["nodes"].append(comment.to_raw())
+            self.raw_pr["comments"]["nodes"].append(comment.to_raw())  # type: ignore
         return self
 
     def review(self, review: Union[ReviewBuilder, Review]):
         return self.reviews([review])
 
-    def reviews(self, reviews: Union[List[ReviewBuilder], List[Review]]):
+    def reviews(self, reviews: List[Union[ReviewBuilder, Review]]):
         for review in reviews:
-            self.raw_pr["reviews"]["nodes"].append(review.to_raw())
+            self.raw_pr["reviews"]["nodes"].append(review.to_raw())  # type: ignore
         return self
 
     def author(self, user: Union[User, UserBuilder]):
@@ -85,7 +85,7 @@ class PullRequestBuilder(BuilderBaseClass):
 
     def assignees(self, assignees: List[Union[User, UserBuilder]]):
         for assignee in assignees:
-            self.raw_pr["assignees"]["nodes"].append(assignee.to_raw())
+            self.raw_pr["assignees"]["nodes"].append(assignee.to_raw())  # type: ignore
         return self
 
     def requested_reviewer(self, requested_reviewer: Union[UserBuilder, User]):
@@ -93,7 +93,7 @@ class PullRequestBuilder(BuilderBaseClass):
 
     def requested_reviewers(self, reviewers: List[Union[User, UserBuilder]]):
         for reviewer in reviewers:
-            self.raw_pr["reviewRequests"]["nodes"].append(
+            self.raw_pr["reviewRequests"]["nodes"].append(  # type: ignore
                 {"requestedReviewer": reviewer.to_raw()}
             )
         return self
