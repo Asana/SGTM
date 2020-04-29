@@ -61,7 +61,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
         # Creating a pull request that can be automerged
         pull_request = (
             builder.pull_request()
-            .build_status("success")
+            .build_status("SUCCESS")
             .review(
                 builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
             )
@@ -93,7 +93,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
         # Creating a pull request that cannot be automerged
         pull_request = (
             builder.pull_request()
-            .build_status("success")
+            .build_status("SUCCESS")
             .review(
                 builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
             )

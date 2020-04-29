@@ -9,6 +9,10 @@ import copy
 
 
 class PullRequest(object):
+    BUILD_SUCCESSFUL = "SUCCESS"
+    BUILD_PENDING = "PENDING"
+    BUILD_FAILED = "FAILURE"
+
     def __init__(self, raw_pull_request: Dict[str, Any]):
         self.__raw = copy.deepcopy(raw_pull_request)
         self.__assignees = self._assignees_from_raw()
@@ -100,13 +104,16 @@ class PullRequest(object):
     def mergeable(self) -> bool:
         return self.__raw["mergeable"]
 
-    def approved(self) -> bool:
+    def is_approved(self) -> bool:
         if len(self.reviews()) > 0:
             reviews = self.reviews()
             reviews.sort(key=lambda review: review.submitted_at(), reverse=True)
             return reviews[0].is_approval()
         else:
             return False
+
+    def is_build_successful(self) -> bool:
+        return self.build_status() == self.BUILD_SUCCESSFUL
 
     def merged_at(self) -> Optional[datetime]:
         merged_at = self.__raw.get("mergedAt", None)
