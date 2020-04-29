@@ -23,7 +23,6 @@ def upsert_pull_request(pull_request: PullRequest):
         logger.info(
             f"Task found for pull request {pull_request_id}, updating task {task_id}"
         )
-    asana_controller.update_task(pull_request, task_id)
 
     if github_logic.is_pull_request_ready_for_automerge(pull_request):
         logger.info(
@@ -36,6 +35,8 @@ def upsert_pull_request(pull_request: PullRequest):
             pull_request.title(),
             pull_request.body(),
         )
+    else:
+        asana_controller.update_task(pull_request, task_id)
 
 
 def _add_asana_task_to_pull_request(pull_request: PullRequest, task_id: str):
