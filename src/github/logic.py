@@ -145,5 +145,9 @@ def is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
         and pull_request.approved()
         and pull_request.mergeable()
         and not pull_request.merged()
-        and "[shipit]" in pull_request.title()
+        and _has_ship_it_in_pull_request_title(pull_request.title())
     )
+
+
+def _has_ship_it_in_pull_request_title(title: str) -> bool:
+    return re.search("[shipit]|[Shipit]|[SHIPIT]", title.lower(),) is not None
