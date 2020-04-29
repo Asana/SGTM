@@ -22,7 +22,7 @@ def extract_task_fields_from_pull_request(pull_request: PullRequest) -> dict:
     """
     Extracts and transforms all relevant fields of a GitHub PullRequest into their corresponding
     equivalent fields, as relevant to an Asana Task
-    :return: Returns the following fields: assignee, name, html_notes and followers
+    :return: Returns the following fields: assignee, name, html_notes, followers and custom fields
     """
     return {
         "assignee": _task_assignee_from_pull_request(pull_request),
@@ -84,7 +84,7 @@ def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
     """
     We currently expect the project to have two custom fields with its corresponding enum options:
         • PR Status: "Open", "Closed", "Merged"
-        • Build: "Success", "Failure", "Pending"
+        • Build: "Success", "Failure"
 
     TODO: Write script to set up an Asana project with these custom fields
     (https://app.asana.com/0/1149418478823393/1162588814088433/f)
@@ -143,7 +143,7 @@ def _get_custom_field_enum_option_id(
         filtered_gid = [
             enum_option["gid"]
             for enum_option in filtered_enum_options[0]
-            if enum_option["name"] == enum_option_name
+            if enum_option["name"] == enum_option_name and enum_option["enabled"]
         ]
         return filtered_gid[0] if filtered_gid else None
 
