@@ -1,7 +1,7 @@
 from src.asana import helpers as asana_helpers
 
 from test.impl.base_test_case_class import BaseClass
-from test.impl.builders.helpers import get_custom_field_settings_for_test
+from test.impl.builders.custom_field_builder import get_custom_field_settings_for_test
 
 
 class TestGetCustomFieldEnumOptionId(BaseClass):
