@@ -5,6 +5,7 @@ from src.logger import logger
 from src.github.models import PullRequest
 
 GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
+SHIP_IT_KEYWORDS = ["[shipit]", "[Shipit]", "[SHIPIT]"]
 
 
 def inject_asana_task_into_pull_request_body(body: str, task_url: str) -> str:
@@ -150,4 +151,4 @@ def is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
 
 
 def _has_ship_it_in_pull_request_title(title: str) -> bool:
-    return re.search("[shipit]|[Shipit]|[SHIPIT]", title.lower(),) is not None
+    return any(x in title for x in SHIP_IT_KEYWORDS)
