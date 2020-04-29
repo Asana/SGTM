@@ -30,11 +30,11 @@ def upsert_pull_request(pull_request: PullRequest):
             f"Pull request {pull_request_id} is able to be automerged, automerging now"
         )
         github_client.merge_pull_request(
-            pull_request.repository_owner_handle,
-            pull_request.repository_name,
-            pull_request.number,
-            pull_request.title,
-            pull_request.body,
+            pull_request.repository_owner_handle(),
+            pull_request.repository_name(),
+            pull_request.number(),
+            pull_request.title(),
+            pull_request.body(),
         )
 
 

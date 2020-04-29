@@ -57,7 +57,7 @@ class PullRequest(object):
     def number(self) -> int:
         return self.__raw["number"]
 
-    def title(self) -> int:
+    def title(self) -> str:
         return self.__raw["title"]
 
     def url(self) -> str:

@@ -78,11 +78,11 @@ class GithubControllerTest(MockDynamoDbTestCase):
         github_controller.upsert_pull_request(pull_request)
 
         merge_pull_request_mock.assert_called_with(
-            pull_request.repository_owner_handle,
-            pull_request.repository_name,
-            pull_request.number,
-            pull_request.title,
-            pull_request.body,
+            pull_request.repository_owner_handle(),
+            pull_request.repository_name(),
+            pull_request.number(),
+            pull_request.title(),
+            pull_request.body(),
         )
 
     @patch.object(asana_controller, "update_task")
