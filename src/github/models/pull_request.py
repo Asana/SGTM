@@ -97,6 +97,13 @@ class PullRequest(object):
     def merged(self) -> bool:
         return self.__raw["merged"]
 
+    def mergeable(self) -> bool:
+        return self.__raw["mergeable"]
+
+    def approved(self) -> bool:
+        # FLAG IN REVIEW: will the most recent review be at beginning of the list?
+        return len(self.reviews()) > 0 and self.reviews()[0].is_approval()
+
     def merged_at(self) -> Optional[datetime]:
         merged_at = self.__raw.get("mergedAt", None)
         if merged_at is None:

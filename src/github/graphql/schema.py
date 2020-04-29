@@ -11,6 +11,7 @@ FRAGMENTS = {
       }
       closed
       merged
+      mergeable
       mergedAt
       url
       number

@@ -137,3 +137,12 @@ def all_pull_request_participants(pull_request: PullRequest) -> List[str]:
             if gh_handle
         )
     )
+
+
+def is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
+    return (
+        pull_request.build_status() is "success"
+        and pull_request.approved()
+        and pull_request.mergeable()
+        and "[shipit]" in pull_request.title()
+    )

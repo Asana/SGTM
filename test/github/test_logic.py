@@ -191,6 +191,86 @@ class GithubLogicTest(unittest.TestCase):
         )
         self.assertTrue(github_logic.pull_request_approved_after_merging(pull_request))
 
+    def test_is_pull_request_ready_for_automerge(self):
+        pull_request = build(
+            builder.pull_request()
+            .build_status("success")
+            .review(
+                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+            )
+            .mergeable(True)
+            .title("blah blah [shipit]")
+        )
+        self.assertTrue(github_logic.is_pull_request_ready_for_automerge(pull_request))
+
+    def test_is_pull_request_ready_for_automerge_build_failed(self):
+        pull_request = build(
+            builder.pull_request()
+            .build_status("failure")
+            .review(
+                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+            )
+            .mergeable(True)
+            .title("blah blah [shipit]")
+        )
+        self.assertFalse(github_logic.is_pull_request_ready_for_automerge(pull_request))
+
+    def test_is_pull_request_ready_for_automerge_build_pending(self):
+        pull_request = build(
+            builder.pull_request()
+            .build_status("pending")
+            .review(
+                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+            )
+            .mergeable(True)
+            .title("blah blah [shipit]")
+        )
+        self.assertFalse(github_logic.is_pull_request_ready_for_automerge(pull_request))
+
+    def test_is_pull_request_ready_for_automerge_reviewer_requested_changes(self):
+        pull_request = build(
+            builder.pull_request()
+            .build_status("success")
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state("CHANGES_REQUESTED")
+            )
+            .mergeable(True)
+            .title("blah blah [shipit]")
+        )
+        self.assertFalse(github_logic.is_pull_request_ready_for_automerge(pull_request))
+
+    def test_is_pull_request_ready_for_automerge_no_review(self):
+        pull_request = build(
+            builder.pull_request().build_status("success").title("blah blah [shipit]")
+        )
+        self.assertFalse(github_logic.is_pull_request_ready_for_automerge(pull_request))
+
+    def test_is_pull_request_ready_for_automerge_no_ship_it(self):
+        pull_request = build(
+            builder.pull_request()
+            .build_status("success")
+            .review(
+                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+            )
+            .mergeable(True)
+            .title("blah blah blah")
+        )
+        self.assertFalse(github_logic.is_pull_request_ready_for_automerge(pull_request))
+
+    def test_is_pull_request_ready_for_automerge_mergeable_is_false(self):
+        pull_request = build(
+            builder.pull_request()
+            .build_status("success")
+            .review(
+                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+            )
+            .mergeable(False)
+            .title("blah blah [shipit]")
+        )
+        self.assertFalse(github_logic.is_pull_request_ready_for_automerge(pull_request))
+
 
 if __name__ == "__main__":
     from unittest import main as run_tests

@@ -19,11 +19,13 @@ class PullRequestBuilder(BuilderBaseClass):
             "title": create_uuid(),
             "url": "https://www.github.com/foo/pulls/" + str(pr_number),
             "assignees": {"nodes": []},
+            "commits": {"nodes": [{"commit": {"status": {"state": "pending"}}}]},
             "comments": {"nodes": []},
             "reviews": {"nodes": []},
             "reviewRequests": {"nodes": []},
             "closed": False,
             "merged": False,
+            "mergeable": False,
             "author": {"login": "somebody", "name": ""},
             "repository": {
                 "id": create_uuid(),
@@ -38,6 +40,10 @@ class PullRequestBuilder(BuilderBaseClass):
 
     def merged(self, merged: bool):
         self.raw_pr["merged"] = merged
+        return self
+
+    def mergeable(self, mergeable: bool):
+        self.raw_pr["mergeable"] = mergeable
         return self
 
     def number(self, number: str):
@@ -96,6 +102,12 @@ class PullRequestBuilder(BuilderBaseClass):
             self.raw_pr["reviewRequests"]["nodes"].append(
                 {"requestedReviewer": reviewer.to_raw()}
             )
+        return self
+
+    def build_status(self, build_status: str):
+        self.raw_pr["commits"]["nodes"][0] = {
+            "commit": {"status": {"state": build_status}}
+        }
         return self
 
     def build(self) -> PullRequest:
