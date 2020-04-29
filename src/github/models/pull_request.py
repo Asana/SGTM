@@ -101,7 +101,12 @@ class PullRequest(object):
         return self.__raw["mergeable"]
 
     def approved(self) -> bool:
-        return len(self.reviews()) > 0 and self.reviews()[0].is_approval()
+        if len(self.reviews()) > 0:
+            reviews = self.reviews()
+            reviews.sort(key=lambda review: review.submitted_at(), reverse=True)
+            return reviews[0].is_approval()
+        else:
+            return False
 
     def merged_at(self) -> Optional[datetime]:
         merged_at = self.__raw.get("mergedAt", None)

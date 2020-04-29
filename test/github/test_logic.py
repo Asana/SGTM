@@ -271,6 +271,26 @@ class GithubLogicTest(unittest.TestCase):
         )
         self.assertFalse(github_logic.is_pull_request_ready_for_automerge(pull_request))
 
+    def test_is_pull_request_ready_for_automerge_approved_then_requested_changes(self):
+        pull_request = build(
+            builder.pull_request()
+            .build_status("success")
+            .reviews(
+                [
+                    builder.review()
+                    .submitted_at("2020-01-12T14:59:58Z")
+                    .state("APPROVED"),
+                    builder.review()
+                    .submitted_at("2020-01-13T14:59:58Z")
+                    .state("CHANGES_REQUESTED"),
+                ]
+            )
+            .mergeable(True)
+            .merged(False)
+            .title("blah blah [shipit]")
+        )
+        self.assertFalse(github_logic.is_pull_request_ready_for_automerge(pull_request))
+
     def test_is_pull_request_ready_for_automerge_no_review(self):
         pull_request = build(
             builder.pull_request().build_status("success").title("blah blah [shipit]")
