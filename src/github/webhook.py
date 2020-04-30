@@ -2,6 +2,8 @@ from operator import itemgetter
 import src.github.graphql.client as graphql_client
 from src.dynamodb.lock import dynamodb_lock
 import src.github.controller as github_controller
+from . import logic as github_logic
+from . import client as github_client
 from src.logger import logger
 
 
@@ -47,7 +49,19 @@ def _handle_status_webhook(payload: dict):
     commit_id = payload["commit"]["node_id"]
     with dynamodb_lock(commit_id):
         pull_request = graphql_client.get_pull_request_for_commit(commit_id)
-        return github_controller.upsert_pull_request(pull_request)
+        if github_logic.is_pull_request_ready_for_automerge(pull_request):
+            logger.info(
+                f"Pull request {pull_request.id()} is able to be automerged, automerging now"
+            )
+            return github_client.merge_pull_request(
+                pull_request.repository_owner_handle(),
+                pull_request.repository_name(),
+                pull_request.number(),
+                pull_request.title(),
+                pull_request.body(),
+            )
+        else:
+            return github_controller.upsert_pull_request(pull_request)
 
 
 _events_map = {

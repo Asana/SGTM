@@ -110,6 +110,7 @@ class PullRequest(object):
             return False
 
     def is_build_successful(self) -> bool:
+        print(self.build_status())
         return self.build_status() == Commit.BUILD_SUCCESSFUL
 
     def merged_at(self) -> Optional[datetime]:

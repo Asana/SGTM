@@ -5,8 +5,7 @@ import src.github.client as github_client
 import src.github.controller as github_controller
 import src.asana.controller as asana_controller
 import src.dynamodb.client as dynamodb_client
-from src.github.models import Commit
-from test.impl.builders import builder, build
+from test.impl.builders import builder
 
 
 class GithubControllerTest(MockDynamoDbTestCase):
@@ -53,62 +52,6 @@ class GithubControllerTest(MockDynamoDbTestCase):
 
         create_task_mock.assert_not_called()
         update_task_mock.assert_called_with(pull_request, existing_task_id)
-
-    @patch.object(asana_controller, "update_task")
-    @patch.object(github_client, "merge_pull_request")
-    def test_upsert_pull_request_when_ready_for_automerge(
-        self, merge_pull_request_mock, update_task_mock
-    ):
-        # Creating a pull request that can be automerged
-        pull_request = build(
-            builder.pull_request()
-            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
-            .review(
-                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
-            )
-            .mergeable(True)
-            .title("blah blah [shipit]")
-        )
-
-        existing_task_id = uuid4().hex
-        dynamodb_client.insert_github_node_to_asana_id_mapping(
-            pull_request.id(), existing_task_id
-        )
-
-        github_controller.upsert_pull_request(pull_request)
-
-        merge_pull_request_mock.assert_called_with(
-            pull_request.repository_owner_handle(),
-            pull_request.repository_name(),
-            pull_request.number(),
-            pull_request.title(),
-            pull_request.body(),
-        )
-
-    @patch.object(asana_controller, "update_task")
-    @patch.object(github_client, "merge_pull_request")
-    def test_upsert_pull_request_when_not_ready_for_automerge(
-        self, merge_pull_request_mock, update_task_mock
-    ):
-        # Creating a pull request that cannot be automerged
-        pull_request = build(
-            builder.pull_request()
-            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
-            .review(
-                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
-            )
-            .mergeable(True)
-            .title("blah blah")
-        )
-
-        existing_task_id = uuid4().hex
-        dynamodb_client.insert_github_node_to_asana_id_mapping(
-            pull_request.id(), existing_task_id
-        )
-
-        github_controller.upsert_pull_request(pull_request)
-
-        merge_pull_request_mock.assert_not_called()
 
     @patch.object(github_client, "edit_pr_description")
     def test_add_asana_task_to_pull_request(self, edit_pr_mock):
