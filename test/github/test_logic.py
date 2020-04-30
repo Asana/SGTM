@@ -200,7 +200,7 @@ class GithubLogicTest(unittest.TestCase):
             )
             .mergeable(True)
             .merged(False)
-            .title("blah blah [shipit]")
+            .title("blah blah [ShIpIt]")
         )
         self.assertTrue(github_logic.is_pull_request_ready_for_automerge(pull_request))
 
