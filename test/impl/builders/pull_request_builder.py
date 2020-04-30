@@ -117,7 +117,7 @@ class PullRequestBuilder(BuilderBaseClass):
     def commit(self, commit: Union[CommitBuilder, Commit]):
         return self.commits([commit])
 
-    def commits(self, commits: Union[List[CommitBuilder], List[Commit]]):
+    def commits(self, commits: List[Union[CommitBuilder, Commit]]):
         for commit in commits:
             self.raw_pr["commits"]["nodes"].insert(0, commit.to_raw())
         return self

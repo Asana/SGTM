@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Set
 from src.logger import logger
 from src.utils import parse_date_string
 from .review import Review
@@ -109,7 +109,7 @@ class PullRequest(object):
             reviews.sort(key=lambda review: review.submitted_at())
 
             approved = False
-            reviewers_requesting_changes = set()
+            reviewers_requesting_changes: Set[str] = set()
             for review in reviews:
                 author_handle = review.author_handle()
                 if review.is_approval():
