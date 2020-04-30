@@ -42,7 +42,7 @@ class PullRequestBuilder(BuilderBaseClass):
         self.raw_pr["merged"] = merged
         return self
 
-    def mergeable(self, mergeable: bool):
+    def mergeable(self, mergeable: bool) -> PullRequest:
         self.raw_pr["mergeable"] = mergeable
         return self
 
