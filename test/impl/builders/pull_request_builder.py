@@ -2,10 +2,11 @@ from random import randint
 from typing import List, Union, Tuple, Optional, Dict, Any
 from datetime import datetime
 from .helpers import transform_datetime, create_uuid
-from src.github.models import PullRequest, Comment, Review, User
+from src.github.models import PullRequest, Comment, Review, User, Commit
 from .builder_base_class import BuilderBaseClass
 from .user_builder import UserBuilder
 from .comment_builder import CommentBuilder
+from .commit_builder import CommitBuilder
 from .review_builder import ReviewBuilder
 
 
@@ -19,7 +20,16 @@ class PullRequestBuilder(BuilderBaseClass):
             "title": create_uuid(),
             "url": "https://www.github.com/foo/pulls/" + str(pr_number),
             "assignees": {"nodes": []},
-            "commits": {"nodes": [{"commit": {"status": {"state": "pending"}}}]},
+            "commits": {
+                "nodes": [
+                    {
+                        "commit": {
+                            "status": {"state": Commit.BUILD_PENDING},
+                            "node_id": create_uuid(),
+                        }
+                    }
+                ]
+            },
             "comments": {"nodes": []},
             "reviews": {"nodes": []},
             "reviewRequests": {"nodes": []},
@@ -104,10 +114,12 @@ class PullRequestBuilder(BuilderBaseClass):
             )
         return self
 
-    def build_status(self, build_status: str) -> PullRequest:
-        self.raw_pr["commits"]["nodes"][0] = {
-            "commit": {"status": {"state": build_status}}
-        }
+    def commit(self, commit: Union[CommitBuilder, Commit]):
+        return self.commits([commit])
+
+    def commits(self, commits: Union[List[CommitBuilder], List[Commit]]):
+        for commit in commits:
+            self.raw_pr["commits"]["nodes"].insert(0, commit.to_raw())
         return self
 
     def build(self) -> PullRequest:

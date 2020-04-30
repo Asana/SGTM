@@ -5,6 +5,7 @@ import src.github.client as github_client
 import src.github.controller as github_controller
 import src.asana.controller as asana_controller
 import src.dynamodb.client as dynamodb_client
+from src.github.models import Commit
 from test.impl.builders import builder, build
 
 
@@ -61,7 +62,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
         # Creating a pull request that can be automerged
         pull_request = build(
             builder.pull_request()
-            .build_status("SUCCESS")
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
             .review(
                 builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
             )
@@ -92,7 +93,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
         # Creating a pull request that cannot be automerged
         pull_request = build(
             builder.pull_request()
-            .build_status("SUCCESS")
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
             .review(
                 builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
             )

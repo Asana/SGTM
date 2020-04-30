@@ -4,13 +4,12 @@ from src.logger import logger
 from src.utils import parse_date_string
 from .review import Review
 from .comment import Comment
+from .commit import Commit
 from .user import User
 import copy
 
 
 class PullRequest(object):
-    BUILD_SUCCESSFUL = "SUCCESS"
-
     def __init__(self, raw_pull_request: Dict[str, Any]):
         self.__raw = copy.deepcopy(raw_pull_request)
         self.__assignees = self._assignees_from_raw()
@@ -111,7 +110,7 @@ class PullRequest(object):
             return False
 
     def is_build_successful(self) -> bool:
-        return self.build_status() == self.BUILD_SUCCESSFUL
+        return self.build_status() == Commit.BUILD_SUCCESSFUL
 
     def merged_at(self) -> Optional[datetime]:
         merged_at = self.__raw.get("mergedAt", None)
@@ -129,5 +128,7 @@ class PullRequest(object):
         return copy.deepcopy(self.__raw)
 
     def build_status(self) -> Optional[str]:
-        commit = self.__raw["commits"]["nodes"][0]["commit"]
-        return commit["status"]["state"] if commit["status"] else None
+        return self.commits()[0].status() if self.commits()[0].status() else None
+
+    def commits(self) -> List[Commit]:
+        return [Commit(commit) for commit in self.__raw["commits"]["nodes"]]

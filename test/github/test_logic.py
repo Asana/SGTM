@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timedelta
 import src.github.logic as github_logic
-from src.github.models import Review
+from src.github.models import Review, Commit
 from test.impl.builders import builder, build
 
 
@@ -194,7 +194,7 @@ class GithubLogicTest(unittest.TestCase):
     def test_is_pull_request_ready_for_automerge(self):
         pull_request = build(
             builder.pull_request()
-            .build_status("SUCCESS")
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
             .review(
                 builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
             )
@@ -207,7 +207,7 @@ class GithubLogicTest(unittest.TestCase):
     def test_is_pull_request_ready_for_automerge_build_failed(self):
         pull_request = build(
             builder.pull_request()
-            .build_status("FAILURE")
+            .commit(builder.commit().status(Commit.BUILD_FAILED))
             .review(
                 builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
             )
@@ -220,7 +220,7 @@ class GithubLogicTest(unittest.TestCase):
     def test_is_pull_request_ready_for_automerge_build_pending(self):
         pull_request = build(
             builder.pull_request()
-            .build_status("PENDING")
+            .commit(builder.commit().status(Commit.BUILD_PENDING))
             .review(
                 builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
             )
@@ -233,7 +233,7 @@ class GithubLogicTest(unittest.TestCase):
     def test_is_pull_request_ready_for_automerge_reviewer_requested_changes(self):
         pull_request = build(
             builder.pull_request()
-            .build_status("SUCCESS")
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
             .review(
                 builder.review()
                 .submitted_at("2020-01-13T14:59:58Z")
@@ -248,7 +248,7 @@ class GithubLogicTest(unittest.TestCase):
     def test_is_pull_request_ready_for_automerge_approved_then_requested_changes(self):
         pull_request = build(
             builder.pull_request()
-            .build_status("SUCCESS")
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
             .reviews(
                 [
                     builder.review()
@@ -267,14 +267,16 @@ class GithubLogicTest(unittest.TestCase):
 
     def test_is_pull_request_ready_for_automerge_no_review(self):
         pull_request = build(
-            builder.pull_request().build_status("SUCCESS").title("blah blah [shipit]")
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .title("blah blah [shipit]")
         )
         self.assertFalse(github_logic.is_pull_request_ready_for_automerge(pull_request))
 
     def test_is_pull_request_ready_for_automerge_no_ship_it(self):
         pull_request = build(
             builder.pull_request()
-            .build_status("SUCCESS")
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
             .review(
                 builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
             )
@@ -287,7 +289,7 @@ class GithubLogicTest(unittest.TestCase):
     def test_is_pull_request_ready_for_automerge_mergeable_is_false(self):
         pull_request = build(
             builder.pull_request()
-            .build_status("SUCCESS")
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
             .review(
                 builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
             )
@@ -300,7 +302,7 @@ class GithubLogicTest(unittest.TestCase):
     def test_is_pull_request_ready_for_automerge_is_already_merged(self):
         pull_request = build(
             builder.pull_request()
-            .build_status("SUCCESS")
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
             .review(
                 builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
             )
@@ -313,7 +315,7 @@ class GithubLogicTest(unittest.TestCase):
     def test_is_pull_request_ready_for_automerge_is_closed(self):
         pull_request = build(
             builder.pull_request()
-            .build_status("SUCCESS")
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
             .review(
                 builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
             )
