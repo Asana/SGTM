@@ -21,3 +21,7 @@ def memoize(func: Callable) -> Callable:
         return result
 
     return inner
+
+
+def httpResponse(status_code: str, body: Any = {}) -> Dict:
+    return {"statusCode": status_code, body: body}

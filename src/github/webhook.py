@@ -3,6 +3,7 @@ import src.github.graphql.client as graphql_client
 from src.dynamodb.lock import dynamodb_lock
 from typing import Any, Dict
 import src.github.controller as github_controller
+from src.utils import httpResponse
 from src.logger import logger
 
 
@@ -12,7 +13,7 @@ def _handle_pull_request_webhook(payload: dict):
     with dynamodb_lock(pull_request_id):
         pull_request = graphql_client.get_pull_request(pull_request_id)
         github_controller.upsert_pull_request(pull_request)
-        _response("200", {"pullRequest": pull_request})
+        return httpResponse("200")
 
 
 # https://developer.github.com/v3/activity/events/types/#issuecommentevent
@@ -27,15 +28,15 @@ def _handle_issue_comment_webhook(payload: dict):
                 issue_id, comment_id
             )
             github_controller.upsert_comment(pull_request, comment)
-            return _response("200", {"pullRequest": pull_request, "comment": comment})
+            return httpResponse("200")
         elif action == "deleted":
             error_text = "TODO: deleted action is not supported yet"
             logger.info(error_text)
-            return _response("501", error_text)
+            return httpResponse("501", error_text)
         else:
             error_text = f"Unknown action for issue_comment: {action}"
             logger.info(error_text)
-            _response("400", error_text)
+            return httpResponse("400", error_text)
 
 
 # https://developer.github.com/v3/activity/events/types/#pullrequestreviewevent
@@ -47,7 +48,7 @@ def _handle_pull_request_review_webhook(payload: dict):
             pull_request_id, review_id
         )
         github_controller.upsert_review(pull_request, review)
-        return _response("200", {"pullRequest": pull_request, "review": review})
+        return httpResponse("200")
 
 
 # https://developer.github.com/v3/activity/events/types/#statusevent
@@ -56,11 +57,7 @@ def _handle_status_webhook(payload: dict):
     with dynamodb_lock(commit_id):
         pull_request = graphql_client.get_pull_request_for_commit(commit_id)
         github_controller.upsert_pull_request(pull_request)
-        return _response("200", {"pullRequest": pull_request})
-
-
-def _response(status_code: str, body: Any) -> Dict:
-    return {"statusCode": status_code, body: body}
+        return httpResponse("200")
 
 
 _events_map = {
