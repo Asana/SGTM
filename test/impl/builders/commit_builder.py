@@ -7,15 +7,12 @@ from .user_builder import UserBuilder
 
 
 class CommitBuilder(BuilderBaseClass):
-    def __init__(self, body: str = ""):
+    def __init__(self, status=Commit.BUILD_PENDING):
         self.raw_commit = {
-            "commit": {
-                "status": {"state": Commit.BUILD_PENDING},
-                "node_id": create_uuid(),
-            }
+            "commit": {"status": {"state": status}, "node_id": create_uuid(),}
         }
 
-    def status(self, status: Union[Commit.BUILD_PENDING, Commit.BUILD_SUCCESSFUL]):
+    def status(self, status: str) -> Union[CommitBuilder, Commit]:
         self.raw_commit["commit"]["status"]["state"] = status
         return self
 
