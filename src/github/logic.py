@@ -145,6 +145,7 @@ def is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
         pull_request.is_build_successful()
         and pull_request.is_approved()
         and pull_request.mergeable()
+        and not pull_request.closed()
         and not pull_request.merged()
         and _has_ship_it_in_pull_request_title(pull_request.title())
     )

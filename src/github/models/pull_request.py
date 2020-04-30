@@ -10,8 +10,6 @@ import copy
 
 class PullRequest(object):
     BUILD_SUCCESSFUL = "SUCCESS"
-    BUILD_PENDING = "PENDING"
-    BUILD_FAILED = "FAILURE"
 
     def __init__(self, raw_pull_request: Dict[str, Any]):
         self.__raw = copy.deepcopy(raw_pull_request)

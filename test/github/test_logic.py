@@ -204,32 +204,6 @@ class GithubLogicTest(unittest.TestCase):
         )
         self.assertTrue(github_logic.is_pull_request_ready_for_automerge(pull_request))
 
-    def test_is_pull_request_ready_for_automerge_capitalized_ship_it(self):
-        pull_request = build(
-            builder.pull_request()
-            .build_status("SUCCESS")
-            .review(
-                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
-            )
-            .mergeable(True)
-            .merged(False)
-            .title("blah blah [Shipit]")
-        )
-        self.assertTrue(github_logic.is_pull_request_ready_for_automerge(pull_request))
-
-    def test_is_pull_request_ready_for_automerge_all_caps_ship_it(self):
-        pull_request = build(
-            builder.pull_request()
-            .build_status("SUCCESS")
-            .review(
-                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
-            )
-            .mergeable(True)
-            .merged(False)
-            .title("blah blah [SHIPIT]")
-        )
-        self.assertTrue(github_logic.is_pull_request_ready_for_automerge(pull_request))
-
     def test_is_pull_request_ready_for_automerge_build_failed(self):
         pull_request = build(
             builder.pull_request()
@@ -332,6 +306,20 @@ class GithubLogicTest(unittest.TestCase):
             )
             .mergeable(True)
             .merged(True)
+            .title("blah blah [shipit]")
+        )
+        self.assertFalse(github_logic.is_pull_request_ready_for_automerge(pull_request))
+
+    def test_is_pull_request_ready_for_automerge_is_closed(self):
+        pull_request = build(
+            builder.pull_request()
+            .build_status("SUCCESS")
+            .review(
+                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+            )
+            .mergeable(True)
+            .merged(True)
+            .closed(False)
             .title("blah blah [shipit]")
         )
         self.assertFalse(github_logic.is_pull_request_ready_for_automerge(pull_request))

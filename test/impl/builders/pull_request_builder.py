@@ -104,7 +104,7 @@ class PullRequestBuilder(BuilderBaseClass):
             )
         return self
 
-    def build_status(self, build_status: str):
+    def build_status(self, build_status: str) -> PullRequest:
         self.raw_pr["commits"]["nodes"][0] = {
             "commit": {"status": {"state": build_status}}
         }
