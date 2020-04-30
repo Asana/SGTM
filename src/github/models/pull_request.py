@@ -101,16 +101,29 @@ class PullRequest(object):
     def mergeable(self) -> bool:
         return self.__raw["mergeable"]
 
+    # A PR is considered approved if it has at least one approval and every time changes were requested by a reviewer
+    # that same reviewer later approved.
     def is_approved(self) -> bool:
         if len(self.reviews()) > 0:
             reviews = self.reviews()
-            reviews.sort(key=lambda review: review.submitted_at(), reverse=True)
-            return reviews[0].is_approval()
+            reviews.sort(key=lambda review: review.submitted_at())
+
+            approved = False
+            reviewers_requesting_changes = set()
+            for review in reviews:
+                author_handle = review.author_handle()
+                if review.is_approval():
+                    approved = True
+                    if author_handle in reviewers_requesting_changes:
+                        reviewers_requesting_changes.remove(author_handle)
+                if review.is_changes_requested():
+                    reviewers_requesting_changes.add(author_handle)
+
+            return approved and len(reviewers_requesting_changes) == 0
         else:
             return False
 
     def is_build_successful(self) -> bool:
-        print(self.build_status())
         return self.build_status() == Commit.BUILD_SUCCESSFUL
 
     def merged_at(self) -> Optional[datetime]:

@@ -245,18 +245,22 @@ class GithubLogicTest(unittest.TestCase):
         )
         self.assertFalse(github_logic.is_pull_request_ready_for_automerge(pull_request))
 
-    def test_is_pull_request_ready_for_automerge_approved_then_requested_changes(self):
+    def test_is_pull_request_ready_for_automerge_approved_and_requested_changes(self):
+        author_1 = builder.user().login("author_1")
+        author_2 = builder.user().login("author_2")
         pull_request = build(
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
             .reviews(
                 [
                     builder.review()
-                    .submitted_at("2020-01-12T14:59:58Z")
-                    .state("APPROVED"),
+                    .submitted_at("2020-01-11T14:59:58Z")
+                    .state("CHANGES_REQUESTED")
+                    .author(author_1),
                     builder.review()
-                    .submitted_at("2020-01-13T14:59:58Z")
-                    .state("CHANGES_REQUESTED"),
+                    .submitted_at("2020-01-12T14:59:58Z")
+                    .state("APPROVED")
+                    .author(author_2),
                 ]
             )
             .mergeable(True)
@@ -264,6 +268,34 @@ class GithubLogicTest(unittest.TestCase):
             .title("blah blah [shipit]")
         )
         self.assertFalse(github_logic.is_pull_request_ready_for_automerge(pull_request))
+
+    def test_is_pull_request_ready_for_automerge_changes_requested_then_approval(self):
+        author_1 = builder.user().login("author_1")
+        author_2 = builder.user().login("author_2")
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .reviews(
+                [
+                    builder.review()
+                    .submitted_at("2020-01-11T14:59:58Z")
+                    .state("CHANGES_REQUESTED")
+                    .author(author_1),
+                    builder.review()
+                    .submitted_at("2020-01-12T14:59:58Z")
+                    .state("APPROVED")
+                    .author(author_2),
+                    builder.review()
+                    .submitted_at("2020-01-13T14:59:58Z")
+                    .state("APPROVED")
+                    .author(author_1),
+                ]
+            )
+            .mergeable(True)
+            .merged(False)
+            .title("blah blah [shipit]")
+        )
+        self.assertTrue(github_logic.is_pull_request_ready_for_automerge(pull_request))
 
     def test_is_pull_request_ready_for_automerge_no_review(self):
         pull_request = build(

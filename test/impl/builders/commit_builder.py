@@ -12,7 +12,7 @@ class CommitBuilder(BuilderBaseClass):
             "commit": {"status": {"state": status}, "node_id": create_uuid(),}
         }
 
-    def status(self, status: str) -> Union[CommitBuilder, Commit]:
+    def status(self, status: str) -> Union["CommitBuilder", Commit]:
         self.raw_commit["commit"]["status"]["state"] = status
         return self
 

@@ -31,6 +31,9 @@ class Review(object):
     def is_approval(self) -> bool:
         return self.state() == self.STATE_APPROVED
 
+    def is_changes_requested(self) -> bool:
+        return self.state() == self.STATE_CHANGES_REQUESTED
+
     def body(self) -> str:
         return self.__raw["body"]
 
