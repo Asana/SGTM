@@ -1,6 +1,7 @@
 from operator import itemgetter
 import src.github.graphql.client as graphql_client
 from src.dynamodb.lock import dynamodb_lock
+from typing import Any, Dict
 import src.github.controller as github_controller
 from src.logger import logger
 
@@ -10,7 +11,8 @@ def _handle_pull_request_webhook(payload: dict):
     pull_request_id = payload["pull_request"]["node_id"]
     with dynamodb_lock(pull_request_id):
         pull_request = graphql_client.get_pull_request(pull_request_id)
-        return github_controller.upsert_pull_request(pull_request)
+        github_controller.upsert_pull_request(pull_request)
+        _response("200", {"pullRequest": pull_request})
 
 
 # https://developer.github.com/v3/activity/events/types/#issuecommentevent
@@ -24,11 +26,16 @@ def _handle_issue_comment_webhook(payload: dict):
             pull_request, comment = graphql_client.get_pull_request_and_comment(
                 issue_id, comment_id
             )
-            return github_controller.upsert_comment(pull_request, comment)
+            github_controller.upsert_comment(pull_request, comment)
+            return _response("200", {"pullRequest": pull_request, "comment": comment})
         elif action == "deleted":
-            logger.info("TODO: deleted action is not supported yet")
+            error_text = "TODO: deleted action is not supported yet"
+            logger.info(error_text)
+            return _response("501", error_text)
         else:
-            logger.info(f"Unknown action for issue_comment: {action}")
+            error_text = f"Unknown action for issue_comment: {action}"
+            logger.info(error_text)
+            _response("400", error_text)
 
 
 # https://developer.github.com/v3/activity/events/types/#pullrequestreviewevent
@@ -40,6 +47,7 @@ def _handle_pull_request_review_webhook(payload: dict):
             pull_request_id, review_id
         )
         github_controller.upsert_review(pull_request, review)
+        return _response("200", {"pullRequest": pull_request, "review": review})
 
 
 # https://developer.github.com/v3/activity/events/types/#statusevent
@@ -47,7 +55,12 @@ def _handle_status_webhook(payload: dict):
     commit_id = payload["commit"]["node_id"]
     with dynamodb_lock(commit_id):
         pull_request = graphql_client.get_pull_request_for_commit(commit_id)
-        return github_controller.upsert_pull_request(pull_request)
+        github_controller.upsert_pull_request(pull_request)
+        return _response("200", {"pullRequest": pull_request})
+
+
+def _response(status_code: str, body: Any) -> Dict:
+    return {"statusCode": status_code, body: body}
 
 
 _events_map = {
