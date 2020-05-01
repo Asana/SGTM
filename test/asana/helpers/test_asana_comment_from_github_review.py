@@ -33,6 +33,26 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
             asana_review_comment, ["GITHUB_REVIEW_TEXT", "GITHUB_REVIEW_COMMENT_TEXT"]
         )
 
+    def test_handles_no_review_text(self):
+        github_review = build(
+            builder.review()
+            .author(builder.user("github_unknown_user_login"))
+            .state("APPROVED")
+            .body("")
+            .comment(builder.comment().body("GITHUB_REVIEW_COMMENT_TEXT"))
+        )
+        asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
+            github_review
+        )
+        self.assertContainsStrings(
+            asana_review_comment,
+            [
+                "GitHub user 'github_unknown_user_login' approved",
+                "and left inline comments:",
+                "GITHUB_REVIEW_COMMENT_TEXT",
+            ],
+        )
+
     def test_includes_asana_review_comment_author(self):
         github_review = build(
             builder.review()
