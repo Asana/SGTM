@@ -246,14 +246,6 @@ def asana_comment_from_github_review(review: Review) -> str:
         for comment_text in comment_texts
     ]
 
-    if not review_body and inline_comments:
-        return _wrap_in_tag("body")(
-            _wrap_in_tag("strong")(
-                f"{user_display_name} left inline comments:\n"
-                + "\n\n".join(inline_comments)
-            )
-        )
-
     return _wrap_in_tag("body")(
         (
             (
