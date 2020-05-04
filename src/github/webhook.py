@@ -1,7 +1,6 @@
 from operator import itemgetter
 import src.github.graphql.client as graphql_client
 from src.dynamodb.lock import dynamodb_lock
-from typing import Any, Dict
 import src.github.controller as github_controller
 from src.github.models import HttpResponse
 from src.logger import logger
