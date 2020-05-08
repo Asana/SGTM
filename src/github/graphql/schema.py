@@ -43,6 +43,7 @@ FRAGMENTS = {
           }
           publishedAt
           body
+          url
         }
       }
       assignees(last: 20) {
@@ -71,6 +72,7 @@ FRAGMENTS = {
         }
       }
       body
+      url
     }
     """,
     "FullReview": """
