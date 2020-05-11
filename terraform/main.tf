@@ -1,13 +1,31 @@
 provider "aws" {
-  region = "us-east-1"
+  region = var.aws_region
 }
 
 ### LAMBDA
 
-# TODO: Write custom policies that do just what we need rather than the broader
-# AWS managed full access policies
-data "aws_iam_policy" "AmazonDynamoDBFullAccess" {
-  arn = "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
+# Gives the Lambda function permissions to read/write from the DynamoDb tables
+resource "aws_iam_policy" "lambda-function-dynamodb-policy" {
+  policy     = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem"
+      ],
+      "Resource": [
+        aws_dynamodb_table.sgtm-lock.arn,
+        aws_dynamodb_table.sgtm-objects.arn,
+        aws_dynamodb_table.sgtm-users.arn
+      ],
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
 }
 
 data "aws_iam_policy" "AWSLambdaBasicExecutionRole" {
@@ -36,7 +54,7 @@ EOF
 
 resource "aws_iam_role_policy_attachment" "lambda-function-dynamo-db-access" {
   role       = aws_iam_role.iam_for_lambda_function.name
-  policy_arn = data.aws_iam_policy.AmazonDynamoDBFullAccess.arn
+  policy_arn = aws_iam_policy.lambda-function-dynamodb-policy.arn
 }
 
 resource "aws_iam_role_policy_attachment" "lambda-function-basic-execution-role" {

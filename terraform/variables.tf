@@ -1,3 +1,9 @@
+variable "aws_region" {
+  type        = string
+  description = "The AWS region to create resources in"
+  default     = "us-east-1"
+}
+
 variable "api_key_s3_object" {
   type        = string
   description = "Name of the API key object"
