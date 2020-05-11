@@ -241,10 +241,10 @@ def asana_comment_from_github_review(review: Review) -> str:
     review_body = _transform_github_mentions_to_asana_mentions(
         escape(review.body(), quote=False)
     )
-    comment_texts = [comment.body() for comment in review.comments()]
     inline_comments = [
-        _transform_github_mentions_to_asana_mentions(escape(comment_text, quote=False))
-        for comment_text in comment_texts
+        _transform_github_mentions_to_asana_mentions(escape(comment.body(), quote=False)) + "\n" +
+        _wrap_in_tag("A", params={"HREF": comment.url()})("Github comment")
+        for comment in review.comments()
     ]
 
     return _wrap_in_tag("body")(
