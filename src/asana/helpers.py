@@ -310,7 +310,7 @@ def _wrap_in_tag(tag_name: str, attrs: Optional[dict] = None) -> Callable[[str],
 
     if attrs is not None:
         # This will always start with a blank space, so it's separate from the tag name.
-        attrs = ''.join(f" {k}={escape(v)}" for k, v in attrs.items())
+        attrs = ''.join(f' {k}="{escape(v)}"' for k, v in attrs.items())
     else:
         attrs = ''
 
