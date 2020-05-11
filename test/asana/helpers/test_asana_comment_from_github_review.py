@@ -195,6 +195,18 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
         )
         self.assertContainsStrings(asana_review_comment, ["hello@world.asana.com"])
 
+    def test_includes_link_to_comment(self):
+        url = 'https://github.com/Asana/SGTM/pull/31#issuecomment-626850667'
+        github_review = build(
+            builder.review()
+            .state("DEFAULT")
+            .comment(builder.comment().url(url))
+        )
+        asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
+            github_review
+        )
+        self.assertContainsStrings(asana_review_comment, [f'<A HREF="{url}">'])
+
 
 if __name__ == "__main__":
     from unittest import main as run_tests
