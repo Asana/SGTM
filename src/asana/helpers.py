@@ -307,8 +307,12 @@ def _task_followers_from_pull_request(pull_request: PullRequest):
 
 
 def _wrap_in_tag(tag_name: str, attrs: Optional[dict] = None) -> Callable[[str], str]:
-    # This will always start with a blank space, so it's separate from the tag name.
-    attrs = ''.join(f" {k}={escape(v)}" for k, v in attrs.items())
+
+    if attrs is not None:
+        # This will always start with a blank space, so it's separate from the tag name.
+        attrs = ''.join(f" {k}={escape(v)}" for k, v in attrs.items())
+    else:
+        attrs = ''
 
     def inner(text: str) -> str:
         return f"<{tag_name}{attrs}>{text}</{tag_name}>"
