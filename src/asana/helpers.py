@@ -215,7 +215,8 @@ def asana_comment_from_github_comment(comment: Comment) -> str:
         escape(comment.body(), quote=False)
     )
     return _wrap_in_tag("body")(
-        _wrap_in_tag("strong")(f"{display_name} commented:\n") + comment_text + comment.url()
+        _wrap_in_tag("A", {"HREF": comment.url()})(f"{display_name} commented:\n") +
+        comment_text
     )
 
 
@@ -305,8 +306,11 @@ def _task_followers_from_pull_request(pull_request: PullRequest):
     ]
 
 
-def _wrap_in_tag(tag_name: str) -> Callable[[str], str]:
+def _wrap_in_tag(tag_name: str, attrs: Optional[dict] = None) -> Callable[[str], str]:
+    # This will always start with a blank space, so it's separate from the tag name.
+    attrs = ''.join(f" {k}={escape(v)}" for k, v in attrs.items())
+
     def inner(text: str) -> str:
-        return f"<{tag_name}>{text}</{tag_name}>"
+        return f"<{tag_name}{attrs}>{text}</{tag_name}>"
 
     return inner
