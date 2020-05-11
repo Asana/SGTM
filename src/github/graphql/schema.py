@@ -90,6 +90,7 @@ FRAGMENTS = {
       comments(last: 20) {
         nodes {
           body
+          url
         }
       }
     }
