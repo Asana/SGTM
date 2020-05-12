@@ -215,7 +215,9 @@ def asana_comment_from_github_comment(comment: Comment) -> str:
         escape(comment.body(), quote=False)
     )
     return _wrap_in_tag("body")(
-        _wrap_in_tag("A", attrs={"HREF": comment.url()})(f"{display_name} commented:\n") +
+        display_name + " " +
+        _wrap_in_tag("A", attrs={"href": comment.url()})("commented:") +
+        "\n" +
         comment_text
     )
 
