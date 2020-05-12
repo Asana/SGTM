@@ -93,6 +93,7 @@ FRAGMENTS = {
           url
         }
       }
+      url
     }
     """,
 }
