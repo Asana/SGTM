@@ -19,5 +19,4 @@ zip -r9 ${OLDPWD}/build/function.zip .
 
 # Zip the source code into the output archive
 cd $OLDPWD
-mkdir -p build
 zip build/function.zip -r src/*
