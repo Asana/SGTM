@@ -14,6 +14,7 @@ class ReviewBuilder(BuilderBaseClass):
             "body": body,
             "author": {"login": "somebody", "name": ""},
             "comments": {"nodes": []},
+            "url": ""
         }
 
     def state(self, state: str):
@@ -39,6 +40,10 @@ class ReviewBuilder(BuilderBaseClass):
     def comments(self, comments: Union[List[CommentBuilder], List[Comment]]):
         for comment in comments:
             self.raw_review["comments"]["nodes"].append(comment.to_raw())
+        return self
+
+    def url(self, url: str):
+        self.raw_review['url'] = url
         return self
 
     def build(self) -> Review:

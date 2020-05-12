@@ -47,7 +47,8 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
         self.assertContainsStrings(
             asana_review_comment,
             [
-                "GitHub user 'github_unknown_user_login' approved",
+                "GitHub user 'github_unknown_user_login'",
+                "approved",
                 "and left inline comments:",
                 "GITHUB_REVIEW_COMMENT_TEXT",
             ],
@@ -201,6 +202,18 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
             builder.review()
             .state("DEFAULT")
             .comment(builder.comment().url(url))
+        )
+        asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
+            github_review
+        )
+        self.assertContainsStrings(asana_review_comment, [f'<A href="{url}">'])
+
+    def test_includes_link_to_review(self):
+        url = 'https://github.com/Asana/SGTM/pull/31#issuecomment-626850667'
+        github_review = build(
+            builder.review()
+            .state("DEFAULT")
+            .url(url)
         )
         asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
             github_review
