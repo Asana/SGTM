@@ -243,10 +243,12 @@ def asana_comment_from_github_review(review: Review) -> str:
     review_body = _transform_github_mentions_to_asana_mentions(
         escape(review.body(), quote=False)
     )
+
+    # For each comment, prefix its text with a bracketed number that is a link to the Github comment.
     inline_comments = [
-        _transform_github_mentions_to_asana_mentions(escape(comment.body(), quote=False)) + "\n" +
-        _wrap_in_tag("A", attrs={"HREF": comment.url()})("Github comment")
-        for comment in review.comments()
+        _wrap_in_tag("A", attrs={"href": comment.url()})(f"[{i}] ") +
+        _transform_github_mentions_to_asana_mentions(escape(comment.body(), quote=False))
+        for i, comment in enumerate(review.comments())
     ]
 
     return _wrap_in_tag("body")(

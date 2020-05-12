@@ -205,7 +205,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
         asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
             github_review
         )
-        self.assertContainsStrings(asana_review_comment, [f'<A HREF="{url}">'])
+        self.assertContainsStrings(asana_review_comment, [f'<A href="{url}">'])
 
 
 if __name__ == "__main__":
