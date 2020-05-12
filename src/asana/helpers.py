@@ -250,7 +250,7 @@ def asana_comment_from_github_review(review: Review) -> str:
     inline_comments = [
         _wrap_in_tag("A", attrs={"href": comment.url()})(f"[{i}] ") +
         _transform_github_mentions_to_asana_mentions(escape(comment.body(), quote=False))
-        for i, comment in enumerate(review.comments())
+        for i, comment in enumerate(review.comments(), start=1)
     ]
 
     return _wrap_in_tag("body")(
