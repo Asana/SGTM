@@ -8,7 +8,7 @@ We recommend setting up a virtualenvironment to install and run your python envi
 the risk that SGTM's python dependencies and settings will be mixed up with any such dependencies and settings that you
 may be using in other projects.
 
-When first setting up your repository, you should install all required python dependencies using `pip3 install -r requirements.txt -r requirements-dev.txt` within the virtual environment that you have set up (or globally, if you wish to skip using a virtual environment)
+When first setting up your repository, we recommend using a virtual environment. Once you have that activated (see below), you should install all required python dependencies using `pip3 install -r requirements.txt -r requirements-dev.txt`.
 
 ### Installing a Virtual Environment for Python
 
