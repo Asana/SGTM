@@ -156,7 +156,7 @@ QUERIES = {
                 ... on PullRequestReviewComment {
                   url
                   pullRequestReview {
-                    id
+                    ... FullReview
                   }
                 }
               }
