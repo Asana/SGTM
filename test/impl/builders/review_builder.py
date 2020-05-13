@@ -14,7 +14,7 @@ class ReviewBuilder(BuilderBaseClass):
             "body": body,
             "author": {"login": "somebody", "name": ""},
             "comments": {"nodes": []},
-            "url": ""
+            "url": "",
         }
 
     def state(self, state: str):
@@ -43,7 +43,7 @@ class ReviewBuilder(BuilderBaseClass):
         return self
 
     def url(self, url: str):
-        self.raw_review['url'] = url
+        self.raw_review["url"] = url
         return self
 
     def build(self) -> Review:

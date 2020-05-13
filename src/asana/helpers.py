@@ -215,10 +215,11 @@ def asana_comment_from_github_comment(comment: Comment) -> str:
         escape(comment.body(), quote=False)
     )
     return _wrap_in_tag("body")(
-        display_name + " " +
-        _wrap_in_tag("A", attrs={"href": comment.url()})("commented:") +
-        "\n" +
-        comment_text
+        display_name
+        + " "
+        + _wrap_in_tag("A", attrs={"href": comment.url()})("commented:")
+        + "\n"
+        + comment_text
     )
 
 
@@ -240,15 +241,19 @@ def asana_comment_from_github_review(review: Review) -> str:
     """
     user_display_name = _asana_display_name_for_github_user(review.author())
 
-    review_action = _wrap_in_tag("A", attrs={'href': review.url()})(_review_action_to_text_map.get(review.state(), "commented"))
+    review_action = _wrap_in_tag("A", attrs={"href": review.url()})(
+        _review_action_to_text_map.get(review.state(), "commented")
+    )
     review_body = _transform_github_mentions_to_asana_mentions(
         escape(review.body(), quote=False)
     )
 
     # For each comment, prefix its text with a bracketed number that is a link to the Github comment.
     inline_comments = [
-        _wrap_in_tag("A", attrs={"href": comment.url()})(f"[{i}] ") +
-        _transform_github_mentions_to_asana_mentions(escape(comment.body(), quote=False))
+        _wrap_in_tag("A", attrs={"href": comment.url()})(f"[{i}] ")
+        + _transform_github_mentions_to_asana_mentions(
+            escape(comment.body(), quote=False)
+        )
         for i, comment in enumerate(review.comments(), start=1)
     ]
 
@@ -315,9 +320,9 @@ def _wrap_in_tag(tag_name: str, attrs: Optional[dict] = None) -> Callable[[str],
 
     if attrs is not None:
         # This will always start with a blank space, so it's separate from the tag name.
-        attrs = ''.join(f' {k}="{escape(v)}"' for k, v in attrs.items())
+        attrs = "".join(f' {k}="{escape(v)}"' for k, v in attrs.items())
     else:
-        attrs = ''
+        attrs = ""
 
     def inner(text: str) -> str:
         return f"<{tag_name}{attrs}>{text}</{tag_name}>"

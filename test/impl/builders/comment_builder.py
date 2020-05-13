@@ -12,7 +12,7 @@ class CommentBuilder(BuilderBaseClass):
             "id": create_uuid(),
             "body": body,
             "author": {"login": "somebody", "name": ""},
-            "url": url
+            "url": url,
         }
 
     def body(self, body: str):

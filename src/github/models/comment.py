@@ -28,4 +28,4 @@ class Comment(object):
         return copy.deepcopy(self.__raw)
 
     def url(self) -> str:
-        return self.__raw['url']
+        return self.__raw["url"]
