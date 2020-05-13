@@ -12,9 +12,13 @@ When first setting up your repository, we recommend using a virtual environment.
 
 ### Installing a Virtual Environment for Python
 
+We don't want your virtual env (which includes dev-only packages) to be packaged when this code is built and deployed.
+So, put your virtual env inside the scripts/ folder.
+
 See [these instructions](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) for help in
 setting up a virtual environment for Python, or use the following TL;DR version:
 
+* `cd scripts`
 * run `python3 -m venv v-env` to create a virtual environment
 * run `source v-env/bin/activate` to activate and enter your virtual environment
 * once activated, run `deactivate` to deactivate and leave your virtual environment
