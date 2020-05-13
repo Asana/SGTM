@@ -1,8 +1,10 @@
 from operator import itemgetter
+
 import src.github.graphql.client as graphql_client
 from src.dynamodb.lock import dynamodb_lock
 import src.github.controller as github_controller
 from src.logger import logger
+from src.github.models import PullRequestReviewComment
 
 
 # https://developer.github.com/v3/activity/events/types/#pullrequestevent
@@ -53,7 +55,10 @@ def _handle_pull_request_review_comment(payload: dict):
         pull_request, comment = graphql_client.get_pull_request_and_comment(
             pull_request_id, comment_id
         )
-        github_controller.upsert_review(pull_request, comment.review())
+        if isinstance(comment, PullRequestReviewComment):
+            github_controller.upsert_review(pull_request, comment.review())
+        else:
+            raise Exception("Can't fetch review for a comment that isn't a PullRequestReviewComment")
 
 
 # https://developer.github.com/v3/activity/events/types/#statusevent
