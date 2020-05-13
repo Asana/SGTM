@@ -33,6 +33,6 @@ class CommentBuilder(BuilderBaseClass):
     def to_raw(self) -> Dict[str, Any]:
         return self.build().to_raw()
 
-    def url(self, url: str) -> CommentBuilder:
+    def url(self, url: str):
         self.raw_comment["url"] = url
         return self
