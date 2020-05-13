@@ -31,7 +31,3 @@ class Comment(object):
 
     def url(self) -> str:
         return self.__raw["url"]
-
-    def review(self):
-        # XCXC: Remove this and actually make IssueComment and PullRequestReviewComment seperate classes.
-        raise NotImplementedError("")

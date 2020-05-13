@@ -1,8 +1,8 @@
-from typing import Tuple
+from typing import Tuple, Union
 from sgqlc.endpoint.http import HTTPEndpoint  # type: ignore
 from src.config import GITHUB_API_KEY
 from .schema import QUERIES
-from src.github.models import comment_factory, PullRequest, Review, Comment
+from src.github.models import comment_factory, PullRequest, Review, IssueComment, PullRequestReviewComment
 
 __url = "https://api.github.com/graphql"
 __headers = {"Authorization": f"bearer {GITHUB_API_KEY}"}
@@ -29,7 +29,7 @@ def get_pull_request(pull_request_id: str) -> PullRequest:
 
 def get_pull_request_and_comment(
     pull_request_id: str, comment_id: str
-) -> Tuple[PullRequest, Comment]:
+) -> Tuple[PullRequest, Union[IssueComment, PullRequestReviewComment]]:
     data = _execute_graphql_query(
         "GetPullRequestAndComment",
         {"pullRequestId": pull_request_id, "commentId": comment_id},
