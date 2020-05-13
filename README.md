@@ -24,7 +24,7 @@ setting up a virtual environment for Python, or use the following TL;DR version:
 To run the tests, you must set the AWS_DEFAULT_REGION environment variable. This is required because some of the tests
 are integration tests that require DynamoDb. These needs to be set via export, so that it is visible to sub-processes. Here's how:
 ```bash
-export AWS_DEFAULT_REGION=$([ -z "$AWS_DEFAULT_REGION" ] && echo "us-east-1" || echo $AWS_DEFAULT_REGION)
+if [ -z "$AWS_DEFAULT_REGION" ]; then export AWS_DEFAULT_REGION="us-east-1"; else export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION; fi
 ```
 
 You may then run all tests via the command line:
