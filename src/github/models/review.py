@@ -1,9 +1,9 @@
-from typing import Dict, Any
+from typing import Dict, Any, List
 from datetime import datetime
 from src.utils import parse_date_string
 from .user import User
 import copy
-from .comment import Comment
+from .issue_comment import IssueComment
 
 
 class Review(object):
@@ -33,9 +33,9 @@ class Review(object):
     def body(self) -> str:
         return self.__raw["body"]
 
-    def comments(self):
+    def comments(self) -> List[IssueComment]:
         return [
-            Comment.from_raw(comment)
+            IssueComment(comment)
             for comment in self.__raw.get("comments", {}).get("nodes", [])
         ]
 
