@@ -9,19 +9,17 @@ class TestWrapInTag(BaseClass):
         actual = _wrap_in_tag("body")("")
         self.assertEqual(actual, "<body></body>")
 
-    def test_including_plain_text(self):
+    def test_basic_usage(self):
         actual = _wrap_in_tag("h1")("Hi! My name is SGTM!")
         self.assertEqual(actual, "<h1>Hi! My name is SGTM!</h1>")
 
     def test_nested_tags(self):
-        actual = _wrap_in_tag("body")(
-            _wrap_in_tag("p")("The Force will be with you. Always.")
-        )
-        self.assertEqual(actual, "<body><p>The Force will be with you. Always.</p></body>")
+        actual = _wrap_in_tag("p")("No. " + _wrap_in_tag("strong")("I") + " am your father.")
+        self.assertEqual(actual, "<p>No. <strong>I</strong> am your father.</p>")
 
-    def test_one_attribute(self):
-        actual = _wrap_in_tag("h1", {"class": "im-a-class"})("Hi! My name is SGTM!")
-        self.assertEqual(actual, '<h1 class="im-a-class">Hi! My name is SGTM!</h1>')
+    def test_attribute_with_text(self):
+        actual = _wrap_in_tag("p", {"force": "enabled"})("These aren't the droids you're looking for.")
+        self.assertEqual(actual, '<p force="enabled">These aren\'t the droids you\'re looking for.</p>')
 
     def test_multiple_attributes(self):
         actual = _wrap_in_tag("h1", {"class": "im-a-class", "id": "123"})("Hi! My name is SGTM!")
