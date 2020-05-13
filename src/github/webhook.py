@@ -42,6 +42,18 @@ def _handle_pull_request_review_webhook(payload: dict):
         github_controller.upsert_review(pull_request, review)
 
 
+# https://developer.github.com/v3/activity/events/types/#pullrequestreviewcommentevent
+def _handle_pull_request_review_comment(payload: dict):
+    # For when a comment on a review is edited or removed
+    review_id = payload["comment"]["pull_request_review_id"]
+    pull_request_id = payload["pull_request"]["node_id"]
+    with dynamodb_lock(pull_request_id):
+        pull_request, review = graphql_client.get_pull_request_and_review(
+            pull_request_id, review_id
+        )
+        github_controller.upsert_review(pull_request, review)
+
+
 # https://developer.github.com/v3/activity/events/types/#statusevent
 def _handle_status_webhook(payload: dict):
     commit_id = payload["commit"]["node_id"]
@@ -55,6 +67,7 @@ _events_map = {
     "issue_comment": _handle_issue_comment_webhook,
     "pull_request_review": _handle_pull_request_review_webhook,
     "status": _handle_status_webhook,
+    'pull_request_review_comment': _handle_pull_request_review_comment
 }
 
 
