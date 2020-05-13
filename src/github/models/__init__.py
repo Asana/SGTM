@@ -1,4 +1,3 @@
 from .pull_request import PullRequest
-from .comment import Comment
-from .review import Review
+from .comment import Comment, Review
 from .user import User
