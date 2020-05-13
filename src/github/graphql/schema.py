@@ -112,30 +112,6 @@ QUERIES = {
     + FRAGMENTS["FullPullRequest"]
     + "\n"
     + FRAGMENTS["FullReview"],
-    "GetComment": """
-            query GetComment($id: ID!) {
-              comment: node(id: $id) {
-                __typename
-                ... on Comment {
-                  ...FullComment
-                }
-              }
-            }
-        """
-    + "\n"
-    + FRAGMENTS["FullComment"],
-    "GetReview": """
-            query GetReview($id: ID!) {
-              review: node(id: $id) {
-                __typename
-                ... on PullRequestReview {
-                  ...FullReview
-                }
-              }
-            }
-        """
-    + "\n"
-    + FRAGMENTS["FullReview"],
     "GetPullRequestAndComment": """
             query GetPullRequestAndComment($pullRequestId: ID!, $commentId: ID!) {
               pullRequest: node(id: $pullRequestId) {
