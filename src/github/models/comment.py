@@ -29,3 +29,7 @@ class Comment(object):
 
     def url(self) -> str:
         return self.__raw["url"]
+
+    def review_node_id -> str:
+        # XCXC: Make a separate type for IssueComment and PullRequestReviewComment
+        return self.__raw['pullRequestReview']['node_id']
