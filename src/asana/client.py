@@ -138,3 +138,6 @@ def get_project_custom_fields(project_id: str) -> Iterator[Dict]:
         Retrieve's the custom fields in the specified project.
     """
     return AsanaClient.singleton().get_project_custom_fields(project_id)
+
+def update_comment(comment_id: str, comment_body: str):
+   AsanaClient.singleton().update_comment(comment_id, comment_body)
