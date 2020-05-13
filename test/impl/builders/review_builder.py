@@ -9,7 +9,7 @@ from .user_builder import UserBuilder
 
 class ReviewBuilder(BuilderBaseClass):
     def __init__(self, body: str = ""):
-        self.raw_review = {
+        self.raw_review: Dict[str, Any] = {
             "id": create_uuid(),
             "body": body,
             "author": {"login": "somebody", "name": ""},
@@ -37,7 +37,7 @@ class ReviewBuilder(BuilderBaseClass):
     def comment(self, comment: Union[CommentBuilder, Comment]):
         return self.comments([comment])
 
-    def comments(self, comments: Union[List[CommentBuilder], List[Comment]]):
+    def comments(self, comments: List[Union[CommentBuilder, Comment]]):
         for comment in comments:
             self.raw_review["comments"]["nodes"].append(comment.to_raw())
         return self
