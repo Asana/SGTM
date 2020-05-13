@@ -246,6 +246,13 @@ resource "aws_dynamodb_table" "sgtm-objects" {
     name = "github-node"
     type = "S"
   }
+
+  # Since this is a table that contains important data that we can't recover,
+  # adding prevent_destroy saves us from accidental updates that would destroy
+  # this resource
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_dynamodb_table" "sgtm-users" {
@@ -257,6 +264,13 @@ resource "aws_dynamodb_table" "sgtm-users" {
   attribute {
     name = "github/handle"
     type = "S"
+  }
+
+  # Since this is a table that contains important data that we can't recover,
+  # adding prevent_destroy saves us from accidental updates that would destroy
+  # this resource
+  lifecycle {
+    prevent_destroy = true
   }
 }
 
