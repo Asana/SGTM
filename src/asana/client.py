@@ -91,6 +91,15 @@ class AsanaClient(object):
         )
         return response["gid"]
 
+    def update_comment(self, comment_id: str, comment_body: str) -> None:
+        # XCXC: Add unit test?
+        validate_object_id(comment_id, "AsanaClient.update_comment requires a comment_id")
+        if comment_body is None or not comment_body:
+            raise ValueError("AsanaClient.update_comment requires a comment body")
+        response = self.asana_api_client.stories.update(
+            comment_id, {"html_text": comment_body}
+        )
+
     def get_project_custom_fields(self, project_id: str) -> Iterator[Dict]:
         return self.asana_api_client.custom_field_settings.find_by_project(project_id)
 
