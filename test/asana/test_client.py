@@ -124,6 +124,7 @@ class TestAsanaClientUpdateComment(BaseClass):
             "COMMENT_ID", {"html_text": "comment_body"}
         )
 
+
 class TestAsanaClientDeleteComment(BaseClass):
     def test_delete_comment_requires_a_comment_id(self):
         with self.assertRaises(ValueError):
