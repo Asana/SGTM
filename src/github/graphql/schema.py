@@ -63,7 +63,7 @@ FRAGMENTS = {
     }
     """,
     "FullComment": """
-    fragment FullComment on IssueComment {
+    fragment FullComment on Comment {
       id
       author {
         login
@@ -72,7 +72,6 @@ FRAGMENTS = {
         }
       }
       body
-      url
     }
     """,
     "FullReview": """
@@ -117,7 +116,7 @@ QUERIES = {
             query GetComment($id: ID!) {
               comment: node(id: $id) {
                 __typename
-                ... on IssueComment {
+                ... on Comment {
                   ...FullComment
                 }
               }
@@ -150,6 +149,12 @@ QUERIES = {
                 __typename
                 ... on Comment {
                   ...FullComment
+                }
+                ... on IssueComment {
+                  url
+                }
+                ... on PullRequestReviewComment {
+                  url
                 }
               }
             }
