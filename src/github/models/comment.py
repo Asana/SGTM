@@ -9,25 +9,25 @@ import copy
 class Comment(object):
 
     def __init__(self, raw_comment: Dict[str, Any]):
-        self.__raw = copy.deepcopy(raw_comment)
+        self._raw = copy.deepcopy(raw_comment)
 
     def id(self) -> str:
-        return self.__raw["id"]
+        return self._raw["id"]
 
     def published_at(self) -> datetime:
-        return parse_date_string(self.__raw["publishedAt"])
+        return parse_date_string(self._raw["publishedAt"])
 
     def body(self) -> str:
-        return self.__raw["body"]
+        return self._raw["body"]
 
     def author_handle(self) -> str:
         return self.author().login()
 
     def author(self) -> User:
-        return User(self.__raw["author"])
+        return User(self._raw["author"])
 
     def to_raw(self) -> Dict[str, Any]:
-        return copy.deepcopy(self.__raw)
+        return copy.deepcopy(self._raw)
 
     def url(self) -> str:
-        return self.__raw["url"]
+        return self._raw["url"]
