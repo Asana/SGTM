@@ -71,4 +71,7 @@ def add_review_to_task(review: Review, task_id: str):
             github_review_id, asana_comment_id
         )
     else:
-        logger.info(f"Review {github_review_id} already synced to task {task_id}")
+        logger.info(f"Review {github_review_id} already synced to task {task_id}. Updating.")
+        asana_client.update_comment(
+            asana_comment_id, asana_helpers.asana_comment_from_github_review(review)
+        )
