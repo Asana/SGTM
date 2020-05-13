@@ -48,3 +48,6 @@ class Review(object):
 
     def to_raw(self) -> Dict[str, Any]:
         return copy.deepcopy(self.__raw)
+
+    def url(self) -> str:
+        return self.__raw["url"]
