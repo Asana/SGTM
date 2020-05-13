@@ -16,9 +16,19 @@ resource "aws_iam_policy" "lambda-function-dynamodb-policy" {
         "dynamodb:PutItem"
       ],
       "Resource": [
-        aws_dynamodb_table.sgtm-lock.arn,
-        aws_dynamodb_table.sgtm-objects.arn,
-        aws_dynamodb_table.sgtm-users.arn
+        "${aws_dynamodb_table.sgtm-lock.arn}",
+        "${aws_dynamodb_table.sgtm-objects.arn}",
+        "${aws_dynamodb_table.sgtm-users.arn}"
+      ],
+      "Effect": "Allow",
+      "Sid": ""
+    },
+    {
+      "Action": [
+        "dynamodb:DeleteItem"
+      ],
+      "Resource": [
+        "${aws_dynamodb_table.sgtm-lock.arn}"
       ],
       "Effect": "Allow",
       "Sid": ""
@@ -28,8 +38,27 @@ resource "aws_iam_policy" "lambda-function-dynamodb-policy" {
 EOF
 }
 
-data "aws_iam_policy" "AWSLambdaBasicExecutionRole" {
-  arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+# Gives the Lambda function permissions to create cloudwatch logs
+resource "aws_iam_policy" "lambda-function-cloudwatch-policy" {
+  policy     = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": [
+        "arn:aws:logs:${var.aws_region}:*:log-group:/aws/lambda/${aws_lambda_function.sgtm.function_name}:*"
+      ],
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
 }
 
 resource "aws_iam_role" "iam_for_lambda_function" {
@@ -52,14 +81,14 @@ resource "aws_iam_role" "iam_for_lambda_function" {
 EOF
 }
 
-resource "aws_iam_role_policy_attachment" "lambda-function-dynamo-db-access" {
+resource "aws_iam_role_policy_attachment" "lambda-function-dynamo-db-access-policy-attachment" {
   role       = aws_iam_role.iam_for_lambda_function.name
   policy_arn = aws_iam_policy.lambda-function-dynamodb-policy.arn
 }
 
-resource "aws_iam_role_policy_attachment" "lambda-function-basic-execution-role" {
+resource "aws_iam_role_policy_attachment" "lambda-function-cloudwatch-policy-attachment" {
   role       = aws_iam_role.iam_for_lambda_function.name
-  policy_arn = data.aws_iam_policy.AWSLambdaBasicExecutionRole.arn
+  policy_arn = aws_iam_policy.lambda-function-cloudwatch-policy.arn
 }
 
 resource "aws_iam_role_policy_attachment" "lambda-function-api-keys" {
