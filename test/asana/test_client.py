@@ -117,6 +117,12 @@ class TestAsanaClientUpdateComment(BaseClass):
         with self.assertRaises(ValueError):
             src.asana.client.update_comment("comment_id", "")
 
+    @patch.object(asana_api_client.stories, "update")
+    def test_updates_comment(self, update_story):
+        src.asana.client.update_comment("COMMENT_ID", "comment_body")
+        update_story.assert_called_once_with(
+            "COMMENT_ID", {"html_text": "comment_body"}
+        )
 
 if __name__ == "__main__":
     from unittest import main as run_tests
