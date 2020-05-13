@@ -3,7 +3,8 @@ from typing import List, Optional, Dict, Any
 from src.logger import logger
 from src.utils import parse_date_string
 # from .review import Review
-from .comment import Comment, Review
+from .issue_comment import IssueComment
+from .review import Review
 from .user import User
 import copy
 
@@ -106,8 +107,8 @@ class PullRequest(object):
     def reviews(self) -> List[Review]:
         return [Review(review) for review in self.__raw["reviews"]["nodes"]]
 
-    def comments(self) -> List[Comment]:
-        return [Comment(comment) for comment in self.__raw["comments"]["nodes"]]
+    def comments(self) -> List[IssueComment]:
+        return [IssueComment(comment) for comment in self.__raw["comments"]["nodes"]]
 
     def to_raw(self) -> Dict[str, Any]:
         return copy.deepcopy(self.__raw)
