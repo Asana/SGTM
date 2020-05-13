@@ -45,6 +45,7 @@ def _handle_pull_request_review_webhook(payload: dict):
 # https://developer.github.com/v3/activity/events/types/#pullrequestreviewcommentevent
 def _handle_pull_request_review_comment(payload: dict):
     # For when a comment on a review is edited or removed
+    # XCXC: Will this fire when a comment is added to a pending review?
     pull_request_id = payload["pull_request"]["node_id"]
     comment_id = payload["comment"]["node_id"]
 
