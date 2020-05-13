@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Dict, Any
 from src.utils import parse_date_string
 from .user import User
+from .review import Review
 import copy
 
 
@@ -30,6 +31,7 @@ class Comment(object):
     def url(self) -> str:
         return self.__raw["url"]
 
-    def review_node_id -> str:
+    def review -> Review:
         # XCXC: Make a separate type for IssueComment and PullRequestReviewComment
-        return self.__raw['pullRequestReview']['node_id']
+        # only the latter would implement this.
+        return Review(self.__raw['pullRequestReview'])
