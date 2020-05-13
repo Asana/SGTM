@@ -106,6 +106,18 @@ class TestAsanaClientAddComment(BaseClass):
             )
 
 
+class TestAsanaClientUpdateComment(BaseClass):
+    def test_update_comment_requires_a_comment_id_and_comment_body(self):
+        with self.assertRaises(ValueError):
+            src.asana.client.update_comment(None, "body")
+        with self.assertRaises(ValueError):
+            src.asana.client.update_comment("comment_id", None)
+        with self.assertRaises(ValueError):
+            src.asana.client.update_comment("", "body")
+        with self.assertRaises(ValueError):
+            src.asana.client.update_comment("comment_id", "")
+
+
 if __name__ == "__main__":
     from unittest import main as run_tests
 
