@@ -31,7 +31,7 @@ class Comment(object):
     def url(self) -> str:
         return self.__raw["url"]
 
-    def review -> Review:
+    def review(self) -> Review:
         # XCXC: Make a separate type for IssueComment and PullRequestReviewComment
         # only the latter would implement this.
         return Review(self.__raw['pullRequestReview'])
