@@ -80,8 +80,7 @@ def upsert_github_review_to_task(review: Review, task_id: str):
         )
 
 
-def delete_comment(comment: Comment):
-    github_comment_id = comment.id()
+def delete_comment(github_comment_id: str):
     asana_comment_id = dynamodb_client.get_asana_id_from_github_node_id(
         github_comment_id
     )

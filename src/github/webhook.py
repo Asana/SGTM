@@ -28,8 +28,8 @@ def _handle_issue_comment_webhook(payload: dict):
             )
             return github_controller.upsert_comment(pull_request, comment)
         elif action == "deleted":
-            logger.info(f"Deleting comment {comment.id()}")
-            github_controller.delete_comment(comment)
+            logger.info(f"Deleting comment {comment_id}")
+            github_controller.delete_comment(comment_id)
         else:
             logger.info(f"Unknown action for issue_comment: {action}")
 
