@@ -60,10 +60,8 @@ def _handle_pull_request_review_comment(payload: dict):
             pull_request_id, comment_id
         )
         if isinstance(comment, PullRequestReviewComment):
-            if action in ('created', 'edited'):
+            if action in ('created', 'edited', 'deleted'):
                 github_controller.upsert_review(pull_request, comment.review())
-            elif action == 'deleted':
-                github_controller.delete_comment(comment)
             else:
                 raise Exception(f"Unknown action: {action}")
         else:
