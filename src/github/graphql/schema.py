@@ -64,6 +64,7 @@ FRAGMENTS = {
     """,
     "FullComment": """
     fragment FullComment on Comment {
+      __typename
       id
       author {
         login
@@ -122,7 +123,6 @@ QUERIES = {
               }
 
               comment: node(id: $commentId) {
-                __typename
                 ... on Comment {
                   ...FullComment
                 }
