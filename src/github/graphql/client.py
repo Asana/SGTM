@@ -65,7 +65,7 @@ def get_review_for_database_id(pull_request_id: str, review_db_id: str):
 
     XCXC: Add unit test.
     """
-    data = _execute_graphql_query("IterateReviews", {"pullRequestId": pull_request_id},)
+    data = _execute_graphql_query("IterateReviews", {"pullRequestId": pull_request_id})
     while data["node"]["reviews"]["edges"]:
         try:
             match = next(
