@@ -7,7 +7,7 @@ from .pull_request_review_comment import PullRequestReviewComment
 from .user import User
 
 
-def comment_factory(raw: Dict[str, Any]) -> Union[IssueComment, PullRequestReviewComment]:
+def comment_factory(raw: Dict[str, Any]) -> Comment:
     if raw['__typename'] == 'IssueComment':
         return IssueComment(raw)
     elif raw['__typename'] == 'PullRequestReviewComment':
