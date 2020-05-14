@@ -49,6 +49,8 @@ def _handle_pull_request_review_webhook(payload: dict):
 def _handle_pull_request_review_comment(payload: dict):
     # For when a comment on a review is edited or removed
     # XCXC: Will this fire when a comment is added to a pending review?
+    logger.info(f"Received event for _handle_pull_request_review_comment: {payload}")
+    # XCXC: remove above logging.
     pull_request_id = payload["pull_request"]["node_id"]
     comment_id = payload["comment"]["node_id"]
     action = payload['action']
