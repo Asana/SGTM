@@ -20,11 +20,9 @@ lock_client = DynamoDBLockClient(
 
 
 @contextmanager
-def dynamodb_lock(lock_name: str, retry_timeout: Optional[timedelta] = None):
-    # The Lambda function has a 30 second timeout by default
-    if retry_timeout is None:
-        retry_timeout = timedelta(seconds=20)
-
+def dynamodb_lock(
+    lock_name: str, retry_timeout: Optional[timedelta] = timedelta(seconds=20)
+):
     # TODO: Make this match get-lock-client in the clojure code
     lock = lock_client.acquire_lock(
         lock_name, sort_key=lock_name, retry_timeout=retry_timeout
