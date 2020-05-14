@@ -20,8 +20,7 @@ resource "aws_iam_policy" "lambda-function-dynamodb-policy" {
         "${aws_dynamodb_table.sgtm-objects.arn}",
         "${aws_dynamodb_table.sgtm-users.arn}"
       ],
-      "Effect": "Allow",
-      "Sid": ""
+      "Effect": "Allow"
     },
     {
       "Action": [
@@ -30,8 +29,7 @@ resource "aws_iam_policy" "lambda-function-dynamodb-policy" {
       "Resource": [
         "${aws_dynamodb_table.sgtm-lock.arn}"
       ],
-      "Effect": "Allow",
-      "Sid": ""
+      "Effect": "Allow"
     }
   ]
 }
@@ -53,8 +51,7 @@ resource "aws_iam_policy" "lambda-function-cloudwatch-policy" {
       "Resource": [
         "arn:aws:logs:${var.aws_region}:*:log-group:/aws/lambda/${aws_lambda_function.sgtm.function_name}:*"
       ],
-      "Effect": "Allow",
-      "Sid": ""
+      "Effect": "Allow"
     }
   ]
 }
@@ -73,8 +70,7 @@ resource "aws_iam_role" "iam_for_lambda_function" {
       "Principal": {
         "Service": "lambda.amazonaws.com"
       },
-      "Effect": "Allow",
-      "Sid": ""
+      "Effect": "Allow"
     }
   ]
 }
@@ -109,8 +105,7 @@ resource "aws_iam_policy" "LambdaFunctionApiKeysBucketAccess" {
       "Resource": [
         "${aws_s3_bucket.api_key_bucket.arn}/*"
       ],
-      "Effect": "Allow",
-      "Sid": ""
+      "Effect": "Allow"
     },
     {
       "Action": [
@@ -119,8 +114,7 @@ resource "aws_iam_policy" "LambdaFunctionApiKeysBucketAccess" {
       "Resource": [
         "${aws_kms_key.api_encryption_key.arn}"
       ],
-      "Effect": "Allow",
-      "Sid": ""
+      "Effect": "Allow"
     }
   ]
 }
