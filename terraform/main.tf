@@ -187,6 +187,11 @@ resource "aws_dynamodb_table" "sgtm-lock" {
     name = "sort_key"
     type = "S"
   }
+
+  ttl {
+    attribute_name = "expiry_time"
+    enabled        = true
+  }
 }
 
 resource "aws_dynamodb_table" "sgtm-objects" {
