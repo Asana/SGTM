@@ -77,6 +77,6 @@ def get_review_for_database_id(pull_request_id: str, review_db_id: str):
             )
             return Review(match)
         except StopIteration:
-            # no matching reviews
-            pass
+            # no matching reviews, continue.
+            data = _execute_graphql_query("IterateReviews", {"pullRequestId": pull_request_id, "cursor": data["node"]["reviews"]["edges"][-1]['cursor']})
     raise Exception(f"No review found for database id {review_db_id}")
