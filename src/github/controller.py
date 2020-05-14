@@ -80,3 +80,6 @@ def assign_pull_request_to_author(pull_request: PullRequest):
     )
     # so we don't have to re-query the PR
     pull_request.set_assignees([new_assignee])
+
+def delete_comment(comment: Comment):
+    asana_controller.delete_comment(comment)

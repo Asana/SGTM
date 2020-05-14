@@ -75,3 +75,11 @@ def add_review_to_task(review: Review, task_id: str):
         asana_client.update_comment(
             asana_comment_id, asana_helpers.asana_comment_from_github_review(review)
         )
+
+def delete_comment(comment: Comment):
+    github_comment_id = comment.id()
+    asana_comment_id = dynamodb_client.get_asana_id_from_github_node_id(
+        github_comment_id
+    )
+    if asana_comment_id is not None:
+        asana_client.delete_comment(asana_comment_id)

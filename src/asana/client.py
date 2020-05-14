@@ -99,6 +99,10 @@ class AsanaClient(object):
             comment_id, {"html_text": comment_body}
         )
 
+    def delete_comment(self, comment_id: str) -> None:
+        validate_object_id(comment_id, "AsanaClient.update_comment requires a comment_id")
+        self.asana_api_client.stories.delete(comment_id)
+
     def get_project_custom_fields(self, project_id: str) -> Iterator[Dict]:
         return self.asana_api_client.custom_field_settings.find_by_project(project_id)
 
@@ -140,3 +144,6 @@ def get_project_custom_fields(project_id: str) -> Iterator[Dict]:
 
 def update_comment(comment_id: str, comment_body: str):
    AsanaClient.singleton().update_comment(comment_id, comment_body)
+
+def delete_comment(comment_id: str):
+    AsanaClient.singleton().delete_comment(comment_id)

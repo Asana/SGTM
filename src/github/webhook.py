@@ -28,7 +28,8 @@ def _handle_issue_comment_webhook(payload: dict):
             )
             return github_controller.upsert_comment(pull_request, comment)
         elif action == "deleted":
-            logger.info("TODO: deleted action is not supported yet")
+            logger.info(f"Deleting comment {comment.id()}")
+            github_controller.delete_comment(comment)
         else:
             logger.info(f"Unknown action for issue_comment: {action}")
 
