@@ -62,6 +62,8 @@ def get_review_for_database_id(pull_request_id: str, review_db_id: str):
 
     Requires iterating through all reviews on the given pull request,
     because aside from using the legacy Github API I don't know how to query by databaseId.
+
+    XCXC: Add unit test.
     """
     data = _execute_graphql_query("IterateReviews", {"pullRequestId": pull_request_id},)
     while data["node"]["reviews"]["edges"]:
