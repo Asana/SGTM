@@ -50,7 +50,9 @@ def upsert_github_comment_to_task(comment: Comment, task_id: str):
             github_comment_id, asana_comment_id
         )
     else:
-        logger.info(f"Comment {github_comment_id} already synced to task {task_id}. Updating.")
+        logger.info(
+            f"Comment {github_comment_id} already synced to task {task_id}. Updating."
+        )
         asana_client.update_comment(
             asana_comment_id, asana_helpers.asana_comment_from_github_comment(comment)
         )
@@ -70,10 +72,13 @@ def upsert_github_review_to_task(review: Review, task_id: str):
             github_review_id, asana_comment_id
         )
     else:
-        logger.info(f"Review {github_review_id} already synced to task {task_id}. Updating.")
+        logger.info(
+            f"Review {github_review_id} already synced to task {task_id}. Updating."
+        )
         asana_client.update_comment(
             asana_comment_id, asana_helpers.asana_comment_from_github_review(review)
         )
+
 
 def delete_comment(comment: Comment):
     github_comment_id = comment.id()

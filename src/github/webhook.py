@@ -53,19 +53,21 @@ def _handle_pull_request_review_comment(payload: dict):
     # XCXC: remove above logging.
     pull_request_id = payload["pull_request"]["node_id"]
     comment_id = payload["comment"]["node_id"]
-    action = payload['action']
+    action = payload["action"]
 
     with dynamodb_lock(pull_request_id):
         pull_request, comment = graphql_client.get_pull_request_and_comment(
             pull_request_id, comment_id
         )
         if isinstance(comment, PullRequestReviewComment):
-            if action in ('created', 'edited', 'deleted'):
+            if action in ("created", "edited", "deleted"):
                 github_controller.upsert_review(pull_request, comment.review())
             else:
                 raise Exception(f"Unknown action: {action}")
         else:
-            raise Exception("Can't fetch review for a comment that isn't a PullRequestReviewComment")
+            raise Exception(
+                "Can't fetch review for a comment that isn't a PullRequestReviewComment"
+            )
 
 
 # https://developer.github.com/v3/activity/events/types/#statusevent
@@ -81,7 +83,7 @@ _events_map = {
     "issue_comment": _handle_issue_comment_webhook,
     "pull_request_review": _handle_pull_request_review_webhook,
     "status": _handle_status_webhook,
-    'pull_request_review_comment': _handle_pull_request_review_comment
+    "pull_request_review_comment": _handle_pull_request_review_comment,
 }
 
 

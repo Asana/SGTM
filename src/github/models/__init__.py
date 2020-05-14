@@ -8,9 +8,9 @@ from .user import User
 
 
 def comment_factory(raw: Dict[str, Any]) -> Comment:
-    if raw['__typename'] == 'IssueComment':
+    if raw["__typename"] == "IssueComment":
         return IssueComment(raw)
-    elif raw['__typename'] == 'PullRequestReviewComment':
+    elif raw["__typename"] == "PullRequestReviewComment":
         return PullRequestReviewComment(raw)
     else:
         raise Exception(f"Unexpected type found: {raw['__typename']}")

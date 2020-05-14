@@ -7,7 +7,6 @@ import copy
 
 
 class Comment(object):
-
     def __init__(self, raw_comment: Dict[str, Any]):
         self._raw = copy.deepcopy(raw_comment)
 
