@@ -1,5 +1,5 @@
 from datetime import timedelta
-from python_dynamodb_lock.python_dynamodb_lock import DynamoDBLockError
+from python_dynamodb_lock.python_dynamodb_lock import DynamoDBLockError  # type: ignore
 from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 from src.dynamodb.lock import dynamodb_lock
 
