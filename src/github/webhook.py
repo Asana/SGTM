@@ -54,7 +54,7 @@ def _handle_pull_request_review_comment(payload: dict):
     # XCXC: remove above logging.
     pull_request_id = payload["pull_request"]["node_id"]
 
-    # Note: this is not the node_id, but is a numeric string.
+    # Note: this is not the node_id, but is a numeric string (the databaseId field).
     review_database_id = payload["comment"]["pull_request_review_id"]
 
     with dynamodb_lock(pull_request_id):
