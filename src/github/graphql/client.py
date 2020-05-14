@@ -53,6 +53,7 @@ def get_pull_request_for_commit(commit_id: str) -> PullRequest:
     pull_request = data["commit"]["associatedPullRequests"]["edges"][0]["node"]
     return PullRequest(pull_request)
 
+
 def get_review_for_database_id(pull_request_id: str, review_db_id: str):
     """Get the PullRequestReview given a pull request and the database id of the review.
     NOTE:
@@ -62,13 +63,16 @@ def get_review_for_database_id(pull_request_id: str, review_db_id: str):
     Requires iterating through all reviews on the given pull request,
     because aside from using the legacy Github API I don't know how to query by databaseId.
     """
-    data = _execute_graphql_query(
-        "IterateReviews",
-        {"pullRequestId": pull_request_id},
-    )
-    while data['node']['reviews']['edges']:
+    data = _execute_graphql_query("IterateReviews", {"pullRequestId": pull_request_id},)
+    while data["node"]["reviews"]["edges"]:
         try:
-            match = next((e['node'] for e in data['node']['reviews']['edges'] if e['node']['databaseId'] == review_db_id))
+            match = next(
+                (
+                    e["node"]
+                    for e in data["node"]["reviews"]["edges"]
+                    if e["node"]["databaseId"] == review_db_id
+                )
+            )
             return Review(match)
         except StopIteration:
             # no matching reviews

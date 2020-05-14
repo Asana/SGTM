@@ -59,7 +59,9 @@ def _handle_pull_request_review_comment(payload: dict):
 
     with dynamodb_lock(pull_request_id):
         pull_request = graphql_client.get_pull_request(pull_request_id)
-        review = graphql_client.get_review_for_database_id(pull_request_id, review_database_id)
+        review = graphql_client.get_review_for_database_id(
+            pull_request_id, review_database_id
+        )
         github_controller.upsert_review(pull_request, review)
 
 

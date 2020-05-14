@@ -205,5 +205,5 @@ QUERIES = {
             }
         """
     + "\n"
-    + FRAGMENTS["FullReview"]
+    + FRAGMENTS["FullReview"],
 }
