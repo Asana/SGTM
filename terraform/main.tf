@@ -24,7 +24,8 @@ resource "aws_iam_policy" "lambda-function-dynamodb-policy" {
     },
     {
       "Action": [
-        "dynamodb:DeleteItem"
+        "dynamodb:DeleteItem",
+        "dynamodb:UpdateItem"
       ],
       "Resource": [
         "${aws_dynamodb_table.sgtm-lock.arn}"
