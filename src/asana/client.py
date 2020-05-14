@@ -93,11 +93,9 @@ class AsanaClient(object):
 
     def update_comment(self, comment_id: str, comment_body: str) -> None:
         validate_object_id(comment_id, "AsanaClient.update_comment requires a comment_id")
-        if comment_body is None or not comment_body:
+        if not comment_body:
             raise ValueError("AsanaClient.update_comment requires a comment body")
-        response = self.asana_api_client.stories.update(
-            comment_id, {"html_text": comment_body}
-        )
+        self.asana_api_client.stories.update(comment_id, {"html_text": comment_body})
 
     def delete_comment(self, comment_id: str) -> None:
         validate_object_id(comment_id, "AsanaClient.update_comment requires a comment_id")

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Dict, Any
 from src.utils import parse_date_string
 from .user import User
 

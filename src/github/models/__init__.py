@@ -1,4 +1,4 @@
-from typing import Dict, Any, Union
+from typing import Dict, Any
 from .pull_request import PullRequest
 from .review import Review
 from .comment import Comment
