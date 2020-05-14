@@ -114,3 +114,4 @@ terraform/terraform.tfstate.backup
 
 # virtualenv
 v-env/
+build-env/
