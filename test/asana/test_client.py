@@ -124,6 +124,19 @@ class TestAsanaClientUpdateComment(BaseClass):
             "COMMENT_ID", {"html_text": "comment_body"}
         )
 
+class TestAsanaClientDeleteComment(BaseClass):
+    def test_delete_comment_requires_a_comment_id(self):
+        with self.assertRaises(ValueError):
+            src.asana.client.delete_comment(None)
+        with self.assertRaises(ValueError):
+            src.asana.client.delete_comment("")
+
+    @patch.object(asana_api_client.stories, "delete")
+    def test_deletes_comment(self, delete_story):
+        src.asana.client.delete_comment("COMMENT_ID")
+        delete_story.assert_called_once_with("COMMENT_ID")
+
+
 if __name__ == "__main__":
     from unittest import main as run_tests
 
