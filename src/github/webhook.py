@@ -51,13 +51,19 @@ def _handle_pull_request_review_comment(payload: dict):
     # XCXC: Will this fire when a comment is added to a pending review?
     pull_request_id = payload["pull_request"]["node_id"]
     comment_id = payload["comment"]["node_id"]
+    action = payload['action']
 
     with dynamodb_lock(pull_request_id):
         pull_request, comment = graphql_client.get_pull_request_and_comment(
             pull_request_id, comment_id
         )
         if isinstance(comment, PullRequestReviewComment):
-            github_controller.upsert_review(pull_request, comment.review())
+            if action in ('created', 'edited'):
+                github_controller.upsert_review(pull_request, comment.review())
+            elif action == 'deleted':
+                github_controller.delete_comment(comment)
+            else:
+                raise Exception(f"Unknown action: {action}")
         else:
             raise Exception("Can't fetch review for a comment that isn't a PullRequestReviewComment")
 
