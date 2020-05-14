@@ -58,7 +58,7 @@ def get_review_for_database_id(pull_request_id: str, review_db_id: str):
     """Get the PullRequestReview given a pull request and the database id of the review.
     NOTE:
         @pull_request_id is a node id.
-        @review_db_id is a databse id (it's numeric).
+        @review_db_id is a database id (it's numeric).
 
     Requires iterating through all reviews on the given pull request,
     because aside from using the legacy Github API I don't know how to query by databaseId.
@@ -85,4 +85,4 @@ def get_review_for_database_id(pull_request_id: str, review_db_id: str):
                     "cursor": data["node"]["reviews"]["edges"][-1]["cursor"],
                 },
             )
-    raise Exception(f"No review found for database id {review_db_id}")
+    raise Exception(f"No review found for pull request: {pull_request_id} and review database-id: {review_db_id}")
