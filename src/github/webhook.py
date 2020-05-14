@@ -37,7 +37,7 @@ def _handle_issue_comment_webhook(payload: dict):
 # https://developer.github.com/v3/activity/events/types/#pullrequestreviewevent
 def _handle_pull_request_review_webhook(payload: dict):
     pull_request_id = payload["pull_request"]["node_id"]
-    review_id = payload["review"]["node_id"]
+
     with dynamodb_lock(pull_request_id):
         pull_request, review = graphql_client.get_pull_request_and_review(
             pull_request_id, review_id
@@ -54,11 +54,11 @@ def _handle_pull_request_review_comment(payload: dict):
     pull_request_id = payload["pull_request"]["node_id"]
 
     # Note: this is not the node_id, but is a numeric string.
-    review_database_id = payload["pull_request"]["pull_request_review_id"]
+    review_database_id = payload["comment"]["pull_request_review_id"]
 
     with dynamodb_lock(pull_request_id):
         pull_request = graphql_client.get_pull_request(pull_request_id)
-        review = graphql_client.get_review_for_database_id(pull_request, review_database_id)
+        review = graphql_client.get_review_for_database_id(pull_request_id, review_database_id)
         github_controller.upsert_review(pull_request, review)
 
 

@@ -56,11 +56,14 @@ def get_pull_request_for_commit(commit_id: str) -> PullRequest:
 def get_review_for_database_id(pull_request_id: str, review_db_id: str):
     # NOTE: review_db_id is not the node id, but the databaseId field (it's numeric).
     data = _execute_graphql_query(
-        "IterateReviewIds",
+        "IterateReviews",
         {"pullRequestId": pull_request_id},
     )
-    while data['edges']:
-        match = next((e['node'] for e in data['edges'] if e['node']['databaseId'] == review_id), default=None)
-        if match:
+    while data['node']['reviews']['edges']:
+        try:
+            match = next((e['node'] for e in data['node']['reviews']['edges'] if e['node']['databaseId'] == review_db_id))
             return Review(match)
-    raise Exception(f"No review found for database id {review_id}")
+        except StopIteration:
+            pass
+            
+    raise Exception(f"No review found for database id {review_db_id}")
