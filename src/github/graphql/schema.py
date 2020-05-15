@@ -188,7 +188,7 @@ QUERIES = {
     + "\n"
     + FRAGMENTS["FullReview"],
     "IterateReviews": """
-            query IterateReviewIds($pullRequestId: ID!, $cursor: String) {
+            query IterateReviews($pullRequestId: ID!, $cursor: String) {
               node(id: $pullRequestId) {
                 ... on PullRequest {
                   reviews(first: 20, after: $cursor) {
