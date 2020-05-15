@@ -55,15 +55,21 @@ def get_pull_request_for_commit(commit_id: str) -> PullRequest:
 
 
 def get_review_for_database_id(pull_request_id: str, review_db_id: str):
-    """Get the PullRequestReview given a pull request and the database id of the review.
-    NOTE:
-        @pull_request_id is a node id.
-        @review_db_id is a database id (it's numeric).
+    """Get the PullRequestReview given a pull request and the NUMERIC id id of the review.
 
-    Requires iterating through all reviews on the given pull request,
-    because aside from using the legacy Github API I don't know how to query by databaseId.
+    NOTE: `pull_request_id` and `review_db_id are DIFFERENT types of ids.
 
-    XCXC: Add unit test.
+    The github API has two ids for each object:
+        `id`: a base64-encoded string (also known as "node_id").
+        `databaseId`: the primary key from the database.
+
+    In this function:
+        @pull_request_id is the `id` for the pull request.
+        @review_db_id is the `databaseId` for the review.
+
+    Unfortunately, this requires iterating through all reviews on the given pull request.
+
+    See https://developer.github.com/v4/object/repository/#fields
     """
     data = _execute_graphql_query("IterateReviews", {"pullRequestId": pull_request_id})
     while data["node"]["reviews"]["edges"]:

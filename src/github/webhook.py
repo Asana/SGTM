@@ -57,6 +57,7 @@ def _handle_pull_request_review_comment(payload: dict):
     To get the review, we either:
         (1) query for the comment, and use the `review` edge in GraphQL.
         (2) Iterate through all reviews on the pull request, and find the one whose databaseId matches.
+            See get_review_for_database_id()
 
     We do (1) for comments that were added or edited, but if a comment was just deleted, we have to do (2).
 
