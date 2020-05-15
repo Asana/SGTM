@@ -50,7 +50,7 @@ def upsert_comment(pull_request: PullRequest, comment: Comment):
         )
         # TODO: Full sync
     else:
-        asana_controller.add_comment_to_task(comment, task_id)
+        asana_controller.upsert_github_comment_to_task(comment, task_id)
         asana_controller.update_task(pull_request, task_id)
 
 
@@ -66,7 +66,7 @@ def upsert_review(pull_request: PullRequest, review: Review):
         logger.info(
             f"Found task id {task_id} for pull_request {pull_request_id}. Adding review now."
         )
-        asana_controller.add_review_to_task(review, task_id)
+        asana_controller.upsert_github_review_to_task(review, task_id)
         if review.is_approval_or_changes_requested():
             assign_pull_request_to_author(pull_request)
         asana_controller.update_task(pull_request, task_id)
@@ -80,3 +80,7 @@ def assign_pull_request_to_author(pull_request: PullRequest):
     )
     # so we don't have to re-query the PR
     pull_request.set_assignees([new_assignee])
+
+
+def delete_comment(github_comment_id: str):
+    asana_controller.delete_comment(github_comment_id)

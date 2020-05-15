@@ -2,34 +2,36 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 from src.logger import logger
 from src.utils import parse_date_string
+
+# from .review import Review
+from .issue_comment import IssueComment
 from .review import Review
-from .comment import Comment
 from .user import User
 import copy
 
 
 class PullRequest(object):
     def __init__(self, raw_pull_request: Dict[str, Any]):
-        self.__raw = copy.deepcopy(raw_pull_request)
-        self.__assignees = self._assignees_from_raw()
+        self._raw = copy.deepcopy(raw_pull_request)
+        self._assignees = self._assignees_from_raw()
 
     def _assignees_from_raw(self) -> List[str]:
-        return sorted([node["login"] for node in self.__raw["assignees"]["nodes"]])
+        return sorted([node["login"] for node in self._raw["assignees"]["nodes"]])
 
     def assignees(self) -> List[str]:
-        return self.__assignees
+        return self._assignees
 
     def set_assignees(self, assignees: List[str]):
-        self.__raw = copy.deepcopy(self.__raw)
-        self.__raw["assignees"]["nodes"] = [
+        self._raw = copy.deepcopy(self._raw)
+        self._raw["assignees"]["nodes"] = [
             {"login": assignee_login} for assignee_login in assignees
         ]
-        self.__assignees = self._assignees_from_raw()
+        self._assignees = self._assignees_from_raw()
 
     def requested_reviewers(self) -> List[str]:
         return sorted(
             node["requestedReviewer"]["login"]
-            for node in self.__raw["reviewRequests"]["nodes"]
+            for node in self._raw["reviewRequests"]["nodes"]
         )
 
     def reviewers(self) -> List[str]:
@@ -52,66 +54,66 @@ class PullRequest(object):
             return assignee
 
     def id(self) -> str:
-        return self.__raw["id"]
+        return self._raw["id"]
 
     def number(self) -> int:
-        return self.__raw["number"]
+        return self._raw["number"]
 
     def title(self) -> int:
-        return self.__raw["title"]
+        return self._raw["title"]
 
     def url(self) -> str:
-        return self.__raw["url"]
+        return self._raw["url"]
 
     def repository_id(self) -> str:
-        return self.__raw["repository"]["id"]
+        return self._raw["repository"]["id"]
 
     def repository_name(self) -> str:
-        return self.__raw["repository"]["name"]
+        return self._raw["repository"]["name"]
 
     def owner_handle(self) -> str:
         return self.owner().login()
 
     def owner(self) -> User:
-        return User(self.__raw["owner"])
+        return User(self._raw["owner"])
 
     def repository_owner_handle(self) -> str:
-        return self.__raw["repository"]["owner"]["login"]
+        return self._raw["repository"]["owner"]["login"]
 
     def author(self) -> User:
-        return User(self.__raw["author"])
+        return User(self._raw["author"])
 
     def author_handle(self) -> str:
         return self.author().login()
 
     def body(self) -> str:
-        return self.__raw["body"]
+        return self._raw["body"]
 
     def set_body(self, body: str):
-        self.__raw = copy.deepcopy(self.__raw)
-        self.__raw["body"] = copy.deepcopy(body)
+        self._raw = copy.deepcopy(self._raw)
+        self._raw["body"] = copy.deepcopy(body)
 
     def closed(self) -> bool:
-        return self.__raw["closed"]
+        return self._raw["closed"]
 
     def merged(self) -> bool:
-        return self.__raw["merged"]
+        return self._raw["merged"]
 
     def merged_at(self) -> Optional[datetime]:
-        merged_at = self.__raw.get("mergedAt", None)
+        merged_at = self._raw.get("mergedAt", None)
         if merged_at is None:
             return None
         return parse_date_string(merged_at)
 
     def reviews(self) -> List[Review]:
-        return [Review(review) for review in self.__raw["reviews"]["nodes"]]
+        return [Review(review) for review in self._raw["reviews"]["nodes"]]
 
-    def comments(self) -> List[Comment]:
-        return [Comment(comment) for comment in self.__raw["comments"]["nodes"]]
+    def comments(self) -> List[IssueComment]:
+        return [IssueComment(comment) for comment in self._raw["comments"]["nodes"]]
 
     def to_raw(self) -> Dict[str, Any]:
-        return copy.deepcopy(self.__raw)
+        return copy.deepcopy(self._raw)
 
     def build_status(self) -> Optional[str]:
-        commit = self.__raw["commits"]["nodes"][0]["commit"]
+        commit = self._raw["commits"]["nodes"][0]["commit"]
         return commit["status"]["state"] if commit["status"] else None
