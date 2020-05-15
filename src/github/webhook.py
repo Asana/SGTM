@@ -48,20 +48,42 @@ def _handle_pull_request_review_webhook(payload: dict):
 
 # https://developer.github.com/v3/activity/events/types/#pullrequestreviewcommentevent
 def _handle_pull_request_review_comment(payload: dict):
-    # For when a comment on a review is edited or removed
-    # XCXC: Will this fire when a comment is added to a pending review?
-    logger.info(f"Received event for _handle_pull_request_review_comment: {payload}")
-    # XCXC: remove above logging.
-    pull_request_id = payload["pull_request"]["node_id"]
+    """Handle when a pull request review comment is edited or removed.
 
-    # Note: this is not the node_id, but is a numeric string (the databaseId field).
+    Unfortunately, this payload doesn't contain the node id of the review.
+    Instead, it includes a separate, numeric id
+    which is stored as `databaseId` on each GraphQL object.
+
+    To get the review, we either:
+        (1) query for the comment, and use the `review` edge in GraphQL.
+        (2) Iterate through all reviews on the pull request, and find the one whose databaseId matches.
+
+    We do (1) for comments that were added or edited, but if a comment was just deleted, we have to do (2).
+
+    See https://developer.github.com/v4/object/repository/#fields.
+    """
+    pull_request_id = payload["pull_request"]["node_id"]
+    action = payload["action"]
+    comment_id = payload["comment"]["node_id"]
+
+    # This is NOT the node_id, but is a numeric string (the databaseId field).
     review_database_id = payload["comment"]["pull_request_review_id"]
 
     with dynamodb_lock(pull_request_id):
-        pull_request = graphql_client.get_pull_request(pull_request_id)
-        review = graphql_client.get_review_for_database_id(
-            pull_request_id, review_database_id
-        )
+        if action in ('created', 'edited'):
+            pull_request, comment = graphql_client.get_pull_request_and_comment(
+                pull_request_id, comment_id
+            )
+            if not isinstance(comment, PullRequestReviewComment):
+                raise Exception(f"Unexpected comment type {type(PullRequestReviewComment)} for pull request review")
+            review = comment.review()
+        elif action == 'deleted':
+            pull_request = graphql_client.get_pull_request(pull_request_id)
+            review = graphql_client.get_review_for_database_id(
+                pull_request_id, review_database_id
+            )
+        else:
+            raise ValueError(f"Unexpected action: {action}")
         github_controller.upsert_review(pull_request, review)
 
 
