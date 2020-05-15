@@ -1,6 +1,9 @@
 from ..fragments import FullReview
 
-IterateReviews = set(["""
+IterateReviews = (
+    set(
+        [
+            """
 query IterateReviews($pullRequestId: ID!, $cursor: String) {
   node(id: $pullRequestId) {
     ... on PullRequest {
@@ -17,4 +20,8 @@ query IterateReviews($pullRequestId: ID!, $cursor: String) {
   }
 }
 
-"""]) | FullReview
+"""
+        ]
+    )
+    | FullReview
+)

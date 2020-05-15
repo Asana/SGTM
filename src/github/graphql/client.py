@@ -1,7 +1,14 @@
 from typing import Tuple, Set
 from sgqlc.endpoint.http import HTTPEndpoint  # type: ignore
 from src.config import GITHUB_API_KEY
-from .queries import GetPullRequest, GetPullRequestAndComment, GetPullRequestAndReview, GetPullRequestForCommit, IterateReviews
+from .queries import (
+    GetPullRequest,
+    GetPullRequestAndComment,
+    GetPullRequestAndReview,
+    GetPullRequestForCommit,
+    IterateReviews,
+)
+
 # from .schema import QUERIES
 from src.github.models import comment_factory, PullRequest, Review, Comment
 
@@ -18,7 +25,7 @@ __endpoint = HTTPEndpoint(__url, __headers)
 
 
 def _execute_graphql_query(query: Set[str], variables: dict) -> dict:
-    query_str = '\n'.join(query)
+    query_str = "\n".join(query)
     response = __endpoint(query_str, variables)
     if "errors" in response:
         raise ValueError(f"Error in graphql query:\n{response }")

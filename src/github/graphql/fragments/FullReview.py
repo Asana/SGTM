@@ -1,4 +1,6 @@
-FullReview = set(["""
+FullReview = set(
+    [
+        """
 fragment FullReview on PullRequestReview {
   id
   author {
@@ -19,4 +21,6 @@ fragment FullReview on PullRequestReview {
   url
 }
 
-"""])
+"""
+    ]
+)

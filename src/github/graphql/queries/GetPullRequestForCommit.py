@@ -1,6 +1,9 @@
 from ..fragments import FullPullRequest, FullReview
 
-GetPullRequestForCommit = set(["""
+GetPullRequestForCommit = (
+    set(
+        [
+            """
 query GetPullRequestForCommit($id: ID!) {
   commit: node(id: $id) {
     ... on Commit {
@@ -17,4 +20,9 @@ query GetPullRequestForCommit($id: ID!) {
   }
 }
 
-"""]) | FullPullRequest | FullReview
+"""
+        ]
+    )
+    | FullPullRequest
+    | FullReview
+)
