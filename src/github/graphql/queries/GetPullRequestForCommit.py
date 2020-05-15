@@ -1,4 +1,4 @@
-from ..fragments import FullPullRequest
+from ..fragments import FullPullRequest, FullReview
 
 GetPullRequestForCommit = """
 query GetPullRequestForCommit($id: ID!) {
@@ -17,4 +17,4 @@ query GetPullRequestForCommit($id: ID!) {
   }
 }
 
-""" + FullPullRequest
+""" + FullPullRequest + FullReview

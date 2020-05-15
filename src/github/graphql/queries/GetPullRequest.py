@@ -1,4 +1,4 @@
-from ..fragments import FullPullRequest
+from ..fragments import FullPullRequest, FullReview
 
 GetPullRequest = """
 query GetPullRequest($id: ID!) {
@@ -10,4 +10,4 @@ query GetPullRequest($id: ID!) {
   }
 }
 
-""" + FullPullRequest
+""" + FullPullRequest + FullReview

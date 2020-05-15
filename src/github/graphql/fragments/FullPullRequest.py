@@ -63,4 +63,4 @@ fragment FullPullRequest on PullRequest {
   }
 }
 
-""" + FullReview
+"""
