@@ -1,4 +1,4 @@
-FullComment = set(
+FullComment = frozenset(
     [
         """
 fragment FullComment on Comment {

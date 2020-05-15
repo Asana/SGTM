@@ -1,7 +1,7 @@
 from ..fragments import FullReview
 
 IterateReviews = (
-    set(
+    frozenset(
         [
             """
 query IterateReviews($pullRequestId: ID!, $cursor: String) {
