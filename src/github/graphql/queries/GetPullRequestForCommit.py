@@ -1,7 +1,7 @@
 from ..fragments import FullPullRequest, FullReview
 
-GetPullRequestForCommit = (
-    set(
+GetPullRequestForCommit: frozenset = (
+    frozenset(
         [
             """
 query GetPullRequestForCommit($id: ID!) {

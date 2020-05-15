@@ -1,4 +1,4 @@
-FullReview = set(
+FullReview: frozenset = frozenset(
     [
         """
 fragment FullReview on PullRequestReview {

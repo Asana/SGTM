@@ -1,7 +1,7 @@
 from ..fragments import FullPullRequest, FullReview
 
-GetPullRequest = (
-    set(
+GetPullRequest: frozenset = (
+    frozenset(
         [
             """
 query GetPullRequest($id: ID!) {

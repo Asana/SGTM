@@ -1,8 +1,8 @@
 from .FullReview import FullReview
 
 
-FullPullRequest = (
-    set(
+FullPullRequest: frozenset = (
+    frozenset(
         [
             """
 fragment FullPullRequest on PullRequest {

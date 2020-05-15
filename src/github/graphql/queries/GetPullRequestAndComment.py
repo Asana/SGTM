@@ -1,7 +1,7 @@
 from ..fragments import FullPullRequest, FullComment, FullReview
 
-GetPullRequestAndComment = (
-    set(
+GetPullRequestAndComment: frozenset = (
+    frozenset(
         [
             """
 query GetPullRequestAndComment($pullRequestId: ID!, $commentId: ID!) {
