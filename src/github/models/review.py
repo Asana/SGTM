@@ -13,16 +13,16 @@ class Review(object):
     STATE_DISMISSED = "DISMISSED"
 
     def __init__(self, raw_review: Dict[str, Any]):
-        self.__raw = copy.deepcopy(raw_review)
+        self._raw = copy.deepcopy(raw_review)
 
     def id(self) -> str:
-        return self.__raw["id"]
+        return self._raw["id"]
 
     def submitted_at(self) -> datetime:
-        return parse_date_string(self.__raw["submittedAt"])
+        return parse_date_string(self._raw["submittedAt"])
 
     def state(self) -> str:
-        return self.__raw["state"]
+        return self._raw["state"]
 
     def is_approval_or_changes_requested(self) -> bool:
         return self.state() in (self.STATE_APPROVED, self.STATE_CHANGES_REQUESTED)
@@ -31,22 +31,22 @@ class Review(object):
         return self.state() == self.STATE_APPROVED
 
     def body(self) -> str:
-        return self.__raw["body"]
+        return self._raw["body"]
 
     def comments(self) -> List[IssueComment]:
         return [
             IssueComment(comment)
-            for comment in self.__raw.get("comments", {}).get("nodes", [])
+            for comment in self._raw.get("comments", {}).get("nodes", [])
         ]
 
     def author(self) -> User:
-        return User(self.__raw["author"])
+        return User(self._raw["author"])
 
     def author_handle(self) -> str:
         return self.author().login()
 
     def to_raw(self) -> Dict[str, Any]:
-        return copy.deepcopy(self.__raw)
+        return copy.deepcopy(self._raw)
 
     def url(self) -> str:
-        return self.__raw["url"]
+        return self._raw["url"]
