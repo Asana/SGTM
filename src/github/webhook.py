@@ -71,14 +71,16 @@ def _handle_pull_request_review_comment(payload: dict):
     review_database_id = payload["comment"]["pull_request_review_id"]
 
     with dynamodb_lock(pull_request_id):
-        if action in ('created', 'edited'):
+        if action in ("created", "edited"):
             pull_request, comment = graphql_client.get_pull_request_and_comment(
                 pull_request_id, comment_id
             )
             if not isinstance(comment, PullRequestReviewComment):
-                raise Exception(f"Unexpected comment type {type(PullRequestReviewComment)} for pull request review")
+                raise Exception(
+                    f"Unexpected comment type {type(PullRequestReviewComment)} for pull request review"
+                )
             review = comment.review()
-        elif action == 'deleted':
+        elif action == "deleted":
             pull_request = graphql_client.get_pull_request(pull_request_id)
             review = graphql_client.get_review_for_database_id(
                 pull_request_id, review_database_id
