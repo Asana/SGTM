@@ -1,6 +1,6 @@
 from ..fragments import FullPullRequest, FullComment, FullReview
 
-GetPullRequestAndComment = """
+GetPullRequestAndComment = set(["""
 query GetPullRequestAndComment($pullRequestId: ID!, $commentId: ID!) {
   pullRequest: node(id: $pullRequestId) {
     __typename
@@ -25,4 +25,4 @@ query GetPullRequestAndComment($pullRequestId: ID!, $commentId: ID!) {
   }
 }
 
-""" + FullPullRequest + FullComment + FullReview
+"""]) | FullPullRequest | FullComment | FullReview

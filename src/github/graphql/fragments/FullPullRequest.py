@@ -1,7 +1,7 @@
 from .FullReview import FullReview
 
 
-FullPullRequest = """
+FullPullRequest = set(["""
 fragment FullPullRequest on PullRequest {
   id
   body
@@ -63,4 +63,4 @@ fragment FullPullRequest on PullRequest {
   }
 }
 
-"""
+"""]) | FullReview

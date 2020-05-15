@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Set
 from sgqlc.endpoint.http import HTTPEndpoint  # type: ignore
 from src.config import GITHUB_API_KEY
 from .queries import GetPullRequest, GetPullRequestAndComment, GetPullRequestAndReview, GetPullRequestForCommit, IterateReviews
@@ -17,8 +17,9 @@ __headers = {"Authorization": f"bearer {GITHUB_API_KEY}"}
 __endpoint = HTTPEndpoint(__url, __headers)
 
 
-def _execute_graphql_query(query: str, variables: dict) -> dict:
-    response = __endpoint(query, variables)
+def _execute_graphql_query(query: Set[str], variables: dict) -> dict:
+    query_str = '\n'.join(query)
+    response = __endpoint(query_str, variables)
     if "errors" in response:
         raise ValueError(f"Error in graphql query:\n{response }")
     data = response["data"]

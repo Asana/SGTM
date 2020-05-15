@@ -1,6 +1,6 @@
 from ..fragments import FullPullRequest, FullReview
 
-GetPullRequest = """
+GetPullRequest = set(["""
 query GetPullRequest($id: ID!) {
   pullRequest: node(id: $id) {
     __typename
@@ -10,4 +10,4 @@ query GetPullRequest($id: ID!) {
   }
 }
 
-""" + FullPullRequest + FullReview
+"""]) | FullPullRequest | FullReview
