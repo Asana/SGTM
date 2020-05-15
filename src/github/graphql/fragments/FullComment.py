@@ -1,3 +1,4 @@
+FullComment = """
 fragment FullComment on Comment {
   __typename
   id
@@ -9,3 +10,5 @@ fragment FullComment on Comment {
   }
   body
 }
+
+"""

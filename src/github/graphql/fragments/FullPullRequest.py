@@ -1,3 +1,7 @@
+from .FullReview import FullReview
+
+
+FullPullRequest = """
 fragment FullPullRequest on PullRequest {
   id
   body
@@ -58,3 +62,5 @@ fragment FullPullRequest on PullRequest {
     }
   }
 }
+
+""" + FullReview

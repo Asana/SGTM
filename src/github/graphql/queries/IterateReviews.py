@@ -1,3 +1,6 @@
+from ..fragments import FullReview
+
+IterateReviews = """
 query IterateReviews($pullRequestId: ID!, $cursor: String) {
   node(id: $pullRequestId) {
     ... on PullRequest {
@@ -13,3 +16,5 @@ query IterateReviews($pullRequestId: ID!, $cursor: String) {
     }
   }
 }
+
+""" + FullReview

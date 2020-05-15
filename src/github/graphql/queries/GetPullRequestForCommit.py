@@ -1,3 +1,6 @@
+from ..fragments import FullPullRequest
+
+GetPullRequestForCommit = """
 query GetPullRequestForCommit($id: ID!) {
   commit: node(id: $id) {
     ... on Commit {
@@ -13,3 +16,5 @@ query GetPullRequestForCommit($id: ID!) {
     }
   }
 }
+
+""" + FullPullRequest

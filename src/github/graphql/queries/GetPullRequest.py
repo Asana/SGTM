@@ -1,3 +1,6 @@
+from ..fragments import FullPullRequest
+
+GetPullRequest = """
 query GetPullRequest($id: ID!) {
   pullRequest: node(id: $id) {
     __typename
@@ -6,3 +9,5 @@ query GetPullRequest($id: ID!) {
     }
   }
 }
+
+""" + FullPullRequest
