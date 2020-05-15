@@ -43,6 +43,7 @@ FRAGMENTS = {
           }
           publishedAt
           body
+          url
         }
       }
       assignees(last: 20) {
@@ -62,7 +63,8 @@ FRAGMENTS = {
     }
     """,
     "FullComment": """
-    fragment FullComment on IssueComment {
+    fragment FullComment on Comment {
+      __typename
       id
       author {
         login
@@ -88,8 +90,10 @@ FRAGMENTS = {
       comments(last: 20) {
         nodes {
           body
+          url
         }
       }
+      url
     }
     """,
 }
@@ -109,30 +113,6 @@ QUERIES = {
     + FRAGMENTS["FullPullRequest"]
     + "\n"
     + FRAGMENTS["FullReview"],
-    "GetComment": """
-            query GetComment($id: ID!) {
-              comment: node(id: $id) {
-                __typename
-                ... on IssueComment {
-                  ...FullComment
-                }
-              }
-            }
-        """
-    + "\n"
-    + FRAGMENTS["FullComment"],
-    "GetReview": """
-            query GetReview($id: ID!) {
-              review: node(id: $id) {
-                __typename
-                ... on PullRequestReview {
-                  ...FullReview
-                }
-              }
-            }
-        """
-    + "\n"
-    + FRAGMENTS["FullReview"],
     "GetPullRequestAndComment": """
             query GetPullRequestAndComment($pullRequestId: ID!, $commentId: ID!) {
               pullRequest: node(id: $pullRequestId) {
@@ -143,9 +123,17 @@ QUERIES = {
               }
 
               comment: node(id: $commentId) {
-                __typename
                 ... on Comment {
                   ...FullComment
+                }
+                ... on IssueComment {
+                  url
+                }
+                ... on PullRequestReviewComment {
+                  url
+                  pullRequestReview {
+                    ... FullReview
+                  }
                 }
               }
             }
@@ -197,6 +185,25 @@ QUERIES = {
         """
     + "\n"
     + FRAGMENTS["FullPullRequest"]
+    + "\n"
+    + FRAGMENTS["FullReview"],
+    "IterateReviews": """
+            query IterateReviews($pullRequestId: ID!, $cursor: String) {
+              node(id: $pullRequestId) {
+                ... on PullRequest {
+                  reviews(first: 20, after: $cursor) {
+                    edges {
+                      cursor
+                      node {
+                        ...FullReview
+                        databaseId
+                      }
+                    }
+                  }
+                }
+              }
+            }
+        """
     + "\n"
     + FRAGMENTS["FullReview"],
 }

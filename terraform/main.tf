@@ -1,17 +1,62 @@
 provider "aws" {
-  region = "us-east-1"
+  region = var.aws_region
 }
 
 ### LAMBDA
 
-# TODO: Write custom policies that do just what we need rather than the broader
-# AWS managed full access policies
-data "aws_iam_policy" "AmazonDynamoDBFullAccess" {
-  arn = "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
+# Gives the Lambda function permissions to read/write from the DynamoDb tables
+resource "aws_iam_policy" "lambda-function-dynamodb-policy" {
+  policy     = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem"
+      ],
+      "Resource": [
+        "${aws_dynamodb_table.sgtm-lock.arn}",
+        "${aws_dynamodb_table.sgtm-objects.arn}",
+        "${aws_dynamodb_table.sgtm-users.arn}"
+      ],
+      "Effect": "Allow"
+    },
+    {
+      "Action": [
+        "dynamodb:DeleteItem",
+        "dynamodb:UpdateItem"
+      ],
+      "Resource": [
+        "${aws_dynamodb_table.sgtm-lock.arn}"
+      ],
+      "Effect": "Allow"
+    }
+  ]
+}
+EOF
 }
 
-data "aws_iam_policy" "AWSLambdaBasicExecutionRole" {
-  arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+# Gives the Lambda function permissions to create cloudwatch logs
+resource "aws_iam_policy" "lambda-function-cloudwatch-policy" {
+  policy     = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": [
+        "arn:aws:logs:${var.aws_region}:*:log-group:/aws/lambda/${aws_lambda_function.sgtm.function_name}:*"
+      ],
+      "Effect": "Allow"
+    }
+  ]
+}
+EOF
 }
 
 resource "aws_iam_role" "iam_for_lambda_function" {
@@ -26,22 +71,21 @@ resource "aws_iam_role" "iam_for_lambda_function" {
       "Principal": {
         "Service": "lambda.amazonaws.com"
       },
-      "Effect": "Allow",
-      "Sid": ""
+      "Effect": "Allow"
     }
   ]
 }
 EOF
 }
 
-resource "aws_iam_role_policy_attachment" "lambda-function-dynamo-db-access" {
+resource "aws_iam_role_policy_attachment" "lambda-function-dynamo-db-access-policy-attachment" {
   role       = aws_iam_role.iam_for_lambda_function.name
-  policy_arn = data.aws_iam_policy.AmazonDynamoDBFullAccess.arn
+  policy_arn = aws_iam_policy.lambda-function-dynamodb-policy.arn
 }
 
-resource "aws_iam_role_policy_attachment" "lambda-function-basic-execution-role" {
+resource "aws_iam_role_policy_attachment" "lambda-function-cloudwatch-policy-attachment" {
   role       = aws_iam_role.iam_for_lambda_function.name
-  policy_arn = data.aws_iam_policy.AWSLambdaBasicExecutionRole.arn
+  policy_arn = aws_iam_policy.lambda-function-cloudwatch-policy.arn
 }
 
 resource "aws_iam_role_policy_attachment" "lambda-function-api-keys" {
@@ -62,8 +106,7 @@ resource "aws_iam_policy" "LambdaFunctionApiKeysBucketAccess" {
       "Resource": [
         "${aws_s3_bucket.api_key_bucket.arn}/*"
       ],
-      "Effect": "Allow",
-      "Sid": ""
+      "Effect": "Allow"
     },
     {
       "Action": [
@@ -72,8 +115,7 @@ resource "aws_iam_policy" "LambdaFunctionApiKeysBucketAccess" {
       "Resource": [
         "${aws_kms_key.api_encryption_key.arn}"
       ],
-      "Effect": "Allow",
-      "Sid": ""
+      "Effect": "Allow"
     }
   ]
 }
@@ -187,6 +229,11 @@ resource "aws_dynamodb_table" "sgtm-lock" {
     name = "sort_key"
     type = "S"
   }
+
+  ttl {
+    attribute_name = "expiry_time"
+    enabled        = true
+  }
 }
 
 resource "aws_dynamodb_table" "sgtm-objects" {
@@ -199,6 +246,13 @@ resource "aws_dynamodb_table" "sgtm-objects" {
     name = "github-node"
     type = "S"
   }
+
+  # Since this is a table that contains important data that we can't recover,
+  # adding prevent_destroy saves us from accidental updates that would destroy
+  # this resource
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_dynamodb_table" "sgtm-users" {
@@ -210,6 +264,13 @@ resource "aws_dynamodb_table" "sgtm-users" {
   attribute {
     name = "github/handle"
     type = "S"
+  }
+
+  # Since this is a table that contains important data that we can't recover,
+  # adding prevent_destroy saves us from accidental updates that would destroy
+  # this resource
+  lifecycle {
+    prevent_destroy = true
   }
 }
 

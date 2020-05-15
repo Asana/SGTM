@@ -47,7 +47,6 @@ class MockDynamoDbTestCase(BaseClass):
         client.create_table(
             AttributeDefinitions=[
                 {"AttributeName": "github/handle", "AttributeType": "S",},
-                {"AttributeName": "asana/domain-user-id", "AttributeType": "S",},
             ],
             TableName=USERS_TABLE,
             KeySchema=[{"AttributeName": "github/handle", "KeyType": "HASH",}],

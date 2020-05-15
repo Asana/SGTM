@@ -7,11 +7,12 @@ from .user_builder import UserBuilder
 
 
 class CommentBuilder(BuilderBaseClass):
-    def __init__(self, body: str = ""):
+    def __init__(self, body: str = "", url: str = ""):
         self.raw_comment = {
             "id": create_uuid(),
             "body": body,
             "author": {"login": "somebody", "name": ""},
+            "url": url,
         }
 
     def body(self, body: str):
@@ -31,3 +32,7 @@ class CommentBuilder(BuilderBaseClass):
 
     def to_raw(self) -> Dict[str, Any]:
         return self.build().to_raw()
+
+    def url(self, url: str):
+        self.raw_comment["url"] = url
+        return self

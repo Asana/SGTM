@@ -68,7 +68,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
         )
 
     @patch.object(asana_controller, "update_task")
-    @patch.object(asana_controller, "add_comment_to_task")
+    @patch.object(asana_controller, "upsert_github_comment_to_task")
     def test_upsert_comment_when_task_id_already_found_in_dynamodb(
         self, add_comment_mock, update_task_mock
     ):
@@ -89,7 +89,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
         update_task_mock.assert_called_with(pull_request, existing_task_id)
 
     @patch.object(asana_controller, "update_task")
-    @patch.object(asana_controller, "add_comment_to_task")
+    @patch.object(asana_controller, "upsert_github_comment_to_task")
     def test_upsert_comment_when_task_id_not_found_in_dynamodb(
         self, add_comment_mock, update_task_mock
     ):

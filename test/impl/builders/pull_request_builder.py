@@ -12,7 +12,7 @@ from .review_builder import ReviewBuilder
 class PullRequestBuilder(BuilderBaseClass):
     def __init__(self, body: str = ""):
         pr_number = randint(1, 9999999999)
-        self.raw_pr = {
+        self.raw_pr: Dict[str, Any] = {
             "id": create_uuid(),
             "number": pr_number,
             "body": body,
@@ -63,7 +63,7 @@ class PullRequestBuilder(BuilderBaseClass):
     def comment(self, comment: Union[CommentBuilder, Comment]):
         return self.comments([comment])
 
-    def comments(self, comments: Union[List[CommentBuilder], List[Comment]]):
+    def comments(self, comments: List[Union[CommentBuilder, Comment]]):
         for comment in comments:
             self.raw_pr["comments"]["nodes"].append(comment.to_raw())
         return self
@@ -71,7 +71,7 @@ class PullRequestBuilder(BuilderBaseClass):
     def review(self, review: Union[ReviewBuilder, Review]):
         return self.reviews([review])
 
-    def reviews(self, reviews: Union[List[ReviewBuilder], List[Review]]):
+    def reviews(self, reviews: List[Union[ReviewBuilder, Review]]):
         for review in reviews:
             self.raw_pr["reviews"]["nodes"].append(review.to_raw())
         return self

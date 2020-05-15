@@ -215,7 +215,11 @@ def asana_comment_from_github_comment(comment: Comment) -> str:
         escape(comment.body(), quote=False)
     )
     return _wrap_in_tag("body")(
-        _wrap_in_tag("strong")(f"{display_name} commented:\n") + comment_text
+        display_name
+        + " "
+        + _wrap_in_tag("A", attrs={"href": comment.url()})("commented:")
+        + "\n"
+        + comment_text
     )
 
 
@@ -236,23 +240,24 @@ def asana_comment_from_github_review(review: Review) -> str:
     users.
     """
     user_display_name = _asana_display_name_for_github_user(review.author())
-    review_action = _review_action_to_text_map.get(review.state(), "commented")
+
+    review_action = _wrap_in_tag("A", attrs={"href": review.url()})(
+        _review_action_to_text_map.get(review.state(), "commented")
+    )
     review_body = _transform_github_mentions_to_asana_mentions(
         escape(review.body(), quote=False)
     )
-    comment_texts = [comment.body() for comment in review.comments()]
-    inline_comments = [
-        _transform_github_mentions_to_asana_mentions(escape(comment_text, quote=False))
-        for comment_text in comment_texts
-    ]
 
-    if not review_body and inline_comments:
-        return _wrap_in_tag("body")(
-            _wrap_in_tag("strong")(
-                f"{user_display_name} left inline comments:\n"
-                + "\n\n".join(inline_comments)
+    # For each comment, prefix its text with a bracketed number that is a link to the Github comment.
+    inline_comments = [
+        _wrap_in_tag("li")(
+            _wrap_in_tag("A", attrs={"href": comment.url()})(f"[{i}] ")
+            + _transform_github_mentions_to_asana_mentions(
+                escape(comment.body(), quote=False)
             )
         )
+        for i, comment in enumerate(review.comments(), start=1)
+    ]
 
     return _wrap_in_tag("body")(
         (
@@ -266,7 +271,7 @@ def asana_comment_from_github_review(review: Review) -> str:
         + (
             (
                 _wrap_in_tag("strong")("\n\nand left inline comments:\n")
-                + "\n\n".join(inline_comments)
+                + _wrap_in_tag("ul")("".join(inline_comments))
             )
             if inline_comments
             else ""
@@ -313,8 +318,17 @@ def _task_followers_from_pull_request(pull_request: PullRequest):
     ]
 
 
-def _wrap_in_tag(tag_name: str) -> Callable[[str], str]:
+def _wrap_in_tag(
+    tag_name: str, attrs: Optional[Dict[str, str]] = None
+) -> Callable[[str], str]:
+
+    if attrs is not None:
+        # This will always start with a blank space, so that it's separate from the tag name.
+        attr_list = "".join(f' {k}="{escape(v)}"' for k, v in attrs.items())
+    else:
+        attr_list = ""
+
     def inner(text: str) -> str:
-        return f"<{tag_name}>{text}</{tag_name}>"
+        return f"<{tag_name}{attr_list}>{text}</{tag_name}>"
 
     return inner

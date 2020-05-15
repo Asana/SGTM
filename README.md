@@ -8,7 +8,7 @@ We recommend setting up a virtualenvironment to install and run your python envi
 the risk that SGTM's python dependencies and settings will be mixed up with any such dependencies and settings that you
 may be using in other projects.
 
-When first setting up your repository, you should install all required python dependencies using `pip3 install -r requirements.txt -r requirements-dev.txt` within the virtual environment that you have set up (or globally, if you wish to skip using a virtual environment)
+When first setting up your repository, we recommend using a virtual environment. Once you have that activated (see below), you should install all required python dependencies using `pip3 install -r requirements.txt -r requirements-dev.txt`.
 
 ### Installing a Virtual Environment for Python
 
@@ -22,9 +22,9 @@ setting up a virtual environment for Python, or use the following TL;DR version:
 ## Running Tests
 
 To run the tests, you must set the AWS_DEFAULT_REGION environment variable. This is required because some of the tests
-are integration tests that require DynamoDb. This can be done e.g. via:
+are integration tests that require DynamoDb. This needs to be exported, so that it is available to sub-processes. Here's how:
 ```bash
-if [ -z "$AWS_DEFAULT_REGION" ]; then AWS_DEFAULT_REGION=us-east-1; fi;
+if [ -z "$AWS_DEFAULT_REGION" ]; then export AWS_DEFAULT_REGION="us-east-1"; else export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION; fi
 ```
 
 You may then run all tests via the command line:
@@ -48,5 +48,4 @@ Please perform the following checks prior to pushing code
 * run `black .` to autoformat your code
 * run `mypy` on each file that you have changed
 * run tests, as described in the previous section
-
 
