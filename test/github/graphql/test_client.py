@@ -1,5 +1,6 @@
 from unittest.mock import patch, Mock, call
 from src.github.graphql import client
+from src.github.graphql.queries import IterateReviews
 from test.impl.base_test_case_class import BaseClass
 
 
@@ -17,7 +18,7 @@ class TestGithubClientGetReviewForDatabaseId(BaseClass):
             )
 
         mock_query.assert_called_once_with(
-            "IterateReviews", {"pullRequestId": self.PULL_REQUEST_ID}
+            IterateReviews, {"pullRequestId": self.PULL_REQUEST_ID}
         )
 
     def test_when_no_reviews_match__should_raise_error(self, mock_query):
@@ -44,9 +45,9 @@ class TestGithubClientGetReviewForDatabaseId(BaseClass):
 
         mock_query.assert_has_calls(
             [
-                call("IterateReviews", {"pullRequestId": self.PULL_REQUEST_ID}),
+                call(IterateReviews, {"pullRequestId": self.PULL_REQUEST_ID}),
                 call(
-                    "IterateReviews",
+                    IterateReviews,
                     {"pullRequestId": self.PULL_REQUEST_ID, "cursor": "some-cursor"},
                 ),
             ]
@@ -77,7 +78,7 @@ class TestGithubClientGetReviewForDatabaseId(BaseClass):
 
         # Should onlly be called once, since the matching review is in the first batch returned by graphql.
         mock_query.assert_called_once_with(
-            "IterateReviews", {"pullRequestId": self.PULL_REQUEST_ID}
+            IterateReviews, {"pullRequestId": self.PULL_REQUEST_ID}
         )
 
     def test_when_review_in_second_batch_matches__should_return_it(self, mock_query):
@@ -107,9 +108,9 @@ class TestGithubClientGetReviewForDatabaseId(BaseClass):
         # Should onlly be called twice, since the matching review is in the first batch returned by graphql.
         mock_query.assert_has_calls(
             [
-                call("IterateReviews", {"pullRequestId": self.PULL_REQUEST_ID}),
+                call(IterateReviews, {"pullRequestId": self.PULL_REQUEST_ID}),
                 call(
-                    "IterateReviews",
+                    IterateReviews,
                     {"pullRequestId": self.PULL_REQUEST_ID, "cursor": "cursor-1"},
                 ),
             ]
