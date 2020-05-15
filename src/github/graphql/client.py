@@ -1,6 +1,7 @@
 from typing import Tuple, FrozenSet
 from sgqlc.endpoint.http import HTTPEndpoint  # type: ignore
 from src.config import GITHUB_API_KEY
+from src.github.models import comment_factory, PullRequest, Review, Comment
 from .queries import (
     GetPullRequest,
     GetPullRequestAndComment,
@@ -9,16 +10,7 @@ from .queries import (
     IterateReviews,
 )
 
-# from .schema import QUERIES
-from src.github.models import comment_factory, PullRequest, Review, Comment
 
-"""
-from GetPullRequest import GetPullRequest
-from GetPullRequestAndComment import GetPullRequestAndComment
-from GetPullRequestAndReview import GetPullRequestAndReview
-from GetPullRequestForCommit import GetPullRequestForCommit
-from IterateReviews import IterateReviews
-"""
 __url = "https://api.github.com/graphql"
 __headers = {"Authorization": f"bearer {GITHUB_API_KEY}"}
 __endpoint = HTTPEndpoint(__url, __headers)
