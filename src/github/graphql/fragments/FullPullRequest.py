@@ -1,4 +1,5 @@
 from .FullReview import FullReview
+from typing import FrozenSet
 
 # @GraphqlInPython
 _full_pull_request = """
@@ -64,4 +65,4 @@ fragment FullPullRequest on PullRequest {
 }
 """
 
-FullPullRequest: frozenset = frozenset([_full_pull_request]) | FullReview
+FullPullRequest: FrozenSet[str] = frozenset([_full_pull_request]) | FullReview

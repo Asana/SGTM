@@ -11,6 +11,8 @@
   At query time, we convert each set to a single string, with elements separated by new lines.
 """
 
+from typing import FrozenSet
+
 _full_comment = """
 fragment FullComment on Comment {
   __typename
@@ -25,4 +27,4 @@ fragment FullComment on Comment {
 }
 """
 
-FullComment: frozenset = frozenset([_full_comment])
+FullComment: FrozenSet[str] = frozenset([_full_comment])

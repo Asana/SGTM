@@ -1,3 +1,4 @@
+from typing import FrozenSet
 from ..fragments import FullReview
 
 # @GraphqlInPython
@@ -20,4 +21,4 @@ query IterateReviews($pullRequestId: ID!, $cursor: String) {
 
 """
 
-IterateReviews: frozenset = frozenset(_iterate_reviews) | FullReview
+IterateReviews: FrozenSet[str] = frozenset(_iterate_reviews) | FullReview

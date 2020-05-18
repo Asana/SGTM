@@ -1,3 +1,4 @@
+from typing import FrozenSet
 from ..fragments import FullPullRequest, FullReview
 
 # @GraphqlInPython
@@ -19,6 +20,6 @@ query GetPullRequestForCommit($id: ID!) {
 }
 """
 
-GetPullRequestForCommit: frozenset = frozenset(
+GetPullRequestForCommit: FrozenSet[str] = frozenset(
     [_get_pull_request_for_commit]
 ) | FullPullRequest | FullReview

@@ -1,3 +1,5 @@
+from typing import FrozenSet
+
 # @GraphqlInPython
 _full_review = """
 fragment FullReview on PullRequestReview {
@@ -21,4 +23,4 @@ fragment FullReview on PullRequestReview {
 }
 """
 
-FullReview: frozenset = frozenset([_full_review])
+FullReview: FrozenSet[str] = frozenset([_full_review])

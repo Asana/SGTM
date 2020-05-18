@@ -1,3 +1,4 @@
+from typing import FrozenSet
 from ..fragments import FullPullRequest, FullReview
 
 # @GraphqlInPython
@@ -12,6 +13,6 @@ query GetPullRequest($id: ID!) {
 }
 """
 
-GetPullRequest: frozenset = frozenset(
+GetPullRequest: FrozenSet[str] = frozenset(
     [_get_pull_request]
 ) | FullPullRequest | FullReview
