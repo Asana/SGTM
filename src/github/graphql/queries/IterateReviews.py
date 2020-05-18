@@ -18,7 +18,6 @@ query IterateReviews($pullRequestId: ID!, $cursor: String) {
     }
   }
 }
-
 """
 
-IterateReviews: FrozenSet[str] = frozenset(_iterate_reviews) | FullReview
+IterateReviews: FrozenSet[str] = frozenset([_iterate_reviews]) | FullReview
