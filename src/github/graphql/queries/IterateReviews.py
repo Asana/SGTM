@@ -1,5 +1,6 @@
 from ..fragments import FullReview
 
+# @GraphqlInPython
 _iterate_reviews = """
 query IterateReviews($pullRequestId: ID!, $cursor: String) {
   node(id: $pullRequestId) {

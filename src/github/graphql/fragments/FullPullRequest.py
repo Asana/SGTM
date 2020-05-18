@@ -1,6 +1,6 @@
 from .FullReview import FullReview
 
-
+# @GraphqlInPython
 _full_pull_request = """
 fragment FullPullRequest on PullRequest {
   id

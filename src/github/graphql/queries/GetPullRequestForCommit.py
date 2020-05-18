@@ -1,5 +1,6 @@
 from ..fragments import FullPullRequest, FullReview
 
+# @GraphqlInPython
 _get_pull_request_for_commit = """
 query GetPullRequestForCommit($id: ID!) {
   commit: node(id: $id) {

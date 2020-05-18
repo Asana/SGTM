@@ -1,6 +1,6 @@
 from ..fragments import FullPullRequest, FullReview
 
-
+# @GraphqlInPython
 _get_pull_request_and_review = """
 query GetPullRequestAndReview($pullRequestId: ID!, $reviewId: ID!) {
   pullRequest: node(id: $pullRequestId) {
