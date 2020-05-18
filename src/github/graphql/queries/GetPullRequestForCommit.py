@@ -1,9 +1,6 @@
 from ..fragments import FullPullRequest, FullReview
 
-GetPullRequestForCommit: frozenset = (
-    frozenset(
-        [
-            """
+_get_pull_request_for_commit = """
 query GetPullRequestForCommit($id: ID!) {
   commit: node(id: $id) {
     ... on Commit {
@@ -19,10 +16,8 @@ query GetPullRequestForCommit($id: ID!) {
     }
   }
 }
-
 """
-        ]
-    )
-    | FullPullRequest
-    | FullReview
-)
+
+GetPullRequestForCommit: frozenset = frozenset(
+    [_get_pull_request_for_commit]
+) | FullPullRequest | FullReview

@@ -1,10 +1,7 @@
 from ..fragments import FullPullRequest, FullReview
 
 
-GetPullRequestAndReview: frozenset = (
-    frozenset(
-        [
-            """
+_get_pull_request_and_review = """
 query GetPullRequestAndReview($pullRequestId: ID!, $reviewId: ID!) {
   pullRequest: node(id: $pullRequestId) {
     __typename
@@ -21,10 +18,8 @@ query GetPullRequestAndReview($pullRequestId: ID!, $reviewId: ID!) {
     }
   }
 }
-
 """
-        ]
-    )
-    | FullPullRequest
-    | FullReview
-)
+
+GetPullRequestAndReview: frozenset = frozenset(
+    [_get_pull_request_and_review]
+) | FullPullRequest | FullReview

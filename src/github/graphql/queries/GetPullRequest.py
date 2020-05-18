@@ -1,9 +1,6 @@
 from ..fragments import FullPullRequest, FullReview
 
-GetPullRequest: frozenset = (
-    frozenset(
-        [
-            """
+_get_pull_request = """
 query GetPullRequest($id: ID!) {
   pullRequest: node(id: $id) {
     __typename
@@ -12,10 +9,8 @@ query GetPullRequest($id: ID!) {
     }
   }
 }
-
 """
-        ]
-    )
-    | FullPullRequest
-    | FullReview
-)
+
+GetPullRequest: frozenset = frozenset(
+    [_get_pull_request]
+) | FullPullRequest | FullReview

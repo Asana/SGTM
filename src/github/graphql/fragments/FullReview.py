@@ -1,6 +1,4 @@
-FullReview: frozenset = frozenset(
-    [
-        """
+_full_review = """
 fragment FullReview on PullRequestReview {
   id
   author {
@@ -20,7 +18,6 @@ fragment FullReview on PullRequestReview {
   }
   url
 }
-
 """
-    ]
-)
+
+FullReview: frozenset = frozenset([_full_review])

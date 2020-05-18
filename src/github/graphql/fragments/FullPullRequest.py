@@ -1,10 +1,7 @@
 from .FullReview import FullReview
 
 
-FullPullRequest: frozenset = (
-    frozenset(
-        [
-            """
+_full_pull_request = """
 fragment FullPullRequest on PullRequest {
   id
   body
@@ -65,9 +62,6 @@ fragment FullPullRequest on PullRequest {
     }
   }
 }
-
 """
-        ]
-    )
-    | FullReview
-)
+
+FullPullRequest: frozenset = frozenset([_full_pull_request]) | FullReview

@@ -1,9 +1,6 @@
 from ..fragments import FullReview
 
-IterateReviews = (
-    frozenset(
-        [
-            """
+_iterate_reviews = """
 query IterateReviews($pullRequestId: ID!, $cursor: String) {
   node(id: $pullRequestId) {
     ... on PullRequest {
@@ -21,7 +18,5 @@ query IterateReviews($pullRequestId: ID!, $cursor: String) {
 }
 
 """
-        ]
-    )
-    | FullReview
-)
+
+IterateReviews: frozenset = frozenset(_iterate_reviews) | FullReview

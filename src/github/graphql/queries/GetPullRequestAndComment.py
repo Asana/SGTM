@@ -1,9 +1,6 @@
 from ..fragments import FullPullRequest, FullComment, FullReview
 
-GetPullRequestAndComment: frozenset = (
-    frozenset(
-        [
-            """
+_get_pull_request_and_comment = """
 query GetPullRequestAndComment($pullRequestId: ID!, $commentId: ID!) {
   pullRequest: node(id: $pullRequestId) {
     __typename
@@ -27,11 +24,8 @@ query GetPullRequestAndComment($pullRequestId: ID!, $commentId: ID!) {
     }
   }
 }
-
 """
-        ]
-    )
-    | FullPullRequest
-    | FullComment
-    | FullReview
-)
+
+GetPullRequestAndComment: frozenset = frozenset(
+    [_get_pull_request_and_comment]
+) | FullPullRequest | FullComment | FullReview
