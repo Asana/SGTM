@@ -241,9 +241,15 @@ def asana_comment_from_github_review(review: Review) -> str:
     """
     user_display_name = _asana_display_name_for_github_user(review.author())
 
-    review_action = _wrap_in_tag("A", attrs={"href": review.url()})(
-        _review_action_to_text_map.get(review.state(), "commented")
-    )
+    review_action = _review_action_to_text_map.get(review.state(), "commented")
+
+    if not review.is_inline_reply():
+        # When a user replies to an inline comment,
+        # github still creates a Review object,
+        # although it's url doesn't lead anywhere.
+        # If that's not the case, add the link here.
+        review_action = _wrap_in_tag("A", attrs={"href": review.url()})(review_action)
+
     review_body = _transform_github_mentions_to_asana_mentions(
         escape(review.body(), quote=False)
     )

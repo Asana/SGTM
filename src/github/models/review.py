@@ -3,7 +3,7 @@ from datetime import datetime
 from src.utils import parse_date_string
 from .user import User
 import copy
-from .issue_comment import IssueComment
+from .pull_request_review_comment import PullRequestReviewComment
 
 
 class Review(object):
@@ -33,9 +33,9 @@ class Review(object):
     def body(self) -> str:
         return self._raw["body"]
 
-    def comments(self) -> List[IssueComment]:
+    def comments(self) -> List[PullRequestReviewComment]:
         return [
-            IssueComment(comment)
+            PullRequestReviewComment(comment)
             for comment in self._raw.get("comments", {}).get("nodes", [])
         ]
 
@@ -50,3 +50,14 @@ class Review(object):
 
     def url(self) -> str:
         return self._raw["url"]
+
+    def is_inline_reply(self) -> bool:
+        """
+        Github creates a PullRequestReview object for all 3 of these cases:
+            1. When the user clicks the button to create a review and submits it.
+            2. When the user creates an inline comment wihtout a review.
+            3. When a user replies to an inline comment
+        This function returns true if it's case (3).
+        """
+        comments = self.comments()
+        return len(comments) == 1 and comments[0].is_reply()

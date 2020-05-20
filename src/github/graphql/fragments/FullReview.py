@@ -17,6 +17,9 @@ fragment FullReview on PullRequestReview {
     nodes {
       body
       url
+      replyTo {
+        id
+      }
     }
   }
   url
