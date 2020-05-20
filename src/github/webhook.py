@@ -49,6 +49,11 @@ def _handle_pull_request_review_webhook(payload: dict):
 # https://developer.github.com/v3/activity/events/types/#pullrequestreviewcommentevent
 def _handle_pull_request_review_comment(payload: dict):
     """Handle when a pull request review comment is edited or removed.
+    When comments are added it either hits:
+        1 _handle_issue_comment_webhook (if the comment is on PR itself)
+        2 _handle_pull_request_review_webhook (if the comment is on the "Files Changed" tab)
+    Note that it hits (2) even if the comment is inline, and doesn't contain a review;
+        in those cases Github still creates a review object for it.
 
     Unfortunately, this payload doesn't contain the node id of the review.
     Instead, it includes a separate, numeric id
