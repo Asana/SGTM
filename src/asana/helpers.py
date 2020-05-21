@@ -3,7 +3,7 @@ from html import escape
 from datetime import datetime, timedelta
 from typing import Callable, Match, Optional, List, Dict
 from src.dynamodb import client as dynamodb_client
-from src.github.models import Comment, PullRequest, Review, User
+from src.github.models import Comment, PullRequest, Review, ReviewState, User
 from src.asana import client as asana_client
 from src.github import logic as github_logic
 from src.logger import logger
@@ -223,12 +223,11 @@ def asana_comment_from_github_comment(comment: Comment) -> str:
     )
 
 
-# https://developer.github.com/v4/reference/enum/pullrequestreviewstate/
-_review_action_to_text_map = {
-    "APPROVED": "approved",
-    "CHANGES_REQUESTED": "requested changes",
-    "COMMENTED": "reviewed",
-    "DISMISSED": "reviewed",
+_review_action_to_text_map: Dict[ReviewState, str] = {
+    ReviewState.APPROVED: "approved",
+    ReviewState.CHANGES_REQUESTED: "requested changes",
+    ReviewState.COMMENTED: "reviewed",
+    ReviewState.DISMISSED: "reviewed",
 }
 
 

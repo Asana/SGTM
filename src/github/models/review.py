@@ -3,18 +3,25 @@ from __future__ import annotations
 
 from typing import Dict, Any, List
 from datetime import datetime
+from enum import Enum, unique
+
 from src.utils import parse_date_string
 from .user import User
 import copy
 from . import pull_request_review_comment
 
 
-class Review(object):
-    STATE_APPROVED = "APPROVED"
-    STATE_CHANGES_REQUESTED = "CHANGES_REQUESTED"
-    STATE_COMMENTED = "COMMENTED"
-    STATE_DISMISSED = "DISMISSED"
+@unique
+class ReviewState(Enum):
+    """https://developer.github.com/v4/reference/enum/pullrequestreviewstate/"""
 
+    APPROVED = "APPROVED"
+    CHANGES_REQUESTED = "CHANGES_REQUESTED"
+    COMMENTED = "COMMENTED"
+    DISMISSED = "DISMISSED"
+
+
+class Review(object):
     def __init__(self, raw_review: Dict[str, Any]):
         self._raw = copy.deepcopy(raw_review)
 
@@ -24,14 +31,14 @@ class Review(object):
     def submitted_at(self) -> datetime:
         return parse_date_string(self._raw["submittedAt"])
 
-    def state(self) -> str:
-        return self._raw["state"]
+    def state(self) -> ReviewState:
+        return ReviewState(self._raw["state"])
 
     def is_approval_or_changes_requested(self) -> bool:
-        return self.state() in (self.STATE_APPROVED, self.STATE_CHANGES_REQUESTED)
+        return self.state() in (ReviewState.APPROVED, ReviewState.CHANGES_REQUESTED)
 
     def is_approval(self) -> bool:
-        return self.state() == self.STATE_APPROVED
+        return self.state() == ReviewState.APPROVED
 
     def body(self) -> str:
         return self._raw["body"]
