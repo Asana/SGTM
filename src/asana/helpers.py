@@ -241,11 +241,13 @@ def asana_comment_from_github_review(review: Review) -> str:
     """
     user_display_name = _asana_display_name_for_github_user(review.author())
 
-    if review.is_inline_reply():
+    if review.is_just_comments():
         # When a user replies to an inline comment,
+        # or writes inline comments without a review,
         # github still creates a Review object,
         # even though nothing in github looks like a review
-        # If that's the case, there is no review state, and review.url() doesn't point to anything specific on the page.
+        # If that's the case, there is no meaningful review state ("commented" isn't helpful)
+        # and the link to it will either not point anywhere, or be less useful than the individual links on each comment.
         review_action = _wrap_in_tag("strong")("left inline comments:\n")
     else:
         review_action = _wrap_in_tag("A", attrs={"href": review.url()})(
@@ -275,7 +277,7 @@ def asana_comment_from_github_review(review: Review) -> str:
     ]
     if inline_comments:
         comments_html = _wrap_in_tag("ul")("".join(inline_comments))
-        if not review.is_inline_reply():
+        if not review.is_just_comments():
             # If this was an inline reply, we already added "and left inline comments" above.
             comments_html = (
                 _wrap_in_tag("strong")("\n\nand left inline comments:\n")

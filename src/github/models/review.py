@@ -54,13 +54,10 @@ class Review(object):
     def url(self) -> str:
         return self._raw["url"]
 
-    def is_inline_reply(self) -> bool:
+    def is_just_comments(self) -> bool:
+        """Return true if this review is not a meaningful state and doesn't contain a body.
+        This is true for inline comments without a review (Github still creates a review object)
+        XCXC: Clarify this.
+        XCXC: unit test this?
         """
-        Github creates a PullRequestReview object for all 3 of these cases:
-            1. When the user clicks the button to create a review and submits it.
-            2. When the user creates an inline comment wihtout a review.
-            3. When a user replies to an inline comment
-        This function returns true if it's case (3).
-        """
-        comments = self.comments()
-        return len(comments) == 1 and comments[0].is_reply()
+        return self.state() == Review.STATE_COMMENTED and not self.body()
