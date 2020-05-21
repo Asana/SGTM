@@ -29,9 +29,6 @@ fragment FullComment on Comment {
   }
   ... on PullRequestReviewComment {
     url
-    replyTo {
-      id
-    }
   }
 }
 """
