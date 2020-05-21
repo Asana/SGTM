@@ -19,6 +19,7 @@ class ReviewState(Enum):
     CHANGES_REQUESTED = "CHANGES_REQUESTED"
     COMMENTED = "COMMENTED"
     DISMISSED = "DISMISSED"
+    DEFAULT = "DEFAULT"
 
 
 class Review(object):

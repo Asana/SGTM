@@ -126,7 +126,7 @@ class GithubLogicTest(unittest.TestCase):
                 [
                     builder.review()
                     .submitted_at(submitted_at)
-                    .state(Review.STATE_CHANGES_REQUESTED)
+                    .state(ReviewState.CHANGES_REQUESTED)
                 ]
             )
             .merged_at(merged_at)

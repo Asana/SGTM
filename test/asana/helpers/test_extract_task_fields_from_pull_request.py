@@ -1,4 +1,5 @@
 import src.asana.helpers
+from src.github.models import ReviewState
 from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 from test.impl.builders import builder, build
 
@@ -126,7 +127,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
                 [
                     builder.review()
                     .submitted_at("2020-01-13T14:59:58Z")
-                    .state("APPROVED")
+                    .state(ReviewState.APPROVED)
                 ]
             )
         )
@@ -148,12 +149,12 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
                     (
                         builder.review()
                         .submitted_at("2020-01-13T14:59:57Z")
-                        .state("APPROVED")
+                        .state(ReviewState.APPROVED)
                     ),
                     (
                         builder.review()
                         .submitted_at("2020-01-13T14:59:58Z")
-                        .state("CHANGES_REQUESTED")
+                        .state(ReviewState.CHANGES_REQUESTED)
                     ),
                 ]
             )
@@ -175,7 +176,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
                 [
                     builder.review()
                     .submitted_at("2020-01-13T14:59:59Z")
-                    .state("APPROVED")
+                    .state(ReviewState.APPROVED)
                 ]
             )
         )
@@ -197,12 +198,12 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
                     (
                         builder.review()
                         .submitted_at("2020-01-13T14:59:57Z")
-                        .state("CHANGES_REQUESTED")
+                        .state(ReviewState.CHANGES_REQUESTED)
                     ),
                     (
                         builder.review()
                         .submitted_at("2020-01-13T14:59:58Z")
-                        .state("APPROVED")
+                        .state(ReviewState.APPROVED)
                     ),
                 ]
             )
@@ -224,7 +225,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
                 [
                     builder.review()
                     .submitted_at("2020-01-13T14:59:57Z")
-                    .state("CHANGES_REQUESTED")
+                    .state(ReviewState.CHANGES_REQUESTED)
                 ]
             )
             .comments(
@@ -248,7 +249,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
                 [
                     builder.review()
                     .submitted_at("2020-01-13T14:59:57Z")
-                    .state("CHANGES_REQUESTED")
+                    .state(ReviewState.CHANGES_REQUESTED)
                 ]
             )
             .comments(
@@ -275,7 +276,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
                 [
                     builder.review()
                     .submitted_at("2020-02-13T14:59:57Z")
-                    .state("CHANGES_REQUESTED")
+                    .state(ReviewState.CHANGES_REQUESTED)
                     .body("LGTM!")
                 ]
             )
@@ -313,7 +314,7 @@ class TestExtractsFollowersFromPullRequest(BaseClass):
                 [
                     builder.review()
                     .submitted_at("2020-02-13T14:59:57Z")
-                    .state("CHANGES_REQUESTED")
+                    .state(ReviewState.CHANGES_REQUESTED)
                     .body("LGTM!")
                     .author(builder.user("github_test_user_login"))
                 ]
@@ -434,7 +435,7 @@ class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
                 [
                     builder.review()
                     .submitted_at("2020-01-13T14:59:58Z")
-                    .state("APPROVED")
+                    .state(ReviewState.APPROVED)
                 ]
             )
         )
@@ -467,12 +468,12 @@ class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
                     (
                         builder.review()
                         .submitted_at("2020-01-13T14:59:58Z")
-                        .state("CHANGES_REQUESTED")
+                        .state(ReviewState.CHANGES_REQUESTED)
                     ),
                     (
                         builder.review()
                         .submitted_at("2020-01-13T14:59:57Z")
-                        .state("APPROVED")
+                        .state(ReviewState.APPROVED)
                     ),
                 ]
             )
@@ -491,12 +492,12 @@ class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
                     (
                         builder.review()
                         .submitted_at("2020-01-13T14:59:58Z")
-                        .state("APPROVED")
+                        .state(ReviewState.APPROVED)
                     ),
                     (
                         builder.review()
                         .submitted_at("2020-01-13T14:59:57Z")
-                        .state("CHANGES_REQUESTED")
+                        .state(ReviewState.CHANGES_REQUESTED)
                     ),
                 ]
             )
