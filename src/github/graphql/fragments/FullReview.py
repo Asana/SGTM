@@ -16,11 +16,7 @@ fragment FullReview on PullRequestReview {
   state
   comments(last: 20) {
     nodes {
-      body
-      url
-      replyTo {
-        id
-      }
+      ...FullComment
     }
   }
   url
