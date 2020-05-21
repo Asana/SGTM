@@ -245,14 +245,19 @@ def asana_comment_from_github_review(review: Review) -> str:
         # When a user replies to an inline comment,
         # github still creates a Review object,
         # even though nothing in github looks like a review
-        # If that's the case, there is no review state, and no review.url() is a useless link.
-        review_action = ''
+        # If that's the case, there is no review state, and review.url() doesn't point to anything specific on the page.
+        review_action = _wrap_in_tag("strong")("left inline comments:\n")
     else:
         review_action = _wrap_in_tag("A", attrs={"href": review.url()})(_review_action_to_text_map.get(review.state(), "commented"))
 
     review_body = _transform_github_mentions_to_asana_mentions(
         escape(review.body(), quote=False)
     )
+    if review_body:
+        header = _wrap_in_tag("strong")(f"{user_display_name} {review_action} :\n") + review_body
+    else:
+        header = _wrap_in_tag("strong")(f"{user_display_name} {review_action}")
+                  
 
     # For each comment, prefix its text with a bracketed number that is a link to the Github comment.
     inline_comments = [
@@ -264,25 +269,14 @@ def asana_comment_from_github_review(review: Review) -> str:
         )
         for i, comment in enumerate(review.comments(), start=1)
     ]
+    if inline_comments:
+        comments_html = _wrap_in_tag("ul")("".join(inline_comments))
+        if not review.is_inline_reply():
+            comments_html = _wrap_in_tag("strong")("\n\nand left inline comments:\n") + comments_html
+    else:
+        comments_html = ""
 
-    return _wrap_in_tag("body")(
-        (
-            (
-                _wrap_in_tag("strong")(f"{user_display_name} {review_action} :\n")
-                + review_body
-            )
-            if review_body
-            else _wrap_in_tag("strong")(f"{user_display_name} {review_action}")
-        )
-        + (
-            (
-                _wrap_in_tag("strong")("\n\nand left inline comments:\n")
-                + _wrap_in_tag("ul")("".join(inline_comments))
-            )
-            if inline_comments
-            else ""
-        )
-    )
+    return _wrap_in_tag("body")(header + comments_html)
 
 
 def _task_description_from_pull_request(pull_request: PullRequest) -> str:

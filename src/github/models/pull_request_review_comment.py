@@ -12,7 +12,7 @@
     This solves the issue for the implementations of review() and comments(),
     but if we want to use type annotations for the return types, we still have a problem.
     For that reason, we need `from __future__import annotations`,
-    which postpones evaluation of type hints  through PEP 563[1]
+    which postpones evaluation of type hints [1].
 
     [1] https://www.python.org/dev/peps/pep-0563
 """
