@@ -1,5 +1,5 @@
 from typing import FrozenSet
-from ..fragments import FullComment
+from .FullComment import FullComment
 
 # @GraphqlInPython
 _full_review = """

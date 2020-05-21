@@ -3,7 +3,7 @@ from datetime import datetime
 from src.utils import parse_date_string
 from .user import User
 import copy
-from .pull_request_review_comment import PullRequestReviewComment
+from . import pull_request_review_comment
 
 
 class Review(object):
@@ -33,9 +33,9 @@ class Review(object):
     def body(self) -> str:
         return self._raw["body"]
 
-    def comments(self) -> List[PullRequestReviewComment]:
+    def comments(self) -> List[pull_request_review_comment.PullRequestReviewComment]:
         return [
-            PullRequestReviewComment(comment)
+            pull_request_review_comment.PullRequestReviewComment(comment)
             for comment in self._raw.get("comments", {}).get("nodes", [])
         ]
 

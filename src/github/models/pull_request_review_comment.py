@@ -1,9 +1,10 @@
 from .comment import Comment
-
+from . import review
 
 class PullRequestReviewComment(Comment):
-    # def review(self) -> Review:
-    #     return Review(self._raw["pullRequestReview"])
-    # XCXC remove commented-out code.
+
+    def review(self) -> review.Review:
+        return review.Review(self._raw["pullRequestReview"])
+
     def is_reply(self) -> bool:
         return self._raw["replyTo"] is not None
