@@ -272,6 +272,7 @@ def asana_comment_from_github_review(review: Review) -> str:
     if inline_comments:
         comments_html = _wrap_in_tag("ul")("".join(inline_comments))
         if not review.is_inline_reply():
+            # If this was an inline reply, we already added "and left inline comments" above.
             comments_html = _wrap_in_tag("strong")("\n\nand left inline comments:\n") + comments_html
     else:
         comments_html = ""
