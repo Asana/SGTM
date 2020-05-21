@@ -67,4 +67,4 @@ class Review(object):
         XCXC: Clarify this.
         XCXC: unit test this?
         """
-        return self.state() == Review.STATE_COMMENTED and not self.body()
+        return self.state() == ReviewState.COMMENTED and not self.body()
