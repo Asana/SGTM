@@ -13,6 +13,7 @@ class CommentBuilder(BuilderBaseClass):
             "body": body,
             "author": {"login": "somebody", "name": ""},
             "url": url,
+            "replyTo": None
         }
 
     def body(self, body: str):
