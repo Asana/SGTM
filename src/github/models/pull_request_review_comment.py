@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .comment import Comment
 from . import review
 
