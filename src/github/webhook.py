@@ -91,9 +91,10 @@ def _handle_pull_request_review_comment(payload: dict):
                 pull_request_id, review_database_id
             )
             if review is None:
-                # When a review has no body and you delete the comment,
-                # in Github that comment gets deleted.
+                # When a review has no body and you delete the last comment,
+                # in Github that review gets deleted.
                 # So, we delete the corresponding Asana comment too.
+                # XCXC: What about when the review has a status (i.e. approved)?
                 github_controller.delete_comment(comment_id)
             else:
                 # Update the asana comment for the review.
