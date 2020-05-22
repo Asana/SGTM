@@ -1,4 +1,3 @@
-# @CyclicDependencyBetweenCommentAndReview
 from __future__ import annotations
 
 from typing import Dict, Any, List
@@ -23,6 +22,7 @@ class ReviewState(Enum):
 
 
 class Review(object):
+    # #CyclicDependencyBetweenCommentAndReview
     def __init__(self, raw_review: Dict[str, Any]):
         self._raw = copy.deepcopy(raw_review)
 

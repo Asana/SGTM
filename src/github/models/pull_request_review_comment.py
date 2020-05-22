@@ -1,5 +1,5 @@
 """
-    @CyclicDependencyBetweenCommentAndReview
+    #CyclicDependencyBetweenCommentAndReview
 
     Because we want to support both comment.review(), which returns a Review object,
     and review.comments(), which returns a list of PullRequestReviewComment objects,
