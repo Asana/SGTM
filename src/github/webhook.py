@@ -84,22 +84,15 @@ def _handle_pull_request_review_comment(payload: dict):
                 raise Exception(
                     f"Unexpected comment type {type(PullRequestReviewComment)} for pull request review"
                 )
-            github_controller.upsert_review(pull_request, comment.review())
+            review = comment.review()
         elif action == "deleted":
             pull_request = graphql_client.get_pull_request(pull_request_id)
             review = graphql_client.get_review_for_database_id(
                 pull_request_id, review_database_id
             )
-            if review is None:
-                # When a review has no body and you delete the comment,
-                # in Github that comment gets deleted.
-                # So, we delete the corresponding Asana comment too.
-                github_controller.delete_comment(comment_id)
-            else:
-                # Update the asana comment for the review.
-                github_controller.upsert_review(pull_request, review)
         else:
             raise ValueError(f"Unexpected action: {action}")
+        github_controller.upsert_review(pull_request, review)
 
 
 # https://developer.github.com/v3/activity/events/types/#statusevent
