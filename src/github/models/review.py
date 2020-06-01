@@ -68,8 +68,7 @@ class Review(object):
 
     def is_just_comments(self) -> bool:
         """Return true if this review is not a meaningful state and doesn't contain a body.
-        This is true for inline comments without a review (Github still creates a review object)
-        XCXC: Clarify this.
-        XCXC: unit test this?
+        For inline comments/replies without a body, Github still creates a review object.
+        This object is basically empty so in some cases we process it differently.
         """
         return self.state() == ReviewState.COMMENTED and not self.body()
