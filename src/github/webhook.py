@@ -87,9 +87,15 @@ def _handle_pull_request_review_comment(payload: dict):
             review = Review.from_comment(comment)
         elif action == "deleted":
             pull_request = graphql_client.get_pull_request(pull_request_id)
-            review = graphql_client.get_review_for_database_id(
+            found_review = graphql_client.get_review_for_database_id(
                 pull_request_id, review_database_id
             )
+            if found_review is None:
+                # If we deleted the last comment from a review, Github might have deleted teh review.
+                # If so, we should delete the Asana comment.
+                github_controller.delete_comment(comment_id)
+            else:
+                review = found_review
         else:
             raise ValueError(f"Unexpected action: {action}")
         github_controller.upsert_review(pull_request, review)
