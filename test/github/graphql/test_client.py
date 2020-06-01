@@ -9,19 +9,19 @@ class TestGithubClientGetReviewForDatabaseId(BaseClass):
     REVIEW_DB_ID = "1234566"
     PULL_REQUEST_ID = "jiefjiejfji232--"
 
-    def test_when_no_reviews_found__should_raise_error(self, mock_query):
+    def test_when_no_reviews_found__should_return_None(self, mock_query):
         mock_query.return_value = {"node": {"reviews": {"edges": []}}}
 
-        with self.assertRaises(ValueError):
-            actual = client.get_review_for_database_id(
-                self.PULL_REQUEST_ID, self.REVIEW_DB_ID
-            )
+        actual = client.get_review_for_database_id(
+            self.PULL_REQUEST_ID, self.REVIEW_DB_ID
+        )
 
+        self.assertEqual(actual, None)
         mock_query.assert_called_once_with(
             IterateReviews, {"pullRequestId": self.PULL_REQUEST_ID}
         )
 
-    def test_when_no_reviews_match__should_raise_error(self, mock_query):
+    def test_when_no_reviews_match__should_return_None(self, mock_query):
         mock_query.side_effect = [
             {
                 "node": {
@@ -38,10 +38,11 @@ class TestGithubClientGetReviewForDatabaseId(BaseClass):
             {"node": {"reviews": {"edges": []}}},
         ]
 
-        with self.assertRaises(ValueError):
-            actual = client.get_review_for_database_id(
-                self.PULL_REQUEST_ID, self.REVIEW_DB_ID
-            )
+        actual = client.get_review_for_database_id(
+            self.PULL_REQUEST_ID, self.REVIEW_DB_ID
+        )
+
+        self.assertEqual(actual, None)
 
         mock_query.assert_has_calls(
             [
