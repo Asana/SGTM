@@ -22,7 +22,6 @@ class ReviewState(Enum):
 
 
 class Review(object):
-
     def __init__(self, raw_review: Dict[str, Any]):
         self._raw = copy.deepcopy(raw_review)
 
