@@ -7,7 +7,7 @@ from enum import Enum, unique
 from src.utils import parse_date_string
 from .user import User
 import copy
-from . import pull_request_review_comment
+from .pull_request_review_comment import PullRequestReviewComment
 
 
 @unique
@@ -22,9 +22,13 @@ class ReviewState(Enum):
 
 
 class Review(object):
-    # #CyclicDependencyBetweenCommentAndReview
+
     def __init__(self, raw_review: Dict[str, Any]):
         self._raw = copy.deepcopy(raw_review)
+
+    @classmethod
+    def from_comment(cls, comment: PullRequestReviewComment) -> Review:
+        return cls(comment.raw_review())
 
     def id(self) -> str:
         return self._raw["id"]
@@ -44,9 +48,9 @@ class Review(object):
     def body(self) -> str:
         return self._raw["body"]
 
-    def comments(self) -> List[pull_request_review_comment.PullRequestReviewComment]:
+    def comments(self) -> List[PullRequestReviewComment]:
         return [
-            pull_request_review_comment.PullRequestReviewComment(comment)
+            PullRequestReviewComment(comment)
             for comment in self._raw.get("comments", {}).get("nodes", [])
         ]
 
