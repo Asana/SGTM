@@ -1,4 +1,5 @@
 import src.asana.helpers
+from src.github.models import ReviewState
 from test.impl.builders import builder, build
 from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 
@@ -22,7 +23,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
         github_review = build(
             builder.review()
             .author(builder.user("github_unknown_user_login"))
-            .state("DEFAULT")
+            .state(ReviewState.DEFAULT)
             .body("GITHUB_REVIEW_TEXT")
             .comment(builder.comment().body("GITHUB_REVIEW_COMMENT_TEXT"))
         )
@@ -37,7 +38,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
         github_review = build(
             builder.review()
             .author(builder.user("github_unknown_user_login"))
-            .state("APPROVED")
+            .state(ReviewState.APPROVED)
             .body("")
             .comment(builder.comment().body("GITHUB_REVIEW_COMMENT_TEXT"))
         )
@@ -58,7 +59,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
         github_review = build(
             builder.review()
             .author(builder.user("github_test_user_login"))
-            .state("DEFAULT")
+            .state(ReviewState.DEFAULT)
         )
         asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
             github_review
@@ -73,7 +74,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
             .author(
                 builder.user("github_unknown_user_login", "GITHUB_UNKNOWN_USER_NAME")
             )
-            .state("DEFAULT")
+            .state(ReviewState.DEFAULT)
         )
         asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
             github_review
@@ -87,7 +88,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
         github_review = build(
             builder.review()
             .author(builder.user("github_unknown_user_login"))
-            .state("DEFAULT")
+            .state(ReviewState.DEFAULT)
         )
         asana_review_comment_comment = src.asana.helpers.asana_comment_from_github_review(
             github_review
@@ -101,7 +102,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
         github_placeholder_review = build(
             builder.review()
             .author(builder.user("github_unknown_user_login"))
-            .state("DEFAULT")
+            .state(ReviewState.DEFAULT)
             .body(placeholder)
             .comment(builder.comment().body(placeholder))
         )
@@ -113,7 +114,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
             github_review = build(
                 builder.review()
                 .author(builder.user("github_unknown_user_login"))
-                .state("DEFAULT")
+                .state(ReviewState.DEFAULT)
                 .body(unsafe_character)
                 .comment(builder.comment().body(unsafe_character))
             )
@@ -132,7 +133,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
         github_placeholder_review = build(
             builder.review()
             .author(builder.user("github_unknown_user_login"))
-            .state("DEFAULT")
+            .state(ReviewState.DEFAULT)
             .body(placeholder)
             .comment(builder.comment().body(placeholder))
         )
@@ -144,7 +145,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
             github_review = build(
                 builder.review()
                 .author(builder.user("github_unknown_user_login"))
-                .state("DEFAULT")
+                .state(ReviewState.DEFAULT)
                 .body(safe_character)
                 .comment(builder.comment().body(safe_character))
             )
@@ -162,7 +163,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
         github_review = build(
             builder.review()
             .author(builder.user("github_unknown_user_login"))
-            .state("DEFAULT")
+            .state(ReviewState.DEFAULT)
             .body("@github_test_user_login")
         )
         asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
@@ -176,7 +177,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
         github_review = build(
             builder.review()
             .author(builder.user("github_unknown_user_login"))
-            .state("DEFAULT")
+            .state(ReviewState.DEFAULT)
             .body("@github_unknown_user_login")
         )
         asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
@@ -188,7 +189,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
         github_review = build(
             builder.review()
             .author(builder.user("github_unknown_user_login"))
-            .state("DEFAULT")
+            .state(ReviewState.DEFAULT)
             .body("hello@world.asana.com")
         )
         asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
@@ -199,7 +200,9 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
     def test_includes_link_to_comment(self):
         url = "https://github.com/Asana/SGTM/pull/31#issuecomment-626850667"
         github_review = build(
-            builder.review().state("DEFAULT").comment(builder.comment().url(url))
+            builder.review()
+            .state(ReviewState.DEFAULT)
+            .comment(builder.comment().url(url))
         )
         asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
             github_review
@@ -208,7 +211,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
 
     def test_includes_link_to_review(self):
         url = "https://github.com/Asana/SGTM/pull/31#issuecomment-626850667"
-        github_review = build(builder.review().state("DEFAULT").url(url))
+        github_review = build(builder.review().state(ReviewState.DEFAULT).url(url))
         asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
             github_review
         )

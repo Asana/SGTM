@@ -24,6 +24,12 @@ fragment FullComment on Comment {
     }
   }
   body
+  ... on IssueComment {
+    url
+  }
+  ... on PullRequestReviewComment {
+    url
+  }
 }
 """
 

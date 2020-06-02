@@ -3,7 +3,7 @@ from html import escape
 from datetime import datetime, timedelta
 from typing import Callable, Match, Optional, List, Dict
 from src.dynamodb import client as dynamodb_client
-from src.github.models import Comment, PullRequest, Review, User
+from src.github.models import Comment, PullRequest, Review, ReviewState, User
 from src.asana import client as asana_client
 from src.github import logic as github_logic
 from src.logger import logger
@@ -223,12 +223,11 @@ def asana_comment_from_github_comment(comment: Comment) -> str:
     )
 
 
-# https://developer.github.com/v4/reference/enum/pullrequestreviewstate/
-_review_action_to_text_map = {
-    "APPROVED": "approved",
-    "CHANGES_REQUESTED": "requested changes",
-    "COMMENTED": "reviewed",
-    "DISMISSED": "reviewed",
+_review_action_to_text_map: Dict[ReviewState, str] = {
+    ReviewState.APPROVED: "approved",
+    ReviewState.CHANGES_REQUESTED: "requested changes",
+    ReviewState.COMMENTED: "reviewed",
+    ReviewState.DISMISSED: "reviewed",
 }
 
 
@@ -241,12 +240,29 @@ def asana_comment_from_github_review(review: Review) -> str:
     """
     user_display_name = _asana_display_name_for_github_user(review.author())
 
-    review_action = _wrap_in_tag("A", attrs={"href": review.url()})(
-        _review_action_to_text_map.get(review.state(), "commented")
-    )
+    if review.is_just_comments():
+        # When a user replies to an inline comment,
+        # or writes inline comments without a review,
+        # github still creates a Review object,
+        # even though nothing in github looks like a review
+        # If that's the case, there is no meaningful review state ("commented" isn't helpful)
+        # and the link to it will either not point anywhere, or be less useful than the individual links on each comment.
+        review_action = _wrap_in_tag("strong")("left inline comments:\n")
+    else:
+        review_action = _wrap_in_tag("A", attrs={"href": review.url()})(
+            _review_action_to_text_map.get(review.state(), "commented")
+        )
+
     review_body = _transform_github_mentions_to_asana_mentions(
         escape(review.body(), quote=False)
     )
+    if review_body:
+        header = (
+            _wrap_in_tag("strong")(f"{user_display_name} {review_action} :\n")
+            + review_body
+        )
+    else:
+        header = _wrap_in_tag("strong")(f"{user_display_name} {review_action}")
 
     # For each comment, prefix its text with a bracketed number that is a link to the Github comment.
     inline_comments = [
@@ -258,25 +274,18 @@ def asana_comment_from_github_review(review: Review) -> str:
         )
         for i, comment in enumerate(review.comments(), start=1)
     ]
-
-    return _wrap_in_tag("body")(
-        (
-            (
-                _wrap_in_tag("strong")(f"{user_display_name} {review_action} :\n")
-                + review_body
-            )
-            if review_body
-            else _wrap_in_tag("strong")(f"{user_display_name} {review_action}")
-        )
-        + (
-            (
+    if inline_comments:
+        comments_html = _wrap_in_tag("ul")("".join(inline_comments))
+        if not review.is_just_comments():
+            # If this was an inline reply, we already added "and left inline comments" above.
+            comments_html = (
                 _wrap_in_tag("strong")("\n\nand left inline comments:\n")
-                + _wrap_in_tag("ul")("".join(inline_comments))
+                + comments_html
             )
-            if inline_comments
-            else ""
-        )
-    )
+    else:
+        comments_html = ""
+
+    return _wrap_in_tag("body")(header + comments_html)
 
 
 def _task_description_from_pull_request(pull_request: PullRequest) -> str:

@@ -1,4 +1,5 @@
 from typing import FrozenSet
+from .FullComment import FullComment
 
 # @GraphqlInPython
 _full_review = """
@@ -15,12 +16,11 @@ fragment FullReview on PullRequestReview {
   state
   comments(last: 20) {
     nodes {
-      body
-      url
+      ...FullComment
     }
   }
   url
 }
 """
 
-FullReview: FrozenSet[str] = frozenset([_full_review])
+FullReview: FrozenSet[str] = frozenset([_full_review]) | FullComment
