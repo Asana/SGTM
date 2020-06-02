@@ -92,7 +92,7 @@ def _handle_pull_request_review_comment(payload: dict):
                 pull_request_id, review_database_id
             )
             if review is None:
-                # If we deleted the last comment from a review, Github might have deleted teh review.
+                # If we deleted the last comment from a review, Github might have deleted the review.
                 # If so, we should delete the Asana comment.
                 logger.info("No review found in Github. Deleting the Asana comment.")
                 github_controller.delete_comment(comment_id)
