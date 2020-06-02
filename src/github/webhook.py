@@ -86,7 +86,6 @@ def _handle_pull_request_review_comment(payload: dict):
                     f"Unexpected comment type {type(PullRequestReviewComment)} for pull request review"
                 )
             review: Optional[Review] = Review.from_comment(comment)
-            # XCXC: Ensure we've merged the PR that adds this method (replacing Comment.review).
         elif action == "deleted":
             pull_request = graphql_client.get_pull_request(pull_request_id)
             review = graphql_client.get_review_for_database_id(
