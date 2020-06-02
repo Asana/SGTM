@@ -7,7 +7,7 @@ from src.github.models import Review, Comment
 from src.asana import controller
 
 
-@patch.object(controller, 'asana_helpers')
+@patch('src.asana.helpers.asana_comment_from_github_review')
 @patch('src.asana.client.add_comment')
 @patch('src.dynamodb.client.insert_github_node_to_asana_id_mapping')
 class TestUpsertGithubReviewToTask(BaseClass):
@@ -23,23 +23,23 @@ class TestUpsertGithubReviewToTask(BaseClass):
         return MagicMock(spec=Review, id=MagicMock(return_value=id), comments=MagicMock(return_value=comments))
 
     @patch('src.dynamodb.client.get_asana_id_from_github_node_id', return_value=None)
-    def test_created_review_with_no_comments(self, get_asana_id_from_github_node_id, insert_github_node_to_asana_id_mapping, add_comment, asana_helpers):
+    def test_created_review_with_no_comments(self, get_asana_id_from_github_node_id, insert_github_node_to_asana_id_mapping, add_comment, asana_comment_from_github_review):
         review = self._mock_review(self.REVIEW_ID)
-        asana_helpers.asana_comment_from_github_review.return_value = self.ASANA_COMMENT_BODY
+        asana_comment_from_github_review.return_value = self.ASANA_COMMENT_BODY
 
         add_comment.return_value = self.ASANA_COMMENT_ID
 
         controller.upsert_github_review_to_task(review, self.ASANA_TASK_ID)
 
         add_comment.assert_called_once_with(self.ASANA_TASK_ID, self.ASANA_COMMENT_BODY)
-        asana_helpers.asana_comment_from_github_review.assert_called_once_with(review)
+        asana_comment_from_github_review.assert_called_once_with(review)
         insert_github_node_to_asana_id_mapping.assert_called_once_with(self.REVIEW_ID, self.ASANA_COMMENT_ID)
         get_asana_id_from_github_node_id.assert_called_once_with(self.REVIEW_ID)
 
     @patch('src.dynamodb.client.get_asana_id_from_github_node_id', return_value=None)
-    def test_created_review_with_comments(self, get_asana_id_from_github_node_id, insert_github_node_to_asana_id_mapping, add_comment, asana_helpers):
+    def test_created_review_with_comments(self, get_asana_id_from_github_node_id, insert_github_node_to_asana_id_mapping, add_comment, asana_comment_from_github_review):
         review = self._mock_review(self.REVIEW_ID, [self._mock_comment("123"), self._mock_comment("456")])
-        asana_helpers.asana_comment_from_github_review.return_value = self.ASANA_COMMENT_BODY
+        asana_comment_from_github_review.return_value = self.ASANA_COMMENT_BODY
 
         add_comment.return_value = self.ASANA_COMMENT_ID
 
