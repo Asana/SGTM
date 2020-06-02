@@ -35,6 +35,7 @@ class TestUpsertGithubReviewToTask(BaseClass):
         asana_client.add_comment.assert_called_once_with(self.ASANA_TASK_ID, self.ASANA_COMMENT_BODY)
         asana_helpers.asana_comment_from_github_review.assert_called_once_with(review)
         insert_github_node_to_asana_id_mapping.assert_called_once_with(self.REVIEW_ID, self.ASANA_COMMENT_ID)
+        get_asana_id_from_github_node_id.assert_called_once_with(self.REVIEW_ID)
 
     def test_created_review_with_comments(self, get_asana_id_from_github_node_id, insert_github_node_to_asana_id_mapping, asana_client, asana_helpers):
         review = self._mock_review(self.REVIEW_ID, [self._mock_comment("123"), self._mock_comment("456")])
@@ -50,6 +51,7 @@ class TestUpsertGithubReviewToTask(BaseClass):
             call("123", self.ASANA_COMMENT_ID),
             call("456", self.ASANA_COMMENT_ID)
         ], any_order=True)
+        get_asana_id_from_github_node_id.assert_called_once_with(self.REVIEW_ID)
 
 
 @patch.object(controller, 'asana_client')
