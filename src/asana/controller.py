@@ -59,7 +59,6 @@ def upsert_github_comment_to_task(comment: Comment, task_id: str):
 
 
 def upsert_github_review_to_task(review: Review, task_id: str):
-    # XCXC: Add unit test for this!
     github_review_id = review.id()
     asana_comment_id = dynamodb_client.get_asana_id_from_github_node_id(
         github_review_id
