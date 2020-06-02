@@ -56,7 +56,7 @@ class TestUpsertGithubReviewToTask(BaseClass):
 
     @patch('src.asana.client.update_comment')
     @patch('src.dynamodb.client.get_asana_id_from_github_node_id', return_value=ASANA_COMMENT_ID)
-    def test_updated_review_with_no_comments(self, get_asana_id_from_github_node_id, update_comment, insert_github_node_to_asana_id_mapping, add_comment, asana_comment_from_github_review):
+    def test_updated_review_with_comments(self, get_asana_id_from_github_node_id, update_comment, insert_github_node_to_asana_id_mapping, add_comment, asana_comment_from_github_review):
         review = self._mock_review(self.REVIEW_ID, [self._mock_comment("123"), self._mock_comment("456")])
         asana_comment_from_github_review.return_value = self.ASANA_COMMENT_BODY
 
@@ -65,6 +65,7 @@ class TestUpsertGithubReviewToTask(BaseClass):
         get_asana_id_from_github_node_id.assert_called_once_with(self.REVIEW_ID)
         asana_comment_from_github_review.assert_called_once_with(review)
         update_comment.assert_called_once_with(self.ASANA_COMMENT_ID, self.ASANA_COMMENT_BODY)
+
 
 @patch.object(controller, 'asana_client')
 class TestMocks(BaseClass):
