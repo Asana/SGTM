@@ -38,6 +38,8 @@ class DynamodbClientTest(MockDynamoDbTestCase):
         self.assertEqual(
             dynamodb_client.get_asana_domain_user_id_from_github_handle("user2"), "2",
         )
+        user_items = dynamodb_client.get_all_user_items()
+        self.assertEqual(len(user_items), 2)
 
 
 if __name__ == "__main__":

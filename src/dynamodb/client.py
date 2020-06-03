@@ -132,7 +132,16 @@ class DynamoDbClient(object):
             return None
 
     def get_all_user_items(self) -> List[dict]:
-        items = self.client.scan(TableName=USERS_TABLE)["Items"]
+        response = self.client.scan(TableName=USERS_TABLE)
+        items = response["Items"]
+
+        # May need to paginate, if the first page of data is > 1MB
+        # (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Scan.html#Scan.Pagination)
+        while response.get("LastEvaluatedKey"):
+            response = self.client.scan(
+                TableName=USERS_TABLE, ExclusiveStartKey=response["LastEvaluatedKey"]
+            )
+            items.extend(response["Items"])
         return items
 
     @staticmethod
