@@ -13,7 +13,8 @@ resource "aws_iam_policy" "lambda-function-dynamodb-policy" {
     {
       "Action": [
         "dynamodb:GetItem",
-        "dynamodb:PutItem"
+        "dynamodb:PutItem",
+        "dynamodb:BatchWriteItem"
       ],
       "Resource": [
         "${aws_dynamodb_table.sgtm-lock.arn}",
