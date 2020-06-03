@@ -83,12 +83,18 @@ class DynamoDbClient(object):
                                 }
                             }
                         }
-                        for gh_node_id, asana_id in gh_and_asana_ids[batch_start:batch_start + BATCH_SIZE]
+                        for gh_node_id, asana_id in gh_and_asana_ids[
+                            batch_start : batch_start + BATCH_SIZE
+                        ]
                     ]
                 }
             )
-            if response.get('UnprocessedItems'):
-                logger.warning("Failed to insert github-to-asana id mappings: {}".format(response['UnprocessedItems']))
+            if response.get("UnprocessedItems"):
+                logger.warning(
+                    "Failed to insert github-to-asana id mappings: {}".format(
+                        response["UnprocessedItems"]
+                    )
+                )
 
     # USERS TABLE
 
