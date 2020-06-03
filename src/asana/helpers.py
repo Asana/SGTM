@@ -289,7 +289,7 @@ def asana_comment_from_github_review(review: Review) -> str:
 
 
 def _task_description_from_pull_request(pull_request: PullRequest) -> str:
-    url = pull_request.url()
+    url = _link(pull_request.url())
     github_author = pull_request.author()
     author = _asana_user_url_from_github_user_handle(github_author.login())
     if author is None:
@@ -341,3 +341,7 @@ def _wrap_in_tag(
         return f"<{tag_name}{attr_list}>{text}</{tag_name}>"
 
     return inner
+
+
+def _link(url: str) -> str:
+    return _wrap_in_tag("a", {"href": url})(url)
