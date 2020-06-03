@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 import boto3  # type: ignore
 from src.config import OBJECTS_TABLE, USERS_TABLE
 from botocore.exceptions import NoRegionError  # type: ignore
@@ -15,6 +15,9 @@ class DynamoDbClient(object):
         DynamoDbClient in the process, which is lazily created upon the first request. This pattern supports test code
         that does not require DynamoDb.
     """
+
+    GITHUB_HANDLE_KEY = "github/handle"
+    USER_ID_KEY = "asana/domain-user-id"
 
     # the singleton instance of DynamoDbClient
     _singleton = None
@@ -69,12 +72,17 @@ class DynamoDbClient(object):
             TODO: document this process, and create scripts to encapsulate it
         """
         response = self.client.get_item(
-            TableName=USERS_TABLE, Key={"github/handle": {"S": github_handle.lower()}}
+            TableName=USERS_TABLE,
+            Key={self.GITHUB_HANDLE_KEY: {"S": github_handle.lower()}},
         )
         if "Item" in response:
-            return response["Item"]["asana/domain-user-id"]["S"]
+            return response["Item"][self.USER_ID_KEY]["S"]
         else:
             return None
+
+    def get_all_user_items(self) -> List[dict]:
+        items = self.client.scan(TableName=USERS_TABLE)["Items"]
+        return items
 
     @staticmethod
     def _create_client():

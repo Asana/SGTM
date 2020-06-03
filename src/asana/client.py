@@ -108,6 +108,13 @@ class AsanaClient(object):
     def get_project_custom_fields(self, project_id: str) -> Iterator[Dict]:
         return self.asana_api_client.custom_field_settings.find_by_project(project_id)
 
+    def find_all_tasks_for_project(
+        self, project_id: str, opt_fields: Optional[List[str]]
+    ) -> Iterator[Dict]:
+        return self.asana_api_client.tasks.find_all(
+            project=project_id, completed_since="now", opt_fields=opt_fields
+        )
+
 
 def create_task(project_id: str, due_date_str: str = None) -> str:
     """
@@ -151,3 +158,9 @@ def update_comment(comment_id: str, comment_body: str):
 
 def delete_comment(comment_id: str):
     AsanaClient.singleton().delete_comment(comment_id)
+
+
+def find_all_tasks_for_project(
+    self, project_id: str, opt_fields: Optional[List[str]] = None
+) -> Iterator[Dict]:
+    AsanaClient.singleton().find_all_tasks_for_project(project_id, opt_fields)
