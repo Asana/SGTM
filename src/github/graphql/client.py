@@ -1,4 +1,4 @@
-from typing import Tuple, FrozenSet
+from typing import Tuple, FrozenSet, Optional
 from sgqlc.endpoint.http import HTTPEndpoint  # type: ignore
 from src.config import GITHUB_API_KEY
 from src.github.models import comment_factory, PullRequest, Review, Comment
@@ -58,7 +58,9 @@ def get_pull_request_for_commit(commit_id: str) -> PullRequest:
     return PullRequest(pull_request)
 
 
-def get_review_for_database_id(pull_request_id: str, review_db_id: str) -> Review:
+def get_review_for_database_id(
+    pull_request_id: str, review_db_id: str
+) -> Optional[Review]:
     """Get the PullRequestReview given a pull request and the NUMERIC id id of the review.
 
     NOTE: `pull_request_id` and `review_db_id are DIFFERENT types of ids.
@@ -95,6 +97,4 @@ def get_review_for_database_id(pull_request_id: str, review_db_id: str) -> Revie
                     "cursor": data["node"]["reviews"]["edges"][-1]["cursor"],
                 },
             )
-    raise ValueError(
-        f"No review found for pull request: {pull_request_id} and review database-id: {review_db_id}"
-    )
+    return None
