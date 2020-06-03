@@ -161,6 +161,6 @@ def delete_comment(comment_id: str):
 
 
 def find_all_tasks_for_project(
-    self, project_id: str, opt_fields: Optional[List[str]] = None
+    project_id: str, opt_fields: Optional[List[str]] = None
 ) -> Iterator[Dict]:
-    AsanaClient.singleton().find_all_tasks_for_project(project_id, opt_fields)
+    return AsanaClient.singleton().find_all_tasks_for_project(project_id, opt_fields)

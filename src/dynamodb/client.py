@@ -130,3 +130,7 @@ def get_asana_domain_user_id_from_github_handle(github_handle: str) -> Optional[
     return DynamoDbClient.singleton().get_asana_domain_user_id_from_github_handle(
         github_handle
     )
+
+
+def get_all_user_items() -> List[dict]:
+    return DynamoDbClient.singleton().get_all_user_items()
