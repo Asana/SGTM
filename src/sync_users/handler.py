@@ -5,6 +5,11 @@ from src.logger import logger
 from src.sync_users.sgtm_user import SgtmUser
 
 
+# Entrypoint for Lambda function that syncs the mapping of Github handles to
+# Asana user ids with the dynamodb table USERS_TABLE. This happens through an
+# Asana project with custom fields - one task per user with custom fields
+# defined in SgtmUser (GITHUB_HANDLE_CUSTOM_FIELD_NAME,
+# USER_ID_CUSTOM_FIELD_NAME)
 def handler(event: dict, context: dict) -> None:
     logger.info(
         "Starting sync from Asana project to Dynamodb {} table".format(USERS_TABLE)
@@ -27,8 +32,13 @@ def handler(event: dict, context: dict) -> None:
         ]
         if u is not None
     ]
+    # TODO: Add more logging
 
     # TODO: Use a set
     users_to_add = [user for user in users_in_asana if user not in users_in_dynamodb]
 
     # Batch write the users
+    if len(users_to_add) > 0:
+        dynamodb_client.bulk_insert_github_handle_to_asana_user_id_mapping(
+            [(u.github_handle, u.domain_user_id) for u in users_to_add]
+        )

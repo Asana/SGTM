@@ -1,3 +1,7 @@
+"""
+Class representing a "User" for SGTM, which comprises of a Github handle and an
+Asana domain user id
+"""
 from __future__ import annotations
 from typing import Any, List, Optional
 from src.dynamodb.client import DynamoDbClient
@@ -8,9 +12,9 @@ class SgtmUser(object):
     GITHUB_HANDLE_CUSTOM_FIELD_NAME = "Github Username"
     USER_ID_CUSTOM_FIELD_NAME = "user_id"
 
-    def __init__(self, github_handle: Optional[str], domain_user_id: str):
+    def __init__(self, github_handle: Optional[str], domain_user_id: Optional[str]):
         # always lower-case github handles
-        self.github_handle = github_handle.lower()
+        self.github_handle = github_handle
 
         # always lower-case github handles
         if self.github_handle:
@@ -21,8 +25,8 @@ class SgtmUser(object):
     @classmethod
     def from_dynamodb_item(klass, item: dict) -> SgtmUser:
         return klass(
-            item[DynamoDbClient.GITHUB_HANDLE_KEY]["S"],
-            item[DynamoDbClient.USER_ID_KEY]["S"],
+            item.get(DynamoDbClient.GITHUB_HANDLE_KEY, {}).get("S"),
+            item.get(DynamoDbClient.USER_ID_KEY, {}).get("S"),
         )
 
     @staticmethod
@@ -48,7 +52,7 @@ class SgtmUser(object):
             elif cf["name"] == klass.GITHUB_HANDLE_CUSTOM_FIELD_NAME:
                 github_handle = klass._get_custom_field_value(cf)
 
-        if github_handle is not None and asana_user_id is not None:
+        if github_handle and asana_user_id:
             return klass(github_handle, asana_user_id)
         else:
             return None

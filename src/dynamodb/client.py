@@ -38,6 +38,27 @@ class DynamoDbClient(object):
             cls._singleton = DynamoDbClient()
         return cls._singleton
 
+    def bulk_insert_items_in_batches(self, table_name: str, items: List[dict]):
+        """Insert multiple items to a Dynamodb table.
+
+        We need to split large requests into batches of 25, since Dynamodb only accepts 25 items at a time.
+        https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchWriteItem.html
+        """
+        BATCH_SIZE = 25
+        for batch_start in range(0, len(items), BATCH_SIZE):
+            response = self.client.batch_write_item(
+                RequestItems={
+                    table_name: [
+                        {"PutRequest": {"Item": item}}
+                        for item in items[batch_start : batch_start + BATCH_SIZE]
+                    ]
+                }
+            )
+            if response.get("UnprocessedItems"):
+                logger.warning(
+                    "Failed to insert items: {}".format(response["UnprocessedItems"])
+                )
+
     # OBJECTS TABLE
 
     def get_asana_id_from_github_node_id(self, gh_node_id: str) -> Optional[str]:
@@ -69,37 +90,28 @@ class DynamoDbClient(object):
         """Insert multiple mappings from github node ids to Asana object ids.
         Equivalent to calling insert_github_node_to_asana_id_mapping repeatedly,
         but in a single request.
-
-        We need to split large requests into batches of 25, since Dynamodb only accepts 25 items at a time.
-        https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchWriteItem.html
         """
-        BATCH_SIZE = 25
-        for batch_start in range(0, len(gh_and_asana_ids), BATCH_SIZE):
-            response = self.client.batch_write_item(
-                RequestItems={
-                    OBJECTS_TABLE: [
-                        {
-                            "PutRequest": {
-                                "Item": {
-                                    "github-node": {"S": gh_node_id},
-                                    "asana-id": {"S": asana_id},
-                                }
-                            }
-                        }
-                        for gh_node_id, asana_id in gh_and_asana_ids[
-                            batch_start : batch_start + BATCH_SIZE
-                        ]
-                    ]
-                }
-            )
-            if response.get("UnprocessedItems"):
-                logger.warning(
-                    "Failed to insert github-to-asana id mappings: {}".format(
-                        response["UnprocessedItems"]
-                    )
-                )
+        items = [
+            {"github-node": {"S": gh_node_id}, "asana-id": {"S": asana_id}}
+            for gh_node_id, asana_id in gh_and_asana_ids
+        ]
+        return self.bulk_insert_items_in_batches(OBJECTS_TABLE, items)
 
     # USERS TABLE
+
+    def bulk_insert_github_handle_to_asana_user_id_mapping(
+        self, gh_and_asana_ids: List[Tuple[str, str]]
+    ):
+        """Insert multiple mappings from github handle to Asana user ids.
+        """
+        items = [
+            {
+                self.GITHUB_HANDLE_KEY: {"S": gh_handle},
+                self.USER_ID_KEY: {"S": asana_user_id},
+            }
+            for gh_handle, asana_user_id in gh_and_asana_ids
+        ]
+        return self.bulk_insert_items_in_batches(USERS_TABLE, items)
 
     @memoize
     def get_asana_domain_user_id_from_github_handle(
@@ -183,5 +195,15 @@ def bulk_insert_github_node_to_asana_id_mapping(
     but in a single request.
     """
     DynamoDbClient.singleton().bulk_insert_github_node_to_asana_id_mapping(
+        gh_and_asana_ids
+    )
+
+
+def bulk_insert_github_handle_to_asana_user_id_mapping(
+    gh_and_asana_ids: List[Tuple[str, str]]
+):
+    """Insert multiple mappings from github handle to Asana user ids.
+    """
+    DynamoDbClient.singleton().bulk_insert_github_handle_to_asana_user_id_mapping(
         gh_and_asana_ids
     )
