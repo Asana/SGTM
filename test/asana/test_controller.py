@@ -68,8 +68,12 @@ class TestUpsertGithubReviewToTask(BaseClass):
 
         controller.upsert_github_review_to_task(review, self.ASANA_TASK_ID)
 
-        insert_github_node_to_asana_id_mapping.assert_called_once_with(self.REVIEW_ID, self.ASANA_COMMENT_ID)
-        bulk_insert_github_node_to_asana_id_mapping.assert_called_once_with([("123", self.ASANA_COMMENT_ID), ("456", self.ASANA_COMMENT_ID)])
+        insert_github_node_to_asana_id_mapping.assert_called_once_with(
+            self.REVIEW_ID, self.ASANA_COMMENT_ID
+        )
+        bulk_insert_github_node_to_asana_id_mapping.assert_called_once_with(
+            [("123", self.ASANA_COMMENT_ID), ("456", self.ASANA_COMMENT_ID)]
+        )
         add_comment.assert_called_once_with(self.ASANA_TASK_ID, self.ASANA_COMMENT_BODY)
         get_asana_id_from_github_node_id.assert_called_once_with(self.REVIEW_ID)
         asana_comment_from_github_review.assert_called_once_with(review)
@@ -100,7 +104,9 @@ class TestUpsertGithubReviewToTask(BaseClass):
         update_comment.assert_called_once_with(
             self.ASANA_COMMENT_ID, self.ASANA_COMMENT_BODY
         )
-        bulk_insert_github_node_to_asana_id_mapping.assert_called_once_with([("123", self.ASANA_COMMENT_ID), ("456", self.ASANA_COMMENT_ID)])
+        bulk_insert_github_node_to_asana_id_mapping.assert_called_once_with(
+            [("123", self.ASANA_COMMENT_ID), ("456", self.ASANA_COMMENT_ID)]
+        )
         add_comment.assert_not_called()
 
 
