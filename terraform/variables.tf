@@ -15,6 +15,10 @@ variable "api_key_s3_bucket_name" {
   description = "Name of the API key S3 bucket"
 }
 
+variable "lambda_code_s3_bucket_name" {
+  type        = string
+  description = "Name of the S3 bucket that stores the Lambda functions code"
+}
 
 variable "lambda_function_timeout" {
   type        = number
