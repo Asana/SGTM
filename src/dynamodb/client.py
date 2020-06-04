@@ -1,4 +1,5 @@
-from typing import Optional, List, Tuple
+from typing import Iterator, Optional, List, Tuple
+from typing_extensions import TypedDict
 
 import boto3  # type: ignore
 from botocore.exceptions import NoRegionError  # type: ignore
@@ -6,6 +7,21 @@ from botocore.exceptions import NoRegionError  # type: ignore
 from src.config import OBJECTS_TABLE, USERS_TABLE
 from src.logger import logger
 from src.utils import memoize
+
+
+class DynamoDbItemStringValue(TypedDict):
+    S: str
+
+
+# Unfortunately, we can't use variables for the key names here, so we need to
+# use literal strings
+DynamoDbUserItem = TypedDict(
+    "DynamoDbUserItem",
+    {
+        "github/handle": DynamoDbItemStringValue,
+        "asana/domain-user-id": DynamoDbItemStringValue,
+    },
+)
 
 
 class ConfigurationError(Exception):
@@ -131,9 +147,12 @@ class DynamoDbClient(object):
         else:
             return None
 
-    def get_all_user_items(self) -> List[dict]:
+    def get_all_user_items(self) -> Iterator[DynamoDbUserItem]:
+        """
+            Get all DynamoDb items from the USERS_TABLE
+        """
         response = self.client.scan(TableName=USERS_TABLE)
-        items = response["Items"]
+        yield from response["Items"]
 
         # May need to paginate, if the first page of data is > 1MB
         # (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Scan.html#Scan.Pagination)
@@ -141,8 +160,7 @@ class DynamoDbClient(object):
             response = self.client.scan(
                 TableName=USERS_TABLE, ExclusiveStartKey=response["LastEvaluatedKey"]
             )
-            items.extend(response["Items"])
-        return items
+            yield from response["Items"]
 
     @staticmethod
     def _create_client():
@@ -199,9 +217,10 @@ def get_all_user_items() -> List[dict]:
 def bulk_insert_github_node_to_asana_id_mapping(
     gh_and_asana_ids: List[Tuple[str, str]]
 ):
-    """Insert multiple mappings from github node ids to Asana object ids.
-    Equivalent to calling insert_github_node_to_asana_id_mapping repeatedly,
-    but in a single request.
+    """
+        Insert multiple mappings from github node ids to Asana object ids.
+        Equivalent to calling insert_github_node_to_asana_id_mapping
+        repeatedly, but in a single request.
     """
     DynamoDbClient.singleton().bulk_insert_github_node_to_asana_id_mapping(
         gh_and_asana_ids
@@ -211,7 +230,8 @@ def bulk_insert_github_node_to_asana_id_mapping(
 def bulk_insert_github_handle_to_asana_user_id_mapping(
     gh_and_asana_ids: List[Tuple[str, str]]
 ):
-    """Insert multiple mappings from github handle to Asana user ids.
+    """
+        Insert multiple mappings from github handle to Asana user ids.
     """
     DynamoDbClient.singleton().bulk_insert_github_handle_to_asana_user_id_mapping(
         gh_and_asana_ids
