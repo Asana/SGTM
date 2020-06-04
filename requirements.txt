@@ -3,3 +3,4 @@ boto3==1.10.15
 PyGithub==1.44.1
 python-dynamodb-lock==0.9.1
 sgqlc==8.1
+typing-extensions==3.7.4.1
