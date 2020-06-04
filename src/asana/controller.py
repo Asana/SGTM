@@ -79,7 +79,7 @@ def upsert_github_review_to_task(review: Review, task_id: str):
             asana_comment_id, asana_helpers.asana_comment_from_github_review(review)
         )
 
-    # XCXC: Can you add a duplicate mapping? Will that log an error? 
+    # XCXC: Can you add a duplicate mapping? Will that log an error?
     dynamodb_client.bulk_insert_github_node_to_asana_id_mapping(
         [(c.id(), asana_comment_id) for c in review.comments()]
     )
