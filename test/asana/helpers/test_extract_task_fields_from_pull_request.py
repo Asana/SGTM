@@ -40,7 +40,7 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
             "This is a one-way sync from GitHub to Asana. Do not edit this task or comment on it!",
             "</em>",
             "\uD83D\uDD17",
-            "https://foo.bar/baz",
+            '<a href="https://foo.bar/baz">https://foo.bar/baz</a>',
             "✍",
             "TEST_USER_ASANA_DOMAIN_USER_ID",
             "<strong>",
