@@ -21,3 +21,14 @@ variable "lambda_function_timeout" {
   description = "Timeout used for the AWS Lambda function"
   default     = 30
 }
+
+
+variable "terraform_backend_s3_bucket_name" {
+  type        = string
+  description = "S3 bucket name to store the Terraform state"
+}
+
+variable "terraform_backend_dynamodb_lock_table" {
+  type        = string
+  description = "The DynamoDb table to store the Terraform state lock"
+}

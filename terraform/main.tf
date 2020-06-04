@@ -297,10 +297,10 @@ resource "aws_s3_bucket" "api_key_bucket" {
 
 terraform {
   backend "s3" {
-    bucket = "sgtm-terraform-state-bucket"
+    bucket = var.terraform_backend_s3_bucket_name
     key    = "terraform.tfstate"
-    region = "us-east-1"
-    dynamodb_table = "sgtm_terraform_state_lock"
+    region = var.aws_region
+    dynamodb_table = var.terraform_backend_dynamodb_lock_table
   }
 }
 
