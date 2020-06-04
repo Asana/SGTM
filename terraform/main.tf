@@ -171,7 +171,7 @@ resource "aws_lambda_function" "sgtm_sync_users" {
     variables = {
       API_KEYS_S3_BUCKET     = var.api_key_s3_bucket_name,
       API_KEYS_S3_KEY        = var.api_key_s3_object
-      ASANA_USERS_PROJECT_ID = "" # TODO
+      ASANA_USERS_PROJECT_ID = var.asana_users_project_id
     }
   }
 }
