@@ -23,7 +23,7 @@ variable "lambda_code_s3_bucket_name" {
 variable "lambda_function_timeout" {
   type        = number
   description = "Timeout used for the AWS Lambda function"
-  default     = 30
+  default     = 120
 }
 
 
@@ -35,4 +35,9 @@ variable "terraform_backend_s3_bucket_name" {
 variable "terraform_backend_dynamodb_lock_table" {
   type        = string
   description = "The DynamoDb table to store the Terraform state lock"
+}
+
+variable "asana_users_project_id" {
+  type        = string
+  description = "Project ID that holds the tasks that map Github handles to Asana user ids"
 }
