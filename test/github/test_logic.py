@@ -171,7 +171,7 @@ class GithubLogicTest(unittest.TestCase):
             builder.pull_request()
             .merged_at(datetime.now())
             .reviews([builder.review("This looks OK").submitted_at(reviewed_at)])
-            .comments([builder.comment("LGTM!").published_at(commented_at)])
+            .comments([builder.comment("SGTM!").published_at(commented_at)])
         )
         self.assertTrue(github_logic.pull_request_approved_after_merging(pull_request))
 
