@@ -60,6 +60,22 @@ class TestSgtmUser(unittest.TestCase):
         user = SgtmUser.from_custom_fields_list(custom_fields)
         self.assertEqual(user, None)
 
+    def test_from_custom_fields_list__None_custom_field_value_returns_None(self):
+        custom_fields = [
+            {
+                "name": SgtmUser.GITHUB_HANDLE_CUSTOM_FIELD_NAME,
+                "type": "text",
+                "text_value": "elainebenes",
+            },
+            {
+                "name": SgtmUser.USER_ID_CUSTOM_FIELD_NAME,
+                "type": "number",
+                "number_value": None,
+            },
+        ]
+        user = SgtmUser.from_custom_fields_list(custom_fields)
+        self.assertEqual(user, None)
+
     def test_equality(self):
         user1 = SgtmUser("Foo", "123")
         user2 = SgtmUser("fOO", "123")

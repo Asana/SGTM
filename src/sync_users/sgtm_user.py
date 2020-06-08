@@ -51,12 +51,12 @@ class SgtmUser(object):
         asana_user_id = None
         for cf in custom_fields_list:
             if cf["name"] == cls.USER_ID_CUSTOM_FIELD_NAME:
-                asana_user_id = str(cls._get_custom_field_value(cf))
+                asana_user_id = cls._get_custom_field_value(cf)
             elif cf["name"] == cls.GITHUB_HANDLE_CUSTOM_FIELD_NAME:
                 github_handle = cls._get_custom_field_value(cf)
 
         if github_handle and asana_user_id:
-            return cls(github_handle, asana_user_id)
+            return cls(github_handle, str(asana_user_id))
         else:
             return None
 
