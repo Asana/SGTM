@@ -39,7 +39,7 @@ class ReviewBuilder(BuilderBaseClass):
 
     def comments(self, comments: List[Union[CommentBuilder, Comment]]):
         for comment in comments:
-            self.raw_review["comments"]["nodes"].append(comment.to_raw())
+            self.raw_review["comments"]["nodes"].append(comment.to_raw())  # type: ignore
         return self
 
     def url(self, url: str):
