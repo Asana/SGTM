@@ -106,8 +106,8 @@ def _handle_pull_request_review_comment(payload: dict):
 # https://developer.github.com/v3/activity/events/types/#statusevent
 def _handle_status_webhook(payload: dict):
     commit_id = payload["commit"]["node_id"]
-    with dynamodb_lock(commit_id):
-        pull_request = graphql_client.get_pull_request_for_commit(commit_id)
+    pull_request = graphql_client.get_pull_request_for_commit(commit_id)
+    with dynamodb_lock(pull_request.id()):
         return github_controller.upsert_pull_request(pull_request)
 
 
