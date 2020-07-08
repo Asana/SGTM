@@ -266,8 +266,8 @@ resource "aws_lambda_permission" "lambda_permission_for_sgtm_rest_api" {
 
 resource "aws_dynamodb_table" "sgtm-lock" {
   name           = "sgtm-lock"
-  read_capacity  = 5
-  write_capacity = 5
+  read_capacity  = 15
+  write_capacity = 15
   hash_key       = "lock_key"
   range_key      = "sort_key"
 
