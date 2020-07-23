@@ -1,5 +1,6 @@
 from typing import Optional
 from operator import itemgetter
+import time
 
 import src.github.graphql.client as graphql_client
 from src.dynamodb.lock import dynamodb_lock
@@ -126,4 +127,12 @@ def handle_github_webhook(event_type, payload):
         return
 
     logger.info(f"Received event type {event_type}!")
+    # TEMPORARY: sleep for 1 second before handling any webhook. We're running
+    # into an issue where the Github Webhook sends us a node_id, but when we
+    # immediately query that id using the GraphQL API, we get back an error
+    # "Could not resolve to a node with the global id of '<node_id>'". This is
+    # an attempt to mitigate this issue temporarily by waiting a second to see
+    # if Github's data consistency needs a bit of time (does not have
+    # read-after-write consistency)
+    time.sleep(1)
     return _events_map[event_type](payload)
