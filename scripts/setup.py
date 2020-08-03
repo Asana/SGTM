@@ -22,7 +22,6 @@ def _parse_tfvars_file() -> dict:
     return obj
 
 
-
 def set_api_keys(args):
     user_input = input("Have you ran `terraform apply` yet? (type y/n): ")
     if user_input != "y":
