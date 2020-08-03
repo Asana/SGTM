@@ -5,24 +5,26 @@ from test.impl.base_test_case_class import BaseClass
 from src.github import webhook
 from src.github.models import PullRequest, PullRequestReviewComment, Review
 
-
 class TestHandleGithubWebhook(BaseClass):
     def test_handle_github_webhook_501_error_for_unknown_event_type(self):
         response = webhook.handle_github_webhook("unknown_event_type", {})
 
         self.assertEqual(response.status_code, "501")
 
-
 @patch.object(webhook, "dynamodb_lock")
 class HandleIssueCommentWebhook(BaseClass):
     COMMENT_NODE_ID = "hijkl"
     ISSUE_NODE_ID = "ksjklsdf"
-
+    
     def setUp(self):
         self.payload = {
             "action": "edited",
-            "comment": {"node_id": self.COMMENT_NODE_ID,},
-            "issue": {"node_id": self.ISSUE_NODE_ID,},
+            "comment": {
+                "node_id": self.COMMENT_NODE_ID,
+            },
+            "issue": {
+                "node_id": self.ISSUE_NODE_ID,
+            }
         }
 
     def test_handle_unknown_action_for_issue_comment(self, lock):
@@ -128,6 +130,7 @@ class TestHandlePullRequestReviewComment(BaseClass):
             self.PULL_REQUEST_NODE_ID, self.PULL_REQUEST_REVIEW_ID
         )
         delete_comment.assert_called_once_with(self.COMMENT_NODE_ID)
+
 
 
 if __name__ == "__main__":
