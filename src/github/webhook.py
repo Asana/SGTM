@@ -1,11 +1,13 @@
+from typing import Optional
 from operator import itemgetter
+import time
 
 import src.github.graphql.client as graphql_client
 from src.dynamodb.lock import dynamodb_lock
 import src.github.controller as github_controller
 from src.http import HttpResponse
 from src.logger import logger
-from src.github.models import PullRequestReviewComment
+from src.github.models import PullRequestReviewComment, Review
 
 
 # https://developer.github.com/v3/activity/events/types/#pullrequestevent
@@ -56,6 +58,11 @@ def _handle_pull_request_review_webhook(payload: dict) -> HttpResponse:
 # https://developer.github.com/v3/activity/events/types/#pullrequestreviewcommentevent
 def _handle_pull_request_review_comment(payload: dict):
     """Handle when a pull request review comment is edited or removed.
+    When comments are added it either hits:
+        1 _handle_issue_comment_webhook (if the comment is on PR itself)
+        2 _handle_pull_request_review_webhook (if the comment is on the "Files Changed" tab)
+    Note that it hits (2) even if the comment is inline, and doesn't contain a review;
+        in those cases Github still creates a review object for it.
 
     Unfortunately, this payload doesn't contain the node id of the review.
     Instead, it includes a separate, numeric id
@@ -86,23 +93,30 @@ def _handle_pull_request_review_comment(payload: dict):
                 raise Exception(
                     f"Unexpected comment type {type(PullRequestReviewComment)} for pull request review"
                 )
-            review = comment.review()
+            review: Optional[Review] = Review.from_comment(comment)
         elif action == "deleted":
             pull_request = graphql_client.get_pull_request(pull_request_id)
             review = graphql_client.get_review_for_database_id(
                 pull_request_id, review_database_id
             )
+            if review is None:
+                # If we deleted the last comment from a review, Github might have deleted the review.
+                # If so, we should delete the Asana comment.
+                logger.info("No review found in Github. Deleting the Asana comment.")
+                github_controller.delete_comment(comment_id)
         else:
             raise ValueError(f"Unexpected action: {action}")
-        github_controller.upsert_review(pull_request, review)
-    return HttpResponse("200")
 
+        if review is not None:
+            github_controller.upsert_review(pull_request, review)
+        
+        return HttpResponse("200")
 
 # https://developer.github.com/v3/activity/events/types/#statusevent
 def _handle_status_webhook(payload: dict) -> HttpResponse:
     commit_id = payload["commit"]["node_id"]
-    with dynamodb_lock(commit_id):
-        pull_request = graphql_client.get_pull_request_for_commit(commit_id)
+    pull_request = graphql_client.get_pull_request_for_commit(commit_id)
+    with dynamodb_lock(pull_request.id()):
         github_controller.upsert_pull_request(pull_request)
         return HttpResponse("200")
 
@@ -122,4 +136,12 @@ def handle_github_webhook(event_type, payload) -> HttpResponse:
         return HttpResponse("501", f"No handler for event type {event_type}")
 
     logger.info(f"Received event type {event_type}!")
+    # TEMPORARY: sleep for 2 seconds before handling any webhook. We're running
+    # into an issue where the Github Webhook sends us a node_id, but when we
+    # immediately query that id using the GraphQL API, we get back an error
+    # "Could not resolve to a node with the global id of '<node_id>'". This is
+    # an attempt to mitigate this issue temporarily by waiting a second to see
+    # if Github's data consistency needs a bit of time (does not have
+    # read-after-write consistency)
+    time.sleep(2)
     return _events_map[event_type](payload)

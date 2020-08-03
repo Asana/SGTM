@@ -13,7 +13,9 @@ resource "aws_iam_policy" "lambda-function-dynamodb-policy" {
     {
       "Action": [
         "dynamodb:GetItem",
-        "dynamodb:PutItem"
+        "dynamodb:Scan",
+        "dynamodb:PutItem",
+        "dynamodb:BatchWriteItem"
       ],
       "Resource": [
         "${aws_dynamodb_table.sgtm-lock.arn}",
@@ -50,7 +52,8 @@ resource "aws_iam_policy" "lambda-function-cloudwatch-policy" {
         "logs:PutLogEvents"
       ],
       "Resource": [
-        "arn:aws:logs:${var.aws_region}:*:log-group:/aws/lambda/${aws_lambda_function.sgtm.function_name}:*"
+        "arn:aws:logs:${var.aws_region}:*:log-group:/aws/lambda/${aws_lambda_function.sgtm.function_name}:*",
+        "arn:aws:logs:${var.aws_region}:*:log-group:/aws/lambda/${aws_lambda_function.sgtm_sync_users.function_name}:*"
       ],
       "Effect": "Allow"
     }
@@ -122,15 +125,24 @@ resource "aws_iam_policy" "LambdaFunctionApiKeysBucketAccess" {
 EOF
 }
 
+
+resource "aws_s3_bucket" "lambda_code_s3_bucket" {
+  bucket = var.lambda_code_s3_bucket_name
+}
+
+resource "aws_s3_bucket_object" "lambda_code_bundle" {
+  bucket = aws_s3_bucket.lambda_code_s3_bucket.bucket
+  key    = "sgtm_bundle.zip"
+  source = "../build/function.zip"
+  etag = filemd5("../build/function.zip")
+}
+
 resource "aws_lambda_function" "sgtm" {
-  filename      = "../build/function.zip"
+  s3_bucket     = aws_s3_bucket.lambda_code_s3_bucket.bucket
+  s3_key        = aws_s3_bucket_object.lambda_code_bundle.key
   function_name = "sgtm"
   role          = aws_iam_role.iam_for_lambda_function.arn
   handler       = "src.handler.handler"
-
-  # The filebase64sha256() function is available in Terraform 0.11.12 and later
-  # For Terraform 0.11.11 and earlier, use the base64sha256() function and the file() function:
-  # source_code_hash = base64sha256(file("lambda_function_payload.zip"))
   source_code_hash = filebase64sha256("../build/function.zip")
 
   runtime = "python3.7"
@@ -142,7 +154,46 @@ resource "aws_lambda_function" "sgtm" {
       API_KEYS_S3_KEY     = var.api_key_s3_object
     }
   }
+}
 
+resource "aws_lambda_function" "sgtm_sync_users" {
+  s3_bucket     = aws_s3_bucket.lambda_code_s3_bucket.bucket
+  s3_key        = aws_s3_bucket_object.lambda_code_bundle.key
+  function_name = "sgtm_sync_users"
+  role          = aws_iam_role.iam_for_lambda_function.arn
+  handler       = "src.sync_users.handler.handler"
+  source_code_hash = filebase64sha256("../build/function.zip")
+
+  runtime = "python3.7"
+
+  timeout = 900
+  environment {
+    variables = {
+      API_KEYS_S3_BUCKET     = var.api_key_s3_bucket_name,
+      API_KEYS_S3_KEY        = var.api_key_s3_object
+      ASANA_USERS_PROJECT_ID = var.asana_users_project_id
+    }
+  }
+}
+
+resource "aws_cloudwatch_event_rule" "execute_sgtm_sync_users_event_rule" {
+  name        = "execute_sgtm_sync_users"
+  description = "Execute Lambda function sgtm_sync_users on a cron-style schedule"
+  schedule_expression = "rate(1 hour)"
+}
+
+resource "aws_lambda_permission" "lambda_permission_for_sgtm_sync_users_schedule_event" {
+  statement_id  = "AllowSGTMSyncUsersInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.sgtm_sync_users.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.execute_sgtm_sync_users_event_rule.arn
+}
+
+resource "aws_cloudwatch_event_target" "execute_sgtm_sync_users_event_target" {
+  target_id = "execute_sgtm_sync_users_event_target"
+  rule      = aws_cloudwatch_event_rule.execute_sgtm_sync_users_event_rule.name
+  arn       = aws_lambda_function.sgtm_sync_users.arn
 }
 
 ### API
@@ -215,8 +266,8 @@ resource "aws_lambda_permission" "lambda_permission_for_sgtm_rest_api" {
 
 resource "aws_dynamodb_table" "sgtm-lock" {
   name           = "sgtm-lock"
-  read_capacity  = 5
-  write_capacity = 5
+  read_capacity  = 15
+  write_capacity = 15
   hash_key       = "lock_key"
   range_key      = "sort_key"
 
@@ -296,10 +347,14 @@ resource "aws_s3_bucket" "api_key_bucket" {
 
 terraform {
   backend "s3" {
-    bucket = "sgtm-terraform-state-bucket"
+    # Should be able to use vars here, but can't in backend configuration
+    # unfortunately.
+    # See: https://github.com/hashicorp/terraform/issues/13022
+    bucket = "asana-sgtm-terraform-state-bucket" # var.terraform_backend_s3_bucket_name
+    dynamodb_table = "sgtm_terraform_state_lock" # var.terraform_backend_dynamodb_lock_table
+    region = "us-east-1" # var.aws_region
+
     key    = "terraform.tfstate"
-    region = "us-east-1"
-    dynamodb_table = "sgtm_terraform_state_lock"
   }
 }
 

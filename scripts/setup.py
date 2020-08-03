@@ -14,6 +14,15 @@ REGION = "us-east-1"
 s3_client = boto3.client("s3", region_name=REGION)
 
 
+def _parse_tfvars_file() -> dict:
+    directory = os.path.dirname(__file__)
+    file_name = os.path.join(directory, "../terraform/terraform.tfvars.json")
+    with open(file_name) as f:
+        obj = json.load(f)
+    return obj
+
+
+
 def set_api_keys(args):
     user_input = input("Have you ran `terraform apply` yet? (type y/n): ")
     if user_input != "y":
@@ -23,12 +32,9 @@ def set_api_keys(args):
         return
 
     # Get bucket name and key name
-    directory = os.path.dirname(__file__)
-    file_name = os.path.join(directory, "../terraform/terraform.tfvars.json")
-    with open(file_name) as f:
-        obj = json.load(f)
-        bucket_name = obj["api_key_s3_bucket_name"]
-        key_name = obj["api_key_s3_object"]
+    tfvars = _parse_tfvars_file()
+    bucket_name = tfvars["api_key_s3_bucket_name"]
+    key_name = tfvars["api_key_s3_object"]
 
     keys = {}
     try:
@@ -54,8 +60,9 @@ def set_api_keys(args):
 
 def setup_state(args):
     # Setup terraform backend S3 bucket
-    bucket_name = "sgtm-terraform-state-bucket"
-    table_name = "sgtm_terraform_state_lock"
+    tfvars = _parse_tfvars_file()
+    bucket_name = tfvars["terraform_backend_s3_bucket_name"]
+    table_name = tfvars["terraform_backend_dynamodb_lock_table"]
 
     s3_client = boto3.client("s3", region_name=REGION)
     s3_client.create_bucket(

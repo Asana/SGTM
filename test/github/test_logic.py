@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timedelta
 import src.github.logic as github_logic
-from src.github.models import Review
+from src.github.models import Review, ReviewState
 from test.impl.builders import builder, build
 
 
@@ -88,7 +88,7 @@ class GithubLogicTest(unittest.TestCase):
                 [
                     builder.review()
                     .submitted_at(submitted_at)
-                    .state(Review.STATE_APPROVED)
+                    .state(ReviewState.APPROVED)
                 ]
             )
             .merged_at(merged_at)
@@ -107,7 +107,7 @@ class GithubLogicTest(unittest.TestCase):
                 [
                     builder.review()
                     .submitted_at(submitted_at)
-                    .state(Review.STATE_APPROVED)
+                    .state(ReviewState.APPROVED)
                 ]
             )
             .merged_at(merged_at)
@@ -126,7 +126,7 @@ class GithubLogicTest(unittest.TestCase):
                 [
                     builder.review()
                     .submitted_at(submitted_at)
-                    .state(Review.STATE_CHANGES_REQUESTED)
+                    .state(ReviewState.CHANGES_REQUESTED)
                 ]
             )
             .merged_at(merged_at)
@@ -171,7 +171,7 @@ class GithubLogicTest(unittest.TestCase):
             builder.pull_request()
             .merged_at(datetime.now())
             .reviews([builder.review("This looks OK").submitted_at(reviewed_at)])
-            .comments([builder.comment("LGTM!").published_at(commented_at)])
+            .comments([builder.comment("SGTM!").published_at(commented_at)])
         )
         self.assertTrue(github_logic.pull_request_approved_after_merging(pull_request))
 

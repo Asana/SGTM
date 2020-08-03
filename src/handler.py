@@ -5,6 +5,7 @@ import json
 from typing import Dict
 from src.http import HttpResponse, HttpResponseDict
 from src.config import GITHUB_HMAC_SECRET
+from src.logger import logger
 import src.github.webhook as github_webhook
 
 
@@ -19,6 +20,8 @@ def handler(event: dict, context: dict) -> HttpResponseDict:
 
     event_type = event["headers"].get("X-GitHub-Event")
     signature = event["headers"].get("X-Hub-Signature")
+    delivery_id = event["headers"].get("X-GitHub-Delivery")
+    logger.info(f"Webhook delivery id: {delivery_id}")
 
     if GITHUB_HMAC_SECRET is None:
         return HttpResponse("400", "GITHUB_HMAC_SECRET").to_dict()

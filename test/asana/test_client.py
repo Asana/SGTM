@@ -138,6 +138,17 @@ class TestAsanaClientDeleteComment(BaseClass):
         delete_story.assert_called_once_with("COMMENT_ID")
 
 
+class TestAsanaClientFindAllTasksForProject(BaseClass):
+    @patch.object(asana_api_client.tasks, "find_all")
+    def test_find_all_tasks_for_project(self, find_all_mock):
+        project_id = "12345"
+        opt_fields = ["custom_fields"]
+        src.asana.client.find_all_tasks_for_project(project_id, opt_fields)
+        find_all_mock.assert_called_once_with(
+            project=project_id, completed_since="now", opt_fields=opt_fields
+        )
+
+
 if __name__ == "__main__":
     from unittest import main as run_tests
 

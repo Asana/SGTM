@@ -1,7 +1,7 @@
 from typing import List, Union, Tuple, Optional, Dict, Any
 from datetime import datetime
 from .helpers import transform_datetime, create_uuid
-from src.github.models import Comment, Review, User
+from src.github.models import Comment, Review, ReviewState, User
 from .builder_base_class import BuilderBaseClass
 from .comment_builder import CommentBuilder
 from .user_builder import UserBuilder
@@ -17,9 +17,9 @@ class ReviewBuilder(BuilderBaseClass):
             "url": "",
         }
 
-    def state(self, state: str):
+    def state(self, state: ReviewState):
         # TODO: validate state
-        self.raw_review["state"] = state
+        self.raw_review["state"] = state.value
         return self
 
     def body(self, body: str):
@@ -39,7 +39,7 @@ class ReviewBuilder(BuilderBaseClass):
 
     def comments(self, comments: List[Union[CommentBuilder, Comment]]):
         for comment in comments:
-            self.raw_review["comments"]["nodes"].append(comment.to_raw())
+            self.raw_review["comments"]["nodes"].append(comment.to_raw())  # type: ignore
         return self
 
     def url(self, url: str):

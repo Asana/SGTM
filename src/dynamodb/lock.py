@@ -12,8 +12,8 @@ lock_client = DynamoDBLockClient(
     dynamodb_resource,
     table_name=LOCK_TABLE,
     expiry_period=timedelta(
-        minutes=1
-    ),  # The Lambda function has a 30 second timeout by default anyway
+        minutes=2
+    ),  # The Lambda function has a 120 second timeout by default
     # partition_key_name="key",
     # sort_key_name="key",
 )

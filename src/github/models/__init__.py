@@ -1,6 +1,6 @@
 from typing import Dict, Any
 from .pull_request import PullRequest
-from .review import Review
+from .review import Review, ReviewState
 from .comment import Comment
 from .issue_comment import IssueComment
 from .pull_request_review_comment import PullRequestReviewComment
