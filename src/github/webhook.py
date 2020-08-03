@@ -109,8 +109,9 @@ def _handle_pull_request_review_comment(payload: dict):
 
         if review is not None:
             github_controller.upsert_review(pull_request, review)
-        
+
         return HttpResponse("200")
+
 
 # https://developer.github.com/v3/activity/events/types/#statusevent
 def _handle_status_webhook(payload: dict) -> HttpResponse:
