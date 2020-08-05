@@ -191,6 +191,7 @@ class GithubLogicTest(unittest.TestCase):
         )
         self.assertTrue(github_logic.pull_request_approved_after_merging(pull_request))
 
+# TODO: update to not use [SHIPIT]
     def test_is_pull_request_ready_for_automerge(self):
         pull_request = build(
             builder.pull_request()

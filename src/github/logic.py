@@ -145,10 +145,6 @@ def is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
         and pull_request.mergeable()
         and not pull_request.closed()
         and not pull_request.merged()
-        and _has_ship_it_in_pull_request_title(pull_request.title())
+        # and _has_ship_it_in_pull_request_title(pull_request.title())
         and pull_request.is_approved()
     )
-
-
-def _has_ship_it_in_pull_request_title(title: str) -> bool:
-    return re.search("\[shipit\]", title.lower(), re.IGNORECASE) is not None

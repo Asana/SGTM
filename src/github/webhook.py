@@ -107,6 +107,7 @@ def _handle_pull_request_review_comment(payload: dict):
 
 
 # https://developer.github.com/v3/activity/events/types/#statusevent
+# TODO: make this account for label
 def _handle_status_webhook(payload: dict):
     commit_id = payload["commit"]["node_id"]
     pull_request = graphql_client.get_pull_request_for_commit(commit_id)
