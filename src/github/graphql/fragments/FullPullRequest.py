@@ -62,6 +62,11 @@ fragment FullPullRequest on PullRequest {
       }
     }
   }
+  labels(last: 20) {
+    nodes {
+      name
+    }
+  }
 }
 """
 
