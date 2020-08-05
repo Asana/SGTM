@@ -19,7 +19,7 @@ class ReviewBuilder(BuilderBaseClass):
 
     def state(self, state: ReviewState):
         # TODO: validate state
-        self.raw_review["state"] = state.value
+        self.raw_review["state"] = state
         return self
 
     def body(self, body: str):
