@@ -5,20 +5,22 @@ import time
 import src.github.graphql.client as graphql_client
 from src.dynamodb.lock import dynamodb_lock
 import src.github.controller as github_controller
+from src.http import HttpResponse
 from src.logger import logger
 from src.github.models import PullRequestReviewComment, Review
 
 
 # https://developer.github.com/v3/activity/events/types/#pullrequestevent
-def _handle_pull_request_webhook(payload: dict):
+def _handle_pull_request_webhook(payload: dict) -> HttpResponse:
     pull_request_id = payload["pull_request"]["node_id"]
     with dynamodb_lock(pull_request_id):
         pull_request = graphql_client.get_pull_request(pull_request_id)
-        return github_controller.upsert_pull_request(pull_request)
+        github_controller.upsert_pull_request(pull_request)
+        return HttpResponse("200")
 
 
 # https://developer.github.com/v3/activity/events/types/#issuecommentevent
-def _handle_issue_comment_webhook(payload: dict):
+def _handle_issue_comment_webhook(payload: dict) -> HttpResponse:
     action, issue, comment = itemgetter("action", "issue", "comment")(payload)
 
     issue_id = issue["node_id"]
@@ -28,16 +30,20 @@ def _handle_issue_comment_webhook(payload: dict):
             pull_request, comment = graphql_client.get_pull_request_and_comment(
                 issue_id, comment_id
             )
-            return github_controller.upsert_comment(pull_request, comment)
+            github_controller.upsert_comment(pull_request, comment)
+            return HttpResponse("200")
         elif action == "deleted":
             logger.info(f"Deleting comment {comment_id}")
             github_controller.delete_comment(comment_id)
+            return HttpResponse("200")
         else:
-            logger.info(f"Unknown action for issue_comment: {action}")
+            error_text = f"Unknown action for issue_comment: {action}"
+            logger.info(error_text)
+            return HttpResponse("400", error_text)
 
 
 # https://developer.github.com/v3/activity/events/types/#pullrequestreviewevent
-def _handle_pull_request_review_webhook(payload: dict):
+def _handle_pull_request_review_webhook(payload: dict) -> HttpResponse:
     pull_request_id = payload["pull_request"]["node_id"]
     review_id = payload["review"]["node_id"]
 
@@ -46,6 +52,7 @@ def _handle_pull_request_review_webhook(payload: dict):
             pull_request_id, review_id
         )
         github_controller.upsert_review(pull_request, review)
+    return HttpResponse("200")
 
 
 # https://developer.github.com/v3/activity/events/types/#pullrequestreviewcommentevent
@@ -103,13 +110,16 @@ def _handle_pull_request_review_comment(payload: dict):
         if review is not None:
             github_controller.upsert_review(pull_request, review)
 
+        return HttpResponse("200")
+
 
 # https://developer.github.com/v3/activity/events/types/#statusevent
-def _handle_status_webhook(payload: dict):
+def _handle_status_webhook(payload: dict) -> HttpResponse:
     commit_id = payload["commit"]["node_id"]
     pull_request = graphql_client.get_pull_request_for_commit(commit_id)
     with dynamodb_lock(pull_request.id()):
-        return github_controller.upsert_pull_request(pull_request)
+        github_controller.upsert_pull_request(pull_request)
+        return HttpResponse("200")
 
 
 _events_map = {
@@ -121,10 +131,10 @@ _events_map = {
 }
 
 
-def handle_github_webhook(event_type, payload):
+def handle_github_webhook(event_type, payload) -> HttpResponse:
     if event_type not in _events_map:
         logger.info(f"No handler for event type {event_type}")
-        return
+        return HttpResponse("501", f"No handler for event type {event_type}")
 
     logger.info(f"Received event type {event_type}!")
     # TEMPORARY: sleep for 2 seconds before handling any webhook. We're running
