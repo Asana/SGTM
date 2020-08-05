@@ -117,6 +117,12 @@ def _handle_pull_request_review_comment(payload: dict):
 def _handle_status_webhook(payload: dict) -> HttpResponse:
     commit_id = payload["commit"]["node_id"]
     pull_request = graphql_client.get_pull_request_for_commit(commit_id)
+    if pull_request is None:
+        # This could happen for commits that get pushed outside of the normal
+        # pull request flow. These should just be silently ignored.
+        logger.warn(f"No pull request found for commit id {commit_id}")
+        return HttpResponse("200")
+
     with dynamodb_lock(pull_request.id()):
         github_controller.upsert_pull_request(pull_request)
         return HttpResponse("200")
