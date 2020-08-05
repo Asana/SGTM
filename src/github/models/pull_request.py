@@ -40,7 +40,7 @@ class PullRequest(object):
                 node["requestedReviewer"] is not None
                 and "members" in node["requestedReviewer"]
             ):
-                for reviewer in node["requestedReviewer"]["members"]["nodes"]:
+                for reviewer in node["requestedReviewer"]["members"].get("nodes", []):
                     reviewer_logins.add(reviewer["login"])
         return sorted(reviewer_logins)
 
