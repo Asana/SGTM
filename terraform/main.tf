@@ -198,6 +198,56 @@ resource "aws_cloudwatch_event_target" "execute_sgtm_sync_users_event_target" {
 
 ### API
 
+resource "aws_api_gateway_account" "sgtm_api_cloudwatch_role" {
+  cloudwatch_role_arn = aws_iam_role.sgtm_api_cloudwatch_role.arn
+}
+
+resource "aws_iam_role" "sgtm_api_cloudwatch_role" {
+  name = "sgtm_api_cloudwatch_role"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "apigateway.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy" "sgtm_api_cloudwatch_policy" {
+  name = "default"
+  role = aws_iam_role.sgtm_api_cloudwatch_role.id
+
+  policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:DescribeLogGroups",
+                "logs:DescribeLogStreams",
+                "logs:PutLogEvents",
+                "logs:GetLogEvents",
+                "logs:FilterLogEvents"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+EOF
+}
+
 resource "aws_api_gateway_rest_api" "sgtm_rest_api" {
   name        = "SgtmRestApi"
   description = "The API gateway for SGTM lambda function"
