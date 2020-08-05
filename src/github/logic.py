@@ -142,9 +142,7 @@ def all_pull_request_participants(pull_request: PullRequest) -> List[str]:
 
 
 def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
-    if os.getenv(
-        "IS_AUTOMERGE_ENABLED", False
-    ) and _is_pull_request_ready_for_automerge(pull_request):
+    if _is_pull_request_ready_for_automerge(pull_request):
         logger.info(
             f"Pull request {pull_request.id()} is able to be automerged, automerging now"
         )
@@ -162,7 +160,9 @@ def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
 
 def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
     return (
-        pull_request.is_build_successful()
+        # get automerge behind env variable
+        os.getenv("IS_AUTOMERGE_ENABLED", False)
+        and pull_request.is_build_successful()
         and pull_request.mergeable()
         and not pull_request.closed()
         and not pull_request.merged()

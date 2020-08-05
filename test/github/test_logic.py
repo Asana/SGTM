@@ -12,17 +12,12 @@ import src.github.client as github_client
 @patch.object(github_client, "merge_pull_request")
 @patch.object(github_logic, "_is_pull_request_ready_for_automerge")
 class TestMaybeAutomergePullRequest(unittest.TestCase):
-    @patch("os.getenv")
     def test_handle_status_webhook_ready_for_automerge(
         self,
-        get_env_mock,
         is_pull_request_ready_for_automerge_mock,
         merge_pull_request_mock,
         upsert_pull_request_mock,
     ):
-        # set env variable to True to enable automerge
-        get_env_mock.return_value = True
-
         # Mock that pull request can be automerged
         is_pull_request_ready_for_automerge_mock.return_value = True
         pull_request = build(builder.pull_request())
@@ -38,35 +33,14 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
             pull_request.body(),
         )
 
-    @patch("os.getenv")
     def test_handle_status_webhook_not_ready_for_automerge(
         self,
-        get_env_mock,
         is_pull_request_ready_for_automerge_mock,
         merge_pull_request_mock,
         upsert_pull_request_mock,
     ):
-        # set env variable to True to enable automerge
-        get_env_mock.return_value = True
-
         # Mock that pull request cannot be automerged
         is_pull_request_ready_for_automerge_mock.return_value = False
-        pull_request = build(builder.pull_request())
-
-        merged = github_logic.maybe_automerge_pull_request(pull_request)
-
-        self.assertFalse(merged)
-        merge_pull_request_mock.assert_not_called()
-
-    # test that env variable that gates automerge is diabled by default
-    def test_handle_status_webhook_with_env_variable_disabled(
-        self,
-        is_pull_request_ready_for_automerge_mock,
-        merge_pull_request_mock,
-        upsert_pull_request_mock,
-    ):
-        # Mock that pull request can be automerged
-        is_pull_request_ready_for_automerge_mock.return_value = True
         pull_request = build(builder.pull_request())
 
         merged = github_logic.maybe_automerge_pull_request(pull_request)
