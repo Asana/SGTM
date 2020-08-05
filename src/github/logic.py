@@ -6,6 +6,7 @@ from . import client as github_client
 from src.github.models import PullRequest
 
 GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
+AUTOMERGE_LABEL_NAME = "merge on approval and passing tests"
 
 
 def inject_asana_task_into_pull_request_body(body: str, task_url: str) -> str:
@@ -158,9 +159,10 @@ def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
 
 
 def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
+    automerge_enabled = os.getenv("IS_AUTOMERGE_ENABLED") == "true"
     return (
         # get automerge behind env variable
-        os.getenv("IS_AUTOMERGE_ENABLED", False)
+        automerge_enabled
         and pull_request.is_build_successful()
         and pull_request.mergeable()
         and not pull_request.closed()
@@ -171,4 +173,5 @@ def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
 
 
 def _has_automerge_label(pull_request: PullRequest) -> bool:
-    return False
+    label_names = map(lambda label: label.name(), pull_request.labels())
+    return AUTOMERGE_LABEL_NAME in label_names

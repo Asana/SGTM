@@ -8,6 +8,7 @@ from .issue_comment import IssueComment
 from .review import Review
 from .commit import Commit
 from .user import User
+from .label import Label
 import copy
 
 
@@ -150,5 +151,5 @@ class PullRequest(object):
     def commits(self) -> List[Commit]:
         return [Commit(commit) for commit in self._raw["commits"]["nodes"]]
 
-    def labels(self) -> List[str]:
+    def labels(self) -> List[Label]:
         return [Label(label) for label in self._raw["labels"]["nodes"]]

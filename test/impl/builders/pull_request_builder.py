@@ -2,12 +2,13 @@ from random import randint
 from typing import Any, Dict, List, Union
 from datetime import datetime
 from .helpers import transform_datetime, create_uuid
-from src.github.models import PullRequest, Comment, Review, User, Commit
+from src.github.models import PullRequest, Comment, Review, User, Commit, Label
 from .builder_base_class import BuilderBaseClass
 from .user_builder import UserBuilder
 from .comment_builder import CommentBuilder
 from .commit_builder import CommitBuilder
 from .review_builder import ReviewBuilder
+from .label_builder import LabelBuilder
 
 
 class PullRequestBuilder(BuilderBaseClass):
@@ -30,6 +31,7 @@ class PullRequestBuilder(BuilderBaseClass):
                     }
                 ]
             },
+            "labels": {"nodes": []},
             "comments": {"nodes": []},
             "reviews": {"nodes": []},
             "reviewRequests": {"nodes": []},
@@ -120,6 +122,14 @@ class PullRequestBuilder(BuilderBaseClass):
     def commits(self, commits: List[Union[CommitBuilder, Commit]]):
         for commit in commits:
             self.raw_pr["commits"]["nodes"].insert(0, commit.to_raw())
+        return self
+
+    def label(self, label: Union[LabelBuilder, Label]):
+        return self.labels([label])
+
+    def labels(self, labels: List[Union[LabelBuilder, Label]]):
+        for label in labels:
+            self.raw_pr["labels"]["nodes"].append(label.to_raw())  # type: ignore
         return self
 
     def build(self) -> PullRequest:

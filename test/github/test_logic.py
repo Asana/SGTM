@@ -49,6 +49,226 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
         merge_pull_request_mock.assert_not_called()
 
 
+@patch("os.getenv")
+class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
+    def test_is_pull_request_ready_for_automerge(self, get_env_mock):
+        get_env_mock.return_value = "true"
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .review(
+                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+            )
+            .mergeable(True)
+            .merged(False)
+            .label(builder.label().name(github_logic.AUTOMERGE_LABEL_NAME))
+        )
+        self.assertTrue(github_logic._is_pull_request_ready_for_automerge(pull_request))
+
+    def test_is_pull_request_ready_for_automerge_no_env_variable(self, get_env_mock):
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .review(
+                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+            )
+            .mergeable(True)
+            .merged(False)
+            .label(builder.label().name(github_logic.AUTOMERGE_LABEL_NAME))
+        )
+        self.assertFalse(
+            github_logic._is_pull_request_ready_for_automerge(pull_request)
+        )
+
+    def test_is_pull_request_ready_for_automerge_build_failed(self, get_env_mock):
+        get_env_mock.return_value = "true"
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_FAILED))
+            .review(
+                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+            )
+            .mergeable(True)
+            .merged(False)
+            .label(builder.label().name(github_logic.AUTOMERGE_LABEL_NAME))
+        )
+        self.assertFalse(
+            github_logic._is_pull_request_ready_for_automerge(pull_request)
+        )
+
+    def test_is_pull_request_ready_for_automerge_build_pending(self, get_env_mock):
+        get_env_mock.return_value = "true"
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_PENDING))
+            .review(
+                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+            )
+            .mergeable(True)
+            .merged(False)
+            .label(builder.label().name(github_logic.AUTOMERGE_LABEL_NAME))
+        )
+        self.assertFalse(
+            github_logic._is_pull_request_ready_for_automerge(pull_request)
+        )
+
+    def test_is_pull_request_ready_for_automerge_reviewer_requested_changes(
+        self, get_env_mock
+    ):
+        get_env_mock.return_value = "true"
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state("CHANGES_REQUESTED")
+            )
+            .mergeable(True)
+            .merged(False)
+            .label(builder.label().name(github_logic.AUTOMERGE_LABEL_NAME))
+        )
+        self.assertFalse(
+            github_logic._is_pull_request_ready_for_automerge(pull_request)
+        )
+
+    def test_is_pull_request_ready_for_automerge_approved_and_requested_changes(
+        self, get_env_mock
+    ):
+        get_env_mock.return_value = "true"
+        author_1 = builder.user().login("author_1")
+        author_2 = builder.user().login("author_2")
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .reviews(
+                [
+                    builder.review()
+                    .submitted_at("2020-01-11T14:59:58Z")
+                    .state("CHANGES_REQUESTED")
+                    .author(author_1),
+                    builder.review()
+                    .submitted_at("2020-01-12T14:59:58Z")
+                    .state("APPROVED")
+                    .author(author_2),
+                ]
+            )
+            .mergeable(True)
+            .merged(False)
+            .label(builder.label().name(github_logic.AUTOMERGE_LABEL_NAME))
+        )
+        self.assertFalse(
+            github_logic._is_pull_request_ready_for_automerge(pull_request)
+        )
+
+    def test_is_pull_request_ready_for_automerge_changes_requested_then_approval(
+        self, get_env_mock
+    ):
+        get_env_mock.return_value = "true"
+        author_1 = builder.user().login("author_1")
+        author_2 = builder.user().login("author_2")
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .reviews(
+                [
+                    builder.review()
+                    .submitted_at("2020-01-11T14:59:58Z")
+                    .state("CHANGES_REQUESTED")
+                    .author(author_1),
+                    builder.review()
+                    .submitted_at("2020-01-12T14:59:58Z")
+                    .state("APPROVED")
+                    .author(author_2),
+                    builder.review()
+                    .submitted_at("2020-01-13T14:59:58Z")
+                    .state("APPROVED")
+                    .author(author_1),
+                ]
+            )
+            .mergeable(True)
+            .merged(False)
+            .label(builder.label().name(github_logic.AUTOMERGE_LABEL_NAME))
+        )
+        self.assertTrue(github_logic._is_pull_request_ready_for_automerge(pull_request))
+
+    def test_is_pull_request_ready_for_automerge_no_review(self, get_env_mock):
+        get_env_mock.return_value = "true"
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .title("blah blah [shipit]")
+        )
+        self.assertFalse(
+            github_logic._is_pull_request_ready_for_automerge(pull_request)
+        )
+
+    def test_is_pull_request_ready_for_automerge_no_automerge_label(self, get_env_mock):
+        get_env_mock.return_value = "true"
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .review(
+                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+            )
+            .mergeable(True)
+            .merged(False)
+            .label(builder.label().name("random label"))
+        )
+        self.assertFalse(
+            github_logic._is_pull_request_ready_for_automerge(pull_request)
+        )
+
+    def test_is_pull_request_ready_for_automerge_mergeable_is_false(self, get_env_mock):
+        get_env_mock.return_value = "true"
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .review(
+                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+            )
+            .mergeable(False)
+            .merged(False)
+            .label(builder.label().name(github_logic.AUTOMERGE_LABEL_NAME))
+        )
+        self.assertFalse(
+            github_logic._is_pull_request_ready_for_automerge(pull_request)
+        )
+
+    def test_is_pull_request_ready_for_automerge_is_already_merged(self, get_env_mock):
+        get_env_mock.return_value = "true"
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .review(
+                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+            )
+            .mergeable(True)
+            .merged(True)
+            .label(builder.label().name(github_logic.AUTOMERGE_LABEL_NAME))
+        )
+        self.assertFalse(
+            github_logic._is_pull_request_ready_for_automerge(pull_request)
+        )
+
+    def test_is_pull_request_ready_for_automerge_is_closed(self, get_env_mock):
+        get_env_mock.return_value = "true"
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .review(
+                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+            )
+            .mergeable(True)
+            .merged(True)
+            .closed(False)
+            .label(builder.label().name(github_logic.AUTOMERGE_LABEL_NAME))
+        )
+        self.assertFalse(
+            github_logic._is_pull_request_ready_for_automerge(pull_request)
+        )
+
+
 class GithubLogicTest(unittest.TestCase):
     def test_inject_asana_task_into_pull_request_body(self):
         task_url = "https://asana.com/task/1"
@@ -234,192 +454,6 @@ class GithubLogicTest(unittest.TestCase):
             )
         )
         self.assertTrue(github_logic.pull_request_approved_after_merging(pull_request))
-
-    # TODO: update to not use [SHIPIT]
-    def test_is_pull_request_ready_for_automerge(self):
-        pull_request = build(
-            builder.pull_request()
-            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
-            .review(
-                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
-            )
-            .mergeable(True)
-            .merged(False)
-            .title("blah blah [ShIpIt]")
-        )
-        self.assertTrue(github_logic._is_pull_request_ready_for_automerge(pull_request))
-
-    def test_is_pull_request_ready_for_automerge_build_failed(self):
-        pull_request = build(
-            builder.pull_request()
-            .commit(builder.commit().status(Commit.BUILD_FAILED))
-            .review(
-                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
-            )
-            .mergeable(True)
-            .merged(False)
-            .title("blah blah [shipit]")
-        )
-        self.assertFalse(
-            github_logic._is_pull_request_ready_for_automerge(pull_request)
-        )
-
-    def test_is_pull_request_ready_for_automerge_build_pending(self):
-        pull_request = build(
-            builder.pull_request()
-            .commit(builder.commit().status(Commit.BUILD_PENDING))
-            .review(
-                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
-            )
-            .mergeable(True)
-            .merged(False)
-            .title("blah blah [shipit]")
-        )
-        self.assertFalse(
-            github_logic._is_pull_request_ready_for_automerge(pull_request)
-        )
-
-    def test_is_pull_request_ready_for_automerge_reviewer_requested_changes(self):
-        pull_request = build(
-            builder.pull_request()
-            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
-            .review(
-                builder.review()
-                .submitted_at("2020-01-13T14:59:58Z")
-                .state("CHANGES_REQUESTED")
-            )
-            .mergeable(True)
-            .merged(False)
-            .title("blah blah [shipit]")
-        )
-        self.assertFalse(
-            github_logic._is_pull_request_ready_for_automerge(pull_request)
-        )
-
-    def test_is_pull_request_ready_for_automerge_approved_and_requested_changes(self):
-        author_1 = builder.user().login("author_1")
-        author_2 = builder.user().login("author_2")
-        pull_request = build(
-            builder.pull_request()
-            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
-            .reviews(
-                [
-                    builder.review()
-                    .submitted_at("2020-01-11T14:59:58Z")
-                    .state("CHANGES_REQUESTED")
-                    .author(author_1),
-                    builder.review()
-                    .submitted_at("2020-01-12T14:59:58Z")
-                    .state("APPROVED")
-                    .author(author_2),
-                ]
-            )
-            .mergeable(True)
-            .merged(False)
-            .title("blah blah [shipit]")
-        )
-        self.assertFalse(
-            github_logic._is_pull_request_ready_for_automerge(pull_request)
-        )
-
-    def test_is_pull_request_ready_for_automerge_changes_requested_then_approval(self):
-        author_1 = builder.user().login("author_1")
-        author_2 = builder.user().login("author_2")
-        pull_request = build(
-            builder.pull_request()
-            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
-            .reviews(
-                [
-                    builder.review()
-                    .submitted_at("2020-01-11T14:59:58Z")
-                    .state("CHANGES_REQUESTED")
-                    .author(author_1),
-                    builder.review()
-                    .submitted_at("2020-01-12T14:59:58Z")
-                    .state("APPROVED")
-                    .author(author_2),
-                    builder.review()
-                    .submitted_at("2020-01-13T14:59:58Z")
-                    .state("APPROVED")
-                    .author(author_1),
-                ]
-            )
-            .mergeable(True)
-            .merged(False)
-            .title("blah blah [shipit]")
-        )
-        self.assertTrue(github_logic._is_pull_request_ready_for_automerge(pull_request))
-
-    def test_is_pull_request_ready_for_automerge_no_review(self):
-        pull_request = build(
-            builder.pull_request()
-            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
-            .title("blah blah [shipit]")
-        )
-        self.assertFalse(
-            github_logic._is_pull_request_ready_for_automerge(pull_request)
-        )
-
-    def test_is_pull_request_ready_for_automerge_no_ship_it(self):
-        pull_request = build(
-            builder.pull_request()
-            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
-            .review(
-                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
-            )
-            .mergeable(True)
-            .merged(False)
-            .title("blah blah blah")
-        )
-        self.assertFalse(
-            github_logic._is_pull_request_ready_for_automerge(pull_request)
-        )
-
-    def test_is_pull_request_ready_for_automerge_mergeable_is_false(self):
-        pull_request = build(
-            builder.pull_request()
-            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
-            .review(
-                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
-            )
-            .mergeable(False)
-            .merged(False)
-            .title("blah blah [shipit]")
-        )
-        self.assertFalse(
-            github_logic._is_pull_request_ready_for_automerge(pull_request)
-        )
-
-    def test_is_pull_request_ready_for_automerge_is_already_merged(self):
-        pull_request = build(
-            builder.pull_request()
-            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
-            .review(
-                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
-            )
-            .mergeable(True)
-            .merged(True)
-            .title("blah blah [shipit]")
-        )
-        self.assertFalse(
-            github_logic._is_pull_request_ready_for_automerge(pull_request)
-        )
-
-    def test_is_pull_request_ready_for_automerge_is_closed(self):
-        pull_request = build(
-            builder.pull_request()
-            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
-            .review(
-                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
-            )
-            .mergeable(True)
-            .merged(True)
-            .closed(False)
-            .title("blah blah [shipit]")
-        )
-        self.assertFalse(
-            github_logic._is_pull_request_ready_for_automerge(pull_request)
-        )
 
 
 if __name__ == "__main__":
