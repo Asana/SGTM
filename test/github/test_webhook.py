@@ -1,8 +1,5 @@
-from unittest.mock import patch, Mock, MagicMock
-from uuid import uuid4
-from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
+from unittest.mock import MagicMock, patch
 from test.impl.base_test_case_class import BaseClass
-from test.impl.builders import builder, build
 from src.github.models import Commit, PullRequest, PullRequestReviewComment, Review
 from src.github import webhook
 import src.github.webhook as github_webhook

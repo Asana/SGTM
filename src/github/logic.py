@@ -1,7 +1,6 @@
 import re
 import os
 from typing import List
-from datetime import datetime
 from src.logger import logger
 from . import client as github_client
 from src.github.models import PullRequest

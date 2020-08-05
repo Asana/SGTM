@@ -1,5 +1,5 @@
 from random import randint
-from typing import List, Union, Tuple, Optional, Dict, Any
+from typing import Any, Dict, List, Union
 from datetime import datetime
 from .helpers import transform_datetime, create_uuid
 from src.github.models import PullRequest, Comment, Review, User, Commit

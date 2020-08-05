@@ -1,5 +1,4 @@
-from typing import List, Union, Tuple, Optional, Dict, Any
-from datetime import datetime
+from typing import Any, Dict, Union
 from .helpers import transform_datetime, create_uuid
 from src.github.models import Commit
 from .builder_base_class import BuilderBaseClass

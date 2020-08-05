@@ -46,6 +46,7 @@ def _handle_pull_request_review_webhook(payload: dict):
         pull_request, review = graphql_client.get_pull_request_and_review(
             pull_request_id, review_id
         )
+        github_logic.maybe_automerge_pull_request(pull_request)
         github_controller.upsert_review(pull_request, review)
 
 
