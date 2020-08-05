@@ -1,6 +1,7 @@
 from typing import Optional
 from operator import itemgetter
 import time
+import os
 
 import src.github.graphql.client as graphql_client
 from src.dynamodb.lock import dynamodb_lock
@@ -113,7 +114,9 @@ def _handle_status_webhook(payload: dict):
     pull_request = graphql_client.get_pull_request_for_commit(commit_id)
     with dynamodb_lock(pull_request.id()):
         pull_request = graphql_client.get_pull_request_for_commit(commit_id)
-        if github_logic.is_pull_request_ready_for_automerge(pull_request):
+        if os.getenv(
+            "IS_AUTOMERGE_ENABLED", False
+        ) and github_logic.is_pull_request_ready_for_automerge(pull_request):
             logger.info(
                 f"Pull request {pull_request.id()} is able to be automerged, automerging now"
             )
@@ -124,8 +127,8 @@ def _handle_status_webhook(payload: dict):
                 pull_request.title(),
                 pull_request.body(),
             )
-        else:
-            return github_controller.upsert_pull_request(pull_request)
+
+        return github_controller.upsert_pull_request(pull_request)
 
 
 _events_map = {
