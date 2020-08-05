@@ -29,6 +29,16 @@ fragment FullPullRequest on PullRequest {
         ... on User {
           login
         }
+        ... on Team {
+          name
+          members(last:20) {
+            nodes {
+              ... on User {
+                login
+              }
+            }
+          }
+        }
       }
     }
   }

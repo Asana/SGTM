@@ -29,10 +29,20 @@ class PullRequest(object):
         self._assignees = self._assignees_from_raw()
 
     def requested_reviewers(self) -> List[str]:
-        return sorted(
-            node["requestedReviewer"]["login"]
-            for node in self._raw["reviewRequests"]["nodes"]
-        )
+        reviewer_logins = set()
+        for node in self._raw["reviewRequests"]["nodes"]:
+            if (
+                node["requestedReviewer"] is not None
+                and "login" in node["requestedReviewer"]
+            ):
+                reviewer_logins.add(node["requestedReviewer"]["login"])
+            elif (
+                node["requestedReviewer"] is not None
+                and "members" in node["requestedReviewer"]
+            ):
+                for reviewer in node["requestedReviewer"]["members"].get("nodes", []):
+                    reviewer_logins.add(reviewer["login"])
+        return sorted(reviewer_logins)
 
     def reviewers(self) -> List[str]:
         return [review.author_handle() for review in self.reviews()]
