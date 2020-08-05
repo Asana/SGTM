@@ -6,6 +6,7 @@ from .issue_comment import IssueComment
 from .pull_request_review_comment import PullRequestReviewComment
 from .user import User
 from .commit import Commit
+from .label import Label
 
 
 def comment_factory(raw: Dict[str, Any]) -> Comment:

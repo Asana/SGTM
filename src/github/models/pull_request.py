@@ -149,3 +149,6 @@ class PullRequest(object):
 
     def commits(self) -> List[Commit]:
         return [Commit(commit) for commit in self._raw["commits"]["nodes"]]
+
+    def labels(self) -> List[str]:
+        return [Label(label) for label in self._raw["labels"]["nodes"]]
