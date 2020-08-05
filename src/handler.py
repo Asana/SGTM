@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import json
+import traceback
 
 from typing import Dict
 from src.http import HttpResponse, HttpResponseDict
@@ -48,4 +49,5 @@ def handler(event: dict, context: dict) -> HttpResponseDict:
         http_response = github_webhook.handle_github_webhook(event_type, github_event)
         return http_response.to_dict()
     except Exception as error:
+        logger.error(traceback.format_exc())
         return HttpResponse("500", str(error)).to_dict()
