@@ -1,13 +1,11 @@
 from typing import Optional
 from operator import itemgetter
 import time
-import os
 
 import src.github.graphql.client as graphql_client
 from src.dynamodb.lock import dynamodb_lock
 import src.github.controller as github_controller
 from . import logic as github_logic
-from . import client as github_client
 from src.logger import logger
 from src.github.models import PullRequestReviewComment, Review
 
@@ -108,26 +106,14 @@ def _handle_pull_request_review_comment(payload: dict):
 
 
 # https://developer.github.com/v3/activity/events/types/#statusevent
-# TODO: make this account for label
 def _handle_status_webhook(payload: dict):
     commit_id = payload["commit"]["node_id"]
     pull_request = graphql_client.get_pull_request_for_commit(commit_id)
     with dynamodb_lock(pull_request.id()):
         pull_request = graphql_client.get_pull_request_for_commit(commit_id)
-        if os.getenv(
-            "IS_AUTOMERGE_ENABLED", False
-        ) and github_logic.is_pull_request_ready_for_automerge(pull_request):
-            logger.info(
-                f"Pull request {pull_request.id()} is able to be automerged, automerging now"
-            )
-            return github_client.merge_pull_request(
-                pull_request.repository_owner_handle(),
-                pull_request.repository_name(),
-                pull_request.number(),
-                pull_request.title(),
-                pull_request.body(),
-            )
-
+        # Flag in code review: Do we want to upsert as we merge? Or can we rely on the change being propogated by the
+        # pull request event webhook? That seems good if so because it limits Asana notification spam.
+        github_logic.maybe_automerge_pull_request(pull_request)
         return github_controller.upsert_pull_request(pull_request)
 
 

@@ -1,7 +1,9 @@
 import re
+import os
 from typing import List
 from datetime import datetime
 from src.logger import logger
+from . import client as github_client
 from src.github.models import PullRequest
 
 GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
@@ -139,12 +141,35 @@ def all_pull_request_participants(pull_request: PullRequest) -> List[str]:
     )
 
 
-def is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
+def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
+    if os.getenv(
+        "IS_AUTOMERGE_ENABLED", False
+    ) and _is_pull_request_ready_for_automerge(pull_request):
+        logger.info(
+            f"Pull request {pull_request.id()} is able to be automerged, automerging now"
+        )
+        github_client.merge_pull_request(
+            pull_request.repository_owner_handle(),
+            pull_request.repository_name(),
+            pull_request.number(),
+            pull_request.title(),
+            pull_request.body(),
+        )
+        return True
+    else:
+        return False
+
+
+def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
     return (
         pull_request.is_build_successful()
         and pull_request.mergeable()
         and not pull_request.closed()
         and not pull_request.merged()
-        # and _has_ship_it_in_pull_request_title(pull_request.title())
+        and _has_automerge_label(pull_request)
         and pull_request.is_approved()
     )
+
+
+def _has_automerge_label(pull_request: PullRequest) -> bool:
+    return False

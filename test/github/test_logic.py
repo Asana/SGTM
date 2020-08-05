@@ -1,8 +1,78 @@
 import unittest
+from unittest.mock import patch
 from datetime import datetime, timedelta
 import src.github.logic as github_logic
 from src.github.models import Commit, ReviewState
 from test.impl.builders import builder, build
+import src.github.controller as github_controller
+import src.github.client as github_client
+
+
+@patch.object(github_controller, "upsert_pull_request")
+@patch.object(github_client, "merge_pull_request")
+@patch.object(github_logic, "_is_pull_request_ready_for_automerge")
+class TestMaybeAutomergePullRequest(unittest.TestCase):
+    @patch("os.getenv")
+    def test_handle_status_webhook_ready_for_automerge(
+        self,
+        get_env_mock,
+        is_pull_request_ready_for_automerge_mock,
+        merge_pull_request_mock,
+        upsert_pull_request_mock,
+    ):
+        # set env variable to True to enable automerge
+        get_env_mock.return_value = True
+
+        # Mock that pull request can be automerged
+        is_pull_request_ready_for_automerge_mock.return_value = True
+        pull_request = build(builder.pull_request())
+
+        merged = github_logic.maybe_automerge_pull_request(pull_request)
+
+        self.assertTrue(merged)
+        merge_pull_request_mock.assert_called_with(
+            pull_request.repository_owner_handle(),
+            pull_request.repository_name(),
+            pull_request.number(),
+            pull_request.title(),
+            pull_request.body(),
+        )
+
+    @patch("os.getenv")
+    def test_handle_status_webhook_not_ready_for_automerge(
+        self,
+        get_env_mock,
+        is_pull_request_ready_for_automerge_mock,
+        merge_pull_request_mock,
+        upsert_pull_request_mock,
+    ):
+        # set env variable to True to enable automerge
+        get_env_mock.return_value = True
+
+        # Mock that pull request cannot be automerged
+        is_pull_request_ready_for_automerge_mock.return_value = False
+        pull_request = build(builder.pull_request())
+
+        merged = github_logic.maybe_automerge_pull_request(pull_request)
+
+        self.assertFalse(merged)
+        merge_pull_request_mock.assert_not_called()
+
+    # test that env variable that gates automerge is diabled by default
+    def test_handle_status_webhook_with_env_variable_disabled(
+        self,
+        is_pull_request_ready_for_automerge_mock,
+        merge_pull_request_mock,
+        upsert_pull_request_mock,
+    ):
+        # Mock that pull request can be automerged
+        is_pull_request_ready_for_automerge_mock.return_value = True
+        pull_request = build(builder.pull_request())
+
+        merged = github_logic.maybe_automerge_pull_request(pull_request)
+
+        self.assertFalse(merged)
+        merge_pull_request_mock.assert_not_called()
 
 
 class GithubLogicTest(unittest.TestCase):
@@ -191,7 +261,7 @@ class GithubLogicTest(unittest.TestCase):
         )
         self.assertTrue(github_logic.pull_request_approved_after_merging(pull_request))
 
-# TODO: update to not use [SHIPIT]
+    # TODO: update to not use [SHIPIT]
     def test_is_pull_request_ready_for_automerge(self):
         pull_request = build(
             builder.pull_request()
@@ -203,7 +273,7 @@ class GithubLogicTest(unittest.TestCase):
             .merged(False)
             .title("blah blah [ShIpIt]")
         )
-        self.assertTrue(github_logic.is_pull_request_ready_for_automerge(pull_request))
+        self.assertTrue(github_logic._is_pull_request_ready_for_automerge(pull_request))
 
     def test_is_pull_request_ready_for_automerge_build_failed(self):
         pull_request = build(
@@ -216,7 +286,9 @@ class GithubLogicTest(unittest.TestCase):
             .merged(False)
             .title("blah blah [shipit]")
         )
-        self.assertFalse(github_logic.is_pull_request_ready_for_automerge(pull_request))
+        self.assertFalse(
+            github_logic._is_pull_request_ready_for_automerge(pull_request)
+        )
 
     def test_is_pull_request_ready_for_automerge_build_pending(self):
         pull_request = build(
@@ -229,7 +301,9 @@ class GithubLogicTest(unittest.TestCase):
             .merged(False)
             .title("blah blah [shipit]")
         )
-        self.assertFalse(github_logic.is_pull_request_ready_for_automerge(pull_request))
+        self.assertFalse(
+            github_logic._is_pull_request_ready_for_automerge(pull_request)
+        )
 
     def test_is_pull_request_ready_for_automerge_reviewer_requested_changes(self):
         pull_request = build(
@@ -244,7 +318,9 @@ class GithubLogicTest(unittest.TestCase):
             .merged(False)
             .title("blah blah [shipit]")
         )
-        self.assertFalse(github_logic.is_pull_request_ready_for_automerge(pull_request))
+        self.assertFalse(
+            github_logic._is_pull_request_ready_for_automerge(pull_request)
+        )
 
     def test_is_pull_request_ready_for_automerge_approved_and_requested_changes(self):
         author_1 = builder.user().login("author_1")
@@ -268,7 +344,9 @@ class GithubLogicTest(unittest.TestCase):
             .merged(False)
             .title("blah blah [shipit]")
         )
-        self.assertFalse(github_logic.is_pull_request_ready_for_automerge(pull_request))
+        self.assertFalse(
+            github_logic._is_pull_request_ready_for_automerge(pull_request)
+        )
 
     def test_is_pull_request_ready_for_automerge_changes_requested_then_approval(self):
         author_1 = builder.user().login("author_1")
@@ -296,7 +374,7 @@ class GithubLogicTest(unittest.TestCase):
             .merged(False)
             .title("blah blah [shipit]")
         )
-        self.assertTrue(github_logic.is_pull_request_ready_for_automerge(pull_request))
+        self.assertTrue(github_logic._is_pull_request_ready_for_automerge(pull_request))
 
     def test_is_pull_request_ready_for_automerge_no_review(self):
         pull_request = build(
@@ -304,7 +382,9 @@ class GithubLogicTest(unittest.TestCase):
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
             .title("blah blah [shipit]")
         )
-        self.assertFalse(github_logic.is_pull_request_ready_for_automerge(pull_request))
+        self.assertFalse(
+            github_logic._is_pull_request_ready_for_automerge(pull_request)
+        )
 
     def test_is_pull_request_ready_for_automerge_no_ship_it(self):
         pull_request = build(
@@ -317,7 +397,9 @@ class GithubLogicTest(unittest.TestCase):
             .merged(False)
             .title("blah blah blah")
         )
-        self.assertFalse(github_logic.is_pull_request_ready_for_automerge(pull_request))
+        self.assertFalse(
+            github_logic._is_pull_request_ready_for_automerge(pull_request)
+        )
 
     def test_is_pull_request_ready_for_automerge_mergeable_is_false(self):
         pull_request = build(
@@ -330,7 +412,9 @@ class GithubLogicTest(unittest.TestCase):
             .merged(False)
             .title("blah blah [shipit]")
         )
-        self.assertFalse(github_logic.is_pull_request_ready_for_automerge(pull_request))
+        self.assertFalse(
+            github_logic._is_pull_request_ready_for_automerge(pull_request)
+        )
 
     def test_is_pull_request_ready_for_automerge_is_already_merged(self):
         pull_request = build(
@@ -343,7 +427,9 @@ class GithubLogicTest(unittest.TestCase):
             .merged(True)
             .title("blah blah [shipit]")
         )
-        self.assertFalse(github_logic.is_pull_request_ready_for_automerge(pull_request))
+        self.assertFalse(
+            github_logic._is_pull_request_ready_for_automerge(pull_request)
+        )
 
     def test_is_pull_request_ready_for_automerge_is_closed(self):
         pull_request = build(
@@ -357,7 +443,9 @@ class GithubLogicTest(unittest.TestCase):
             .closed(False)
             .title("blah blah [shipit]")
         )
-        self.assertFalse(github_logic.is_pull_request_ready_for_automerge(pull_request))
+        self.assertFalse(
+            github_logic._is_pull_request_ready_for_automerge(pull_request)
+        )
 
 
 if __name__ == "__main__":
