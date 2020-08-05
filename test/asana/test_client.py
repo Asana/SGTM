@@ -106,6 +106,49 @@ class TestAsanaClientAddComment(BaseClass):
             )
 
 
+class TestAsanaClientUpdateComment(BaseClass):
+    def test_update_comment_requires_a_comment_id_and_comment_body(self):
+        with self.assertRaises(ValueError):
+            src.asana.client.update_comment(None, "body")
+        with self.assertRaises(ValueError):
+            src.asana.client.update_comment("comment_id", None)
+        with self.assertRaises(ValueError):
+            src.asana.client.update_comment("", "body")
+        with self.assertRaises(ValueError):
+            src.asana.client.update_comment("comment_id", "")
+
+    @patch.object(asana_api_client.stories, "update")
+    def test_updates_comment(self, update_story):
+        src.asana.client.update_comment("COMMENT_ID", "comment_body")
+        update_story.assert_called_once_with(
+            "COMMENT_ID", {"html_text": "comment_body"}
+        )
+
+
+class TestAsanaClientDeleteComment(BaseClass):
+    def test_delete_comment_requires_a_comment_id(self):
+        with self.assertRaises(ValueError):
+            src.asana.client.delete_comment(None)
+        with self.assertRaises(ValueError):
+            src.asana.client.delete_comment("")
+
+    @patch.object(asana_api_client.stories, "delete")
+    def test_deletes_comment(self, delete_story):
+        src.asana.client.delete_comment("COMMENT_ID")
+        delete_story.assert_called_once_with("COMMENT_ID")
+
+
+class TestAsanaClientFindAllTasksForProject(BaseClass):
+    @patch.object(asana_api_client.tasks, "find_all")
+    def test_find_all_tasks_for_project(self, find_all_mock):
+        project_id = "12345"
+        opt_fields = ["custom_fields"]
+        src.asana.client.find_all_tasks_for_project(project_id, opt_fields)
+        find_all_mock.assert_called_once_with(
+            project=project_id, completed_since="now", opt_fields=opt_fields
+        )
+
+
 if __name__ == "__main__":
     from unittest import main as run_tests
 

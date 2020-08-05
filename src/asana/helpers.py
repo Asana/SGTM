@@ -3,7 +3,7 @@ from html import escape
 from datetime import datetime, timedelta
 from typing import Callable, Match, Optional, List, Dict
 from src.dynamodb import client as dynamodb_client
-from src.github.models import Comment, PullRequest, Review, User
+from src.github.models import Comment, PullRequest, Review, ReviewState, User
 from src.asana import client as asana_client
 from src.github import logic as github_logic
 from src.logger import logger
@@ -22,7 +22,7 @@ def extract_task_fields_from_pull_request(pull_request: PullRequest) -> dict:
     """
     Extracts and transforms all relevant fields of a GitHub PullRequest into their corresponding
     equivalent fields, as relevant to an Asana Task
-    :return: Returns the following fields: assignee, name, html_notes and followers
+    :return: Returns the following fields: assignee, name, html_notes, followers and custom fields
     """
     return {
         "assignee": _task_assignee_from_pull_request(pull_request),
@@ -84,7 +84,7 @@ def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
     """
     We currently expect the project to have two custom fields with its corresponding enum options:
         • PR Status: "Open", "Closed", "Merged"
-        • Build: "Success", "Failure", "Pending"
+        • Build: "Success", "Failure"
 
     TODO: Write script to set up an Asana project with these custom fields
     (https://app.asana.com/0/1149418478823393/1162588814088433/f)
@@ -143,7 +143,7 @@ def _get_custom_field_enum_option_id(
         filtered_gid = [
             enum_option["gid"]
             for enum_option in filtered_enum_options[0]
-            if enum_option["name"] == enum_option_name
+            if enum_option["name"] == enum_option_name and enum_option["enabled"]
         ]
         return filtered_gid[0] if filtered_gid else None
 
@@ -215,16 +215,19 @@ def asana_comment_from_github_comment(comment: Comment) -> str:
         escape(comment.body(), quote=False)
     )
     return _wrap_in_tag("body")(
-        _wrap_in_tag("strong")(f"{display_name} commented:\n") + comment_text
+        display_name
+        + " "
+        + _wrap_in_tag("A", attrs={"href": comment.url()})("commented:")
+        + "\n"
+        + comment_text
     )
 
 
-# https://developer.github.com/v4/reference/enum/pullrequestreviewstate/
-_review_action_to_text_map = {
-    "APPROVED": "approved",
-    "CHANGES_REQUESTED": "requested changes",
-    "COMMENTED": "reviewed",
-    "DISMISSED": "reviewed",
+_review_action_to_text_map: Dict[ReviewState, str] = {
+    ReviewState.APPROVED: "approved",
+    ReviewState.CHANGES_REQUESTED: "requested changes",
+    ReviewState.COMMENTED: "reviewed",
+    ReviewState.DISMISSED: "reviewed",
 }
 
 
@@ -236,46 +239,57 @@ def asana_comment_from_github_review(review: Review) -> str:
     users.
     """
     user_display_name = _asana_display_name_for_github_user(review.author())
-    review_action = _review_action_to_text_map.get(review.state(), "commented")
+
+    if review.is_just_comments():
+        # When a user replies to an inline comment,
+        # or writes inline comments without a review,
+        # github still creates a Review object,
+        # even though nothing in github looks like a review
+        # If that's the case, there is no meaningful review state ("commented" isn't helpful)
+        # and the link to it will either not point anywhere, or be less useful than the individual links on each comment.
+        review_action = _wrap_in_tag("strong")("left inline comments:\n")
+    else:
+        review_action = _wrap_in_tag("A", attrs={"href": review.url()})(
+            _review_action_to_text_map.get(review.state(), "commented")
+        )
+
     review_body = _transform_github_mentions_to_asana_mentions(
         escape(review.body(), quote=False)
     )
-    comment_texts = [comment.body() for comment in review.comments()]
+    if review_body:
+        header = (
+            _wrap_in_tag("strong")(f"{user_display_name} {review_action} :\n")
+            + review_body
+        )
+    else:
+        header = _wrap_in_tag("strong")(f"{user_display_name} {review_action}")
+
+    # For each comment, prefix its text with a bracketed number that is a link to the Github comment.
     inline_comments = [
-        _transform_github_mentions_to_asana_mentions(escape(comment_text, quote=False))
-        for comment_text in comment_texts
+        _wrap_in_tag("li")(
+            _wrap_in_tag("A", attrs={"href": comment.url()})(f"[{i}] ")
+            + _transform_github_mentions_to_asana_mentions(
+                escape(comment.body(), quote=False)
+            )
+        )
+        for i, comment in enumerate(review.comments(), start=1)
     ]
-
-    if not review_body and inline_comments:
-        return _wrap_in_tag("body")(
-            _wrap_in_tag("strong")(
-                f"{user_display_name} left inline comments:\n"
-                + "\n\n".join(inline_comments)
-            )
-        )
-
-    return _wrap_in_tag("body")(
-        (
-            (
-                _wrap_in_tag("strong")(f"{user_display_name} {review_action} :\n")
-                + review_body
-            )
-            if review_body
-            else _wrap_in_tag("strong")(f"{user_display_name} {review_action}")
-        )
-        + (
-            (
+    if inline_comments:
+        comments_html = _wrap_in_tag("ul")("".join(inline_comments))
+        if not review.is_just_comments():
+            # If this was an inline reply, we already added "and left inline comments" above.
+            comments_html = (
                 _wrap_in_tag("strong")("\n\nand left inline comments:\n")
-                + "\n\n".join(inline_comments)
+                + comments_html
             )
-            if inline_comments
-            else ""
-        )
-    )
+    else:
+        comments_html = ""
+
+    return _wrap_in_tag("body")(header + comments_html)
 
 
 def _task_description_from_pull_request(pull_request: PullRequest) -> str:
-    url = pull_request.url()
+    url = _link(pull_request.url())
     github_author = pull_request.author()
     author = _asana_user_url_from_github_user_handle(github_author.login())
     if author is None:
@@ -313,8 +327,21 @@ def _task_followers_from_pull_request(pull_request: PullRequest):
     ]
 
 
-def _wrap_in_tag(tag_name: str) -> Callable[[str], str]:
+def _wrap_in_tag(
+    tag_name: str, attrs: Optional[Dict[str, str]] = None
+) -> Callable[[str], str]:
+
+    if attrs is not None:
+        # This will always start with a blank space, so that it's separate from the tag name.
+        attr_list = "".join(f' {k}="{escape(v)}"' for k, v in attrs.items())
+    else:
+        attr_list = ""
+
     def inner(text: str) -> str:
-        return f"<{tag_name}>{text}</{tag_name}>"
+        return f"<{tag_name}{attr_list}>{text}</{tag_name}>"
 
     return inner
+
+
+def _link(url: str) -> str:
+    return _wrap_in_tag("a", {"href": url})(url)

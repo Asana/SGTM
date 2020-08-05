@@ -1,6 +1,11 @@
 from typing import List, Iterator, Dict, Optional
+from typing_extensions import Literal
 import asana  # type: ignore
 from src.config import ASANA_API_KEY
+
+# See: https://developers.asana.com/docs/input-output-options
+# As we use more opt_fields, add to this list
+OptFields = Literal["custom_fields"]
 
 
 def validate_object_id(object_id: str, message: str):
@@ -91,8 +96,36 @@ class AsanaClient(object):
         )
         return response["gid"]
 
+    def update_comment(self, comment_id: str, comment_body: str) -> None:
+        validate_object_id(
+            comment_id, "AsanaClient.update_comment requires a comment_id"
+        )
+        if not comment_body:
+            raise ValueError("AsanaClient.update_comment requires a comment body")
+        self.asana_api_client.stories.update(comment_id, {"html_text": comment_body})
+
+    def delete_comment(self, comment_id: str) -> None:
+        validate_object_id(
+            comment_id, "AsanaClient.update_comment requires a comment_id"
+        )
+        self.asana_api_client.stories.delete(comment_id)
+
     def get_project_custom_fields(self, project_id: str) -> Iterator[Dict]:
         return self.asana_api_client.custom_field_settings.find_by_project(project_id)
+
+    def find_all_tasks_for_project(
+        self, project_id: str, opt_fields: Optional[List[OptFields]]
+    ) -> Iterator[Dict]:
+        """
+            Returns an iterator of all tasks (represented as dicts) in a
+            specific project id. `opt_fields` will be passed through to the
+            Asana API as extra fields that the API should return. By default,
+            only "gid" would be returned, which is the global id of the task.
+            See: https://developers.asana.com/docs/get-multiple-tasks
+        """
+        return self.asana_api_client.tasks.find_all(
+            project=project_id, completed_since="now", opt_fields=opt_fields
+        )
 
 
 def create_task(project_id: str, due_date_str: str = None) -> str:
@@ -129,3 +162,17 @@ def get_project_custom_fields(project_id: str) -> Iterator[Dict]:
         Retrieve's the custom fields in the specified project.
     """
     return AsanaClient.singleton().get_project_custom_fields(project_id)
+
+
+def update_comment(comment_id: str, comment_body: str):
+    AsanaClient.singleton().update_comment(comment_id, comment_body)
+
+
+def delete_comment(comment_id: str):
+    AsanaClient.singleton().delete_comment(comment_id)
+
+
+def find_all_tasks_for_project(
+    project_id: str, opt_fields: Optional[List[OptFields]] = None
+) -> Iterator[Dict]:
+    return AsanaClient.singleton().find_all_tasks_for_project(project_id, opt_fields)

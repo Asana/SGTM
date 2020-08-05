@@ -3,6 +3,7 @@ import hmac
 import json
 
 from src.config import GITHUB_HMAC_SECRET
+from src.logger import logger
 import src.github.webhook as github_webhook
 
 
@@ -16,6 +17,8 @@ def handler(event: dict, context: dict) -> None:
 
     event_type = event["headers"].get("X-GitHub-Event")
     signature = event["headers"].get("X-Hub-Signature")
+    delivery_id = event["headers"].get("X-GitHub-Delivery")
+    logger.info(f"Webhook delivery id: {delivery_id}")
 
     if GITHUB_HMAC_SECRET is None:
         raise ValueError("GITHUB_HMAC_SECRET")
