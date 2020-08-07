@@ -5,7 +5,7 @@ import time
 import src.github.graphql.client as graphql_client
 from src.dynamodb.lock import dynamodb_lock
 import src.github.controller as github_controller
-from . import logic as github_logic
+import src.github.logic as github_logic
 from src.logger import logger
 from src.github.models import PullRequestReviewComment, Review
 

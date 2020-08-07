@@ -14,6 +14,7 @@ fragment FullPullRequest on PullRequest {
   closed
   merged
   mergedAt
+  mergeable
   url
   number
   repository {

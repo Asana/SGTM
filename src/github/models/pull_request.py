@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any, Set
 from src.logger import logger
 from src.utils import parse_date_string
+from enum import Enum, unique
 
 # from .review import Review
 from .issue_comment import IssueComment
@@ -10,6 +11,15 @@ from .commit import Commit
 from .user import User
 from .label import Label
 import copy
+
+
+@unique
+class MergeableState(Enum):
+    """https://developer.github.com/v4/enum/mergeablestate/"""
+
+    CONFLICTING = "CONFLICTING"
+    MERGEABLE = "MERGEABLE"
+    UNKNOWN = "UNKNOWN"
 
 
 class PullRequest(object):
@@ -101,8 +111,11 @@ class PullRequest(object):
     def merged(self) -> bool:
         return self._raw["merged"]
 
-    def mergeable(self) -> bool:
-        return self._raw["mergeable"]
+    def mergeable(self) -> MergeableState:
+        return MergeableState(self._raw["mergeable"])
+
+    def is_mergeable(self) -> bool:
+        return self.mergeable() == MergeableState.MERGEABLE
 
     # A PR is considered approved if it has at least one approval and every time changes were requested by a reviewer
     # that same reviewer later approved.

@@ -164,7 +164,7 @@ def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
         # get automerge behind env variable
         automerge_enabled
         and pull_request.is_build_successful()
-        and pull_request.mergeable()
+        and pull_request.is_mergeable()
         and not pull_request.closed()
         and not pull_request.merged()
         and _has_automerge_label(pull_request)
