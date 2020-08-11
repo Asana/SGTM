@@ -75,7 +75,9 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
             .review(
-                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
             )
             .mergeable(MergeableState.MERGEABLE)
             .merged(False)
@@ -95,7 +97,7 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             .review(
                 builder.review()
                 .submitted_at("2020-01-13T14:59:58Z")
-                .state("CHANGES_REQUESTED")
+                .state(ReviewState.CHANGES_REQUESTED)
             )
             .mergeable(MergeableState.MERGEABLE)
             .merged(False)
@@ -111,7 +113,7 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             .review(
                 builder.review()
                 .submitted_at("2020-01-13T14:59:58Z")
-                .state("CHANGES_REQUESTED")
+                .state(ReviewState.CHANGES_REQUESTED)
             )
             .mergeable(MergeableState.CONFLICTING)
             .merged(False)
@@ -126,7 +128,9 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
             .review(
-                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
             )
             .mergeable(MergeableState.MERGEABLE)
             .merged(False)
@@ -142,7 +146,9 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
             .review(
-                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
             )
             .mergeable(MergeableState.MERGEABLE)
             .merged(True)
@@ -163,7 +169,9 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
             .review(
-                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
             )
             .mergeable(MergeableState.MERGEABLE)
             .merged(False)
@@ -184,7 +192,9 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_FAILED))
             .review(
-                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
             )
             .mergeable(MergeableState.MERGEABLE)
             .merged(False)
@@ -200,7 +210,9 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_PENDING))
             .review(
-                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
             )
             .mergeable(MergeableState.MERGEABLE)
             .merged(False)
@@ -220,7 +232,7 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             .review(
                 builder.review()
                 .submitted_at("2020-01-13T14:59:58Z")
-                .state("CHANGES_REQUESTED")
+                .state(ReviewState.CHANGES_REQUESTED)
             )
             .mergeable(MergeableState.MERGEABLE)
             .merged(False)
@@ -247,11 +259,11 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
                 [
                     builder.review()
                     .submitted_at("2020-01-11T14:59:58Z")
-                    .state("CHANGES_REQUESTED")
+                    .state(ReviewState.CHANGES_REQUESTED)
                     .author(author_1),
                     builder.review()
                     .submitted_at("2020-01-12T14:59:58Z")
-                    .state("APPROVED")
+                    .state(ReviewState.APPROVED)
                     .author(author_2),
                 ]
             )
@@ -280,15 +292,15 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
                 [
                     builder.review()
                     .submitted_at("2020-01-11T14:59:58Z")
-                    .state("CHANGES_REQUESTED")
+                    .state(ReviewState.CHANGES_REQUESTED)
                     .author(author_1),
                     builder.review()
                     .submitted_at("2020-01-12T14:59:58Z")
-                    .state("APPROVED")
+                    .state(ReviewState.APPROVED)
                     .author(author_2),
                     builder.review()
                     .submitted_at("2020-01-13T14:59:58Z")
-                    .state("APPROVED")
+                    .state(ReviewState.APPROVED)
                     .author(author_1),
                 ]
             )
@@ -342,7 +354,9 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
             .review(
-                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
             )
             .mergeable(MergeableState.MERGEABLE)
             .merged(False)
@@ -360,7 +374,9 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
             .review(
-                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
             )
             .mergeable(MergeableState.CONFLICTING)
             .merged(False)
@@ -382,7 +398,9 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
             .review(
-                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
             )
             .mergeable(MergeableState.CONFLICTING)
             .merged(False)

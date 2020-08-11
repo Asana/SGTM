@@ -1,12 +1,9 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch, Mock, MagicMock
+
 from test.impl.base_test_case_class import BaseClass
-from src.github.models import Commit, PullRequest, PullRequestReviewComment, Review
+
 from src.github import webhook
-import src.github.webhook as github_webhook
-import src.github.graphql.client as graphql_client
-import src.github.controller as github_controller
-import src.github.client as github_client
-import src.dynamodb.client as dynamodb_client
+from src.github.models import PullRequest, PullRequestReviewComment, Review
 
 
 @patch.object(webhook, "dynamodb_lock")

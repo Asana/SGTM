@@ -1,8 +1,7 @@
 from typing import Any, Dict, Union
-from .helpers import transform_datetime, create_uuid
+from .helpers import create_uuid
 from src.github.models import Commit
 from .builder_base_class import BuilderBaseClass
-from .user_builder import UserBuilder
 
 
 class CommitBuilder(BuilderBaseClass):

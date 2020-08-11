@@ -148,6 +148,7 @@ def all_pull_request_participants(pull_request: PullRequest) -> List[str]:
     )
 
 
+# returns True if the pull request was automerge, False if not
 def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
     if _is_pull_request_ready_for_automerge(pull_request):
         logger.info(

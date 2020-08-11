@@ -45,7 +45,7 @@ class PullRequestBuilder(BuilderBaseClass):
             "reviewRequests": {"nodes": []},
             "closed": False,
             "merged": False,
-            "mergeable": MergeableState.CONFLICTING,
+            "mergeable": MergeableState.MERGEABLE,
             "author": {"login": "somebody", "name": ""},
             "repository": {
                 "id": create_uuid(),

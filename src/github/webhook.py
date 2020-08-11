@@ -114,8 +114,6 @@ def _handle_status_webhook(payload: dict):
     pull_request = graphql_client.get_pull_request_for_commit(commit_id)
     with dynamodb_lock(pull_request.id()):
         pull_request = graphql_client.get_pull_request_for_commit(commit_id)
-        # Flag in code review: Do we want to upsert as we merge? Or can we rely on the change being propogated by the
-        # pull request event webhook? That seems good if so because it limits Asana notification spam.
         github_logic.maybe_automerge_pull_request(pull_request)
         return github_controller.upsert_pull_request(pull_request)
 
