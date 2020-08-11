@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 from datetime import datetime, timedelta
 import src.github.logic as github_logic
-from src.github.models import Commit, ReviewState
+from src.github.models import Commit, ReviewState, PullRequest, MergeableState
 from test.impl.builders import builder, build
 import src.github.controller as github_controller
 import src.github.client as github_client
@@ -49,9 +49,27 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
         merge_pull_request_mock.assert_not_called()
 
 
+class TestPullRequestHasLabel(unittest.TestCase):
+    def test_pull_request_with_label(self):
+        label_name = "test label"
+        pull_request = build(
+            builder.pull_request().label(builder.label().name(label_name))
+        )
+
+        self.assertTrue(github_logic._pull_request_has_label(pull_request, label_name))
+
+    def test_pull_request_without_label(self):
+        label_name = "test label"
+        pull_request = build(builder.pull_request())
+
+        self.assertFalse(github_logic._pull_request_has_label(pull_request, label_name))
+
+
 @patch("os.getenv")
 class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
-    def test_is_pull_request_ready_for_automerge(self, get_env_mock):
+    def test_is_pull_request_ready_for_automerge_after_tests_and_approval(
+        self, get_env_mock
+    ):
         get_env_mock.return_value = "true"
         pull_request = build(
             builder.pull_request()
@@ -59,22 +77,102 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             .review(
                 builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
             )
-            .mergeable(True)
+            .mergeable(MergeableState.MERGEABLE)
             .merged(False)
-            .label(builder.label().name(github_logic.AUTOMERGE_LABEL_NAME))
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
         )
         self.assertTrue(github_logic._is_pull_request_ready_for_automerge(pull_request))
 
-    def test_is_pull_request_ready_for_automerge_no_env_variable(self, get_env_mock):
+    def test_is_pull_request_ready_for_automerge_after_tests(self, get_env_mock):
+        get_env_mock.return_value = "true"
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state("CHANGES_REQUESTED")
+            )
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(False)
+            .label(builder.label().name(github_logic.AutomergeLabel.AFTER_TESTS.value))
+        )
+        self.assertTrue(github_logic._is_pull_request_ready_for_automerge(pull_request))
+
+    def test_is_pull_request_ready_for_automerge_immediately(self, get_env_mock):
+        get_env_mock.return_value = "true"
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_FAILED))
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state("CHANGES_REQUESTED")
+            )
+            .mergeable(MergeableState.CONFLICTING)
+            .merged(False)
+            .label(builder.label().name(github_logic.AutomergeLabel.IMMEDIATELY.value))
+        )
+        self.assertTrue(github_logic._is_pull_request_ready_for_automerge(pull_request))
+
+    def test_is_pull_request_ready_for_automerge_autofail_if_no_env_variable(
+        self, get_env_mock
+    ):
         pull_request = build(
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
             .review(
                 builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
             )
-            .mergeable(True)
+            .mergeable(MergeableState.MERGEABLE)
             .merged(False)
-            .label(builder.label().name(github_logic.AUTOMERGE_LABEL_NAME))
+            .label(builder.label().name(github_logic.AutomergeLabel.IMMEDIATELY.value))
+        )
+        self.assertFalse(
+            github_logic._is_pull_request_ready_for_automerge(pull_request)
+        )
+
+    def test_is_pull_request_ready_for_automerge_autofail_if_merged(self, get_env_mock):
+        get_env_mock.return_value = "true"
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .review(
+                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+            )
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(True)
+            .closed(False)
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
+        )
+        self.assertFalse(
+            github_logic._is_pull_request_ready_for_automerge(pull_request)
+        )
+
+    def test_is_pull_request_ready_for_automerge_autofail_if_closed(self, get_env_mock):
+        get_env_mock.return_value = "true"
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .review(
+                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
+            )
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(False)
+            .closed(True)
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
         )
         self.assertFalse(
             github_logic._is_pull_request_ready_for_automerge(pull_request)
@@ -88,9 +186,9 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             .review(
                 builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
             )
-            .mergeable(True)
+            .mergeable(MergeableState.MERGEABLE)
             .merged(False)
-            .label(builder.label().name(github_logic.AUTOMERGE_LABEL_NAME))
+            .label(builder.label().name(github_logic.AutomergeLabel.AFTER_TESTS.value))
         )
         self.assertFalse(
             github_logic._is_pull_request_ready_for_automerge(pull_request)
@@ -104,15 +202,15 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             .review(
                 builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
             )
-            .mergeable(True)
+            .mergeable(MergeableState.MERGEABLE)
             .merged(False)
-            .label(builder.label().name(github_logic.AUTOMERGE_LABEL_NAME))
+            .label(builder.label().name(github_logic.AutomergeLabel.AFTER_TESTS.value))
         )
         self.assertFalse(
             github_logic._is_pull_request_ready_for_automerge(pull_request)
         )
 
-    def test_is_pull_request_ready_for_automerge_reviewer_requested_changes(
+    def test_is_pull_request_ready_for_automerge_after_approval_reviewer_requested_changes(
         self, get_env_mock
     ):
         get_env_mock.return_value = "true"
@@ -124,15 +222,19 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
                 .submitted_at("2020-01-13T14:59:58Z")
                 .state("CHANGES_REQUESTED")
             )
-            .mergeable(True)
+            .mergeable(MergeableState.MERGEABLE)
             .merged(False)
-            .label(builder.label().name(github_logic.AUTOMERGE_LABEL_NAME))
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
         )
         self.assertFalse(
             github_logic._is_pull_request_ready_for_automerge(pull_request)
         )
 
-    def test_is_pull_request_ready_for_automerge_approved_and_requested_changes(
+    def test_is_pull_request_ready_for_automerge_after_approval_approved_and_requested_changes(
         self, get_env_mock
     ):
         get_env_mock.return_value = "true"
@@ -153,15 +255,19 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
                     .author(author_2),
                 ]
             )
-            .mergeable(True)
+            .mergeable(MergeableState.MERGEABLE)
             .merged(False)
-            .label(builder.label().name(github_logic.AUTOMERGE_LABEL_NAME))
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
         )
         self.assertFalse(
             github_logic._is_pull_request_ready_for_automerge(pull_request)
         )
 
-    def test_is_pull_request_ready_for_automerge_changes_requested_then_approval(
+    def test_is_pull_request_ready_for_automerge_changes_after_approval_requested_then_approval(
         self, get_env_mock
     ):
         get_env_mock.return_value = "true"
@@ -186,22 +292,49 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
                     .author(author_1),
                 ]
             )
-            .mergeable(True)
+            .mergeable(MergeableState.MERGEABLE)
             .merged(False)
-            .label(builder.label().name(github_logic.AUTOMERGE_LABEL_NAME))
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
         )
         self.assertTrue(github_logic._is_pull_request_ready_for_automerge(pull_request))
 
-    def test_is_pull_request_ready_for_automerge_no_review(self, get_env_mock):
+    def test_is_pull_request_ready_for_automerge_after_tests_no_review(
+        self, get_env_mock
+    ):
         get_env_mock.return_value = "true"
         pull_request = build(
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
             .title("blah blah [shipit]")
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(False)
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
         )
         self.assertFalse(
             github_logic._is_pull_request_ready_for_automerge(pull_request)
         )
+
+    def test_is_pull_request_ready_for_automerge_after_approval_no_review(
+        self, get_env_mock
+    ):
+        get_env_mock.return_value = "true"
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .title("blah blah [shipit]")
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(False)
+            .label(builder.label().name(github_logic.AutomergeLabel.AFTER_TESTS.value))
+        )
+        self.assertTrue(github_logic._is_pull_request_ready_for_automerge(pull_request))
 
     def test_is_pull_request_ready_for_automerge_no_automerge_label(self, get_env_mock):
         get_env_mock.return_value = "true"
@@ -211,7 +344,7 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             .review(
                 builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
             )
-            .mergeable(True)
+            .mergeable(MergeableState.MERGEABLE)
             .merged(False)
             .label(builder.label().name("random label"))
         )
@@ -219,7 +352,9 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             github_logic._is_pull_request_ready_for_automerge(pull_request)
         )
 
-    def test_is_pull_request_ready_for_automerge_mergeable_is_false(self, get_env_mock):
+    def test_is_pull_request_ready_for_automerge_after_approval_mergeable_is_false(
+        self, get_env_mock
+    ):
         get_env_mock.return_value = "true"
         pull_request = build(
             builder.pull_request()
@@ -227,15 +362,21 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             .review(
                 builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
             )
-            .mergeable(False)
+            .mergeable(MergeableState.CONFLICTING)
             .merged(False)
-            .label(builder.label().name(github_logic.AUTOMERGE_LABEL_NAME))
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
         )
         self.assertFalse(
             github_logic._is_pull_request_ready_for_automerge(pull_request)
         )
 
-    def test_is_pull_request_ready_for_automerge_is_already_merged(self, get_env_mock):
+    def test_is_pull_request_ready_for_automerge_after_tests_mergeable_is_false(
+        self, get_env_mock
+    ):
         get_env_mock.return_value = "true"
         pull_request = build(
             builder.pull_request()
@@ -243,26 +384,9 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             .review(
                 builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
             )
-            .mergeable(True)
-            .merged(True)
-            .label(builder.label().name(github_logic.AUTOMERGE_LABEL_NAME))
-        )
-        self.assertFalse(
-            github_logic._is_pull_request_ready_for_automerge(pull_request)
-        )
-
-    def test_is_pull_request_ready_for_automerge_is_closed(self, get_env_mock):
-        get_env_mock.return_value = "true"
-        pull_request = build(
-            builder.pull_request()
-            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
-            .review(
-                builder.review().submitted_at("2020-01-13T14:59:58Z").state("APPROVED")
-            )
-            .mergeable(True)
-            .merged(True)
-            .closed(False)
-            .label(builder.label().name(github_logic.AUTOMERGE_LABEL_NAME))
+            .mergeable(MergeableState.CONFLICTING)
+            .merged(False)
+            .label(builder.label().name(github_logic.AutomergeLabel.AFTER_TESTS.value))
         )
         self.assertFalse(
             github_logic._is_pull_request_ready_for_automerge(pull_request)

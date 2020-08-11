@@ -1,5 +1,5 @@
 from typing import Dict, Any
-from .pull_request import PullRequest
+from .pull_request import PullRequest, MergeableState
 from .review import Review, ReviewState
 from .comment import Comment
 from .issue_comment import IssueComment

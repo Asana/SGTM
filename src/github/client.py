@@ -25,4 +25,4 @@ def set_pull_request_assignee(owner: str, repository: str, number: int, assignee
 
 def merge_pull_request(owner: str, repository: str, number: int, title: str, body: str):
     pr = _get_pull_request(owner, repository, number)
-    pr.merge(commit_title=title, commit_message=body, commit_merge_method="squash")
+    pr.merge(commit_title=title, commit_message=body, merge_method="squash")

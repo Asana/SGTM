@@ -2,7 +2,15 @@ from random import randint
 from typing import Any, Dict, List, Union
 from datetime import datetime
 from .helpers import transform_datetime, create_uuid
-from src.github.models import PullRequest, Comment, Review, User, Commit, Label
+from src.github.models import (
+    PullRequest,
+    Comment,
+    Review,
+    User,
+    Commit,
+    Label,
+    MergeableState,
+)
 from .builder_base_class import BuilderBaseClass
 from .user_builder import UserBuilder
 from .comment_builder import CommentBuilder
@@ -37,7 +45,7 @@ class PullRequestBuilder(BuilderBaseClass):
             "reviewRequests": {"nodes": []},
             "closed": False,
             "merged": False,
-            "mergeable": False,
+            "mergeable": MergeableState.CONFLICTING,
             "author": {"login": "somebody", "name": ""},
             "repository": {
                 "id": create_uuid(),
@@ -54,7 +62,7 @@ class PullRequestBuilder(BuilderBaseClass):
         self.raw_pr["merged"] = merged
         return self
 
-    def mergeable(self, mergeable: bool):
+    def mergeable(self, mergeable: MergeableState):
         self.raw_pr["mergeable"] = mergeable
         return self
 

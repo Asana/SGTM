@@ -1,9 +1,7 @@
 from __future__ import print_function
 import argparse
-from io import BytesIO
 import json
 import os
-import sys
 
 import boto3  # type: ignore
 import botocore  # type: ignore

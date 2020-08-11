@@ -4,9 +4,16 @@ from typing import List
 from src.logger import logger
 from . import client as github_client
 from src.github.models import PullRequest
+from enum import Enum, unique
 
 GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
-AUTOMERGE_LABEL_NAME = "merge on approval and passing tests"
+
+
+@unique
+class AutomergeLabel(Enum):
+    AFTER_TESTS_AND_APPROVAL = "merge on passing tests and approval"
+    AFTER_TESTS = "merge on passing tests"
+    IMMEDIATELY = "merge immediately"
 
 
 def inject_asana_task_into_pull_request_body(body: str, task_url: str) -> str:
@@ -159,19 +166,34 @@ def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
 
 
 def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
+    # enable automerge behind env variable
     automerge_enabled = os.getenv("IS_AUTOMERGE_ENABLED") == "true"
-    return (
-        # get automerge behind env variable
-        automerge_enabled
-        and pull_request.is_build_successful()
-        and pull_request.is_mergeable()
-        and not pull_request.closed()
-        and not pull_request.merged()
-        and _has_automerge_label(pull_request)
-        and pull_request.is_approved()
-    )
+
+    # autofail if not enabled or pull request isn't open
+    if not (
+        automerge_enabled and not pull_request.closed() and not pull_request.merged()
+    ):
+        return False
+
+    # if there are multiple labels, we use the most permissive to define automerge behavior
+    if _pull_request_has_label(pull_request, AutomergeLabel.IMMEDIATELY.value):
+        return True
+
+    if _pull_request_has_label(pull_request, AutomergeLabel.AFTER_TESTS.value):
+        return pull_request.is_build_successful() and pull_request.is_mergeable()
+
+    if _pull_request_has_label(
+        pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+    ):
+        return (
+            pull_request.is_build_successful()
+            and pull_request.is_mergeable()
+            and pull_request.is_approved()
+        )
+
+    return False
 
 
-def _has_automerge_label(pull_request: PullRequest) -> bool:
+def _pull_request_has_label(pull_request: PullRequest, label: str) -> bool:
     label_names = map(lambda label: label.name(), pull_request.labels())
-    return AUTOMERGE_LABEL_NAME in label_names
+    return label in label_names
