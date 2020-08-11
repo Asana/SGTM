@@ -6,6 +6,32 @@ from src.github import webhook
 from src.github.models import PullRequest, PullRequestReviewComment, Review
 
 
+class TestHandleGithubWebhook(BaseClass):
+    def test_handle_github_webhook_501_error_for_unknown_event_type(self):
+        response = webhook.handle_github_webhook("unknown_event_type", {})
+
+        self.assertEqual(response.status_code, "501")
+
+
+@patch.object(webhook, "dynamodb_lock")
+class HandleIssueCommentWebhook(BaseClass):
+    COMMENT_NODE_ID = "hijkl"
+    ISSUE_NODE_ID = "ksjklsdf"
+
+    def setUp(self):
+        self.payload = {
+            "action": "edited",
+            "comment": {"node_id": self.COMMENT_NODE_ID,},
+            "issue": {"node_id": self.ISSUE_NODE_ID,},
+        }
+
+    def test_handle_unknown_action_for_issue_comment(self, lock):
+        self.payload["action"] = "erroneous_action"
+
+        response = webhook._handle_issue_comment_webhook(self.payload)
+        self.assertEqual(response.status_code, "400")
+
+
 @patch.object(webhook, "dynamodb_lock")
 @patch("src.github.controller.delete_comment")
 @patch("src.github.controller.upsert_review")

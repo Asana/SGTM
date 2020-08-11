@@ -140,6 +140,17 @@ class PullRequestBuilder(BuilderBaseClass):
             self.raw_pr["labels"]["nodes"].append(label.to_raw())  # type: ignore
         return self
 
+    def requested_reviewer_team(self, team_name: str, member_logins: List[str]):
+        self.raw_pr["reviewRequests"]["nodes"].append(  # type: ignore
+            {
+                "requestedReviewer": {
+                    "name": team_name,
+                    "members": {"nodes": [{"login": login} for login in member_logins]},
+                }
+            }
+        )
+        return self
+
     def build(self) -> PullRequest:
         return PullRequest(self.raw_pr)
 
