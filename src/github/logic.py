@@ -11,8 +11,8 @@ GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
 
 @unique
 class AutomergeLabel(Enum):
-    AFTER_TESTS_AND_APPROVAL = "merge on passing tests and approval"
-    AFTER_TESTS = "merge on passing tests"
+    AFTER_TESTS_AND_APPROVAL = "merge after passing tests and approval"
+    AFTER_TESTS = "merge after passing tests"
     IMMEDIATELY = "merge immediately"
 
 
