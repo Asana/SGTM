@@ -1,10 +1,10 @@
-from github import Github  # type: ignore
+from github import Github, PullRequest  # type: ignore
 from src.config import GITHUB_API_KEY
 
 gh_client = Github(GITHUB_API_KEY)
 
 
-def _get_pull_request(owner: str, repository: str, number: int):
+def _get_pull_request(owner: str, repository: str, number: int) -> PullRequest:
     repo = gh_client.get_repo(f"{owner}/{repository}")
     pr = repo.get_pull(number)
     return pr

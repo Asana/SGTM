@@ -11,8 +11,8 @@ GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
 
 @unique
 class AutomergeLabel(Enum):
-    AFTER_TESTS_AND_APPROVAL = "merge after passing tests and approval"
-    AFTER_TESTS = "merge after passing tests"
+    AFTER_TESTS_AND_APPROVAL = "merge after tests and approval"
+    AFTER_TESTS = "merge after tests"
     IMMEDIATELY = "merge immediately"
 
 
@@ -168,12 +168,10 @@ def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
 
 def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
     # enable automerge behind env variable
-    automerge_enabled = os.getenv("IS_AUTOMERGE_ENABLED") == "true"
+    automerge_enabled = os.getenv("SGTM_FEATURE__AUTOMERGE_ENABLED") == "true"
 
     # autofail if not enabled or pull request isn't open
-    if not (
-        automerge_enabled and not pull_request.closed() and not pull_request.merged()
-    ):
+    if not automerge_enabled or pull_request.closed() or pull_request.merged():
         return False
 
     # if there are multiple labels, we use the most permissive to define automerge behavior

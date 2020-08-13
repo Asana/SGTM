@@ -168,8 +168,7 @@ class PullRequest(object):
         return copy.deepcopy(self._raw)
 
     def build_status(self) -> Optional[str]:
-        commit = self._raw["commits"]["nodes"][0]["commit"]
-        return commit["status"]["state"] if commit["status"] else None
+        return self.commits()[0].status()
 
     def commits(self) -> List[Commit]:
         return [Commit(commit) for commit in self._raw["commits"]["nodes"]]

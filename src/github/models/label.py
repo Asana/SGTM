@@ -4,10 +4,10 @@ import copy
 
 class Label(object):
     def __init__(self, raw_label: Dict[str, Any]):
-        self.__raw = copy.deepcopy(raw_label)
+        self._raw = copy.deepcopy(raw_label)
 
     def name(self) -> str:
-        return self.__raw["name"]
+        return self._raw["name"]
 
     def to_raw(self) -> Dict[str, Any]:
-        return copy.deepcopy(self.__raw)
+        return copy.deepcopy(self._raw)
