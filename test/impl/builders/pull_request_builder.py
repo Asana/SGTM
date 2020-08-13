@@ -1,22 +1,12 @@
 from random import randint
-from typing import Any, Dict, List, Union
+from typing import List, Union, Tuple, Optional, Dict, Any
 from datetime import datetime
 from .helpers import transform_datetime, create_uuid
-from src.github.models import (
-    PullRequest,
-    Comment,
-    Review,
-    User,
-    Commit,
-    Label,
-    MergeableState,
-)
+from src.github.models import PullRequest, Comment, Review, User
 from .builder_base_class import BuilderBaseClass
 from .user_builder import UserBuilder
 from .comment_builder import CommentBuilder
-from .commit_builder import CommitBuilder
 from .review_builder import ReviewBuilder
-from .label_builder import LabelBuilder
 
 
 class PullRequestBuilder(BuilderBaseClass):
@@ -29,23 +19,11 @@ class PullRequestBuilder(BuilderBaseClass):
             "title": create_uuid(),
             "url": "https://www.github.com/foo/pulls/" + str(pr_number),
             "assignees": {"nodes": []},
-            "commits": {
-                "nodes": [
-                    {
-                        "commit": {
-                            "status": {"state": Commit.BUILD_PENDING},
-                            "node_id": create_uuid(),
-                        }
-                    }
-                ]
-            },
-            "labels": {"nodes": []},
             "comments": {"nodes": []},
             "reviews": {"nodes": []},
             "reviewRequests": {"nodes": []},
             "closed": False,
             "merged": False,
-            "mergeable": MergeableState.MERGEABLE,
             "author": {"login": "somebody", "name": ""},
             "repository": {
                 "id": create_uuid(),
@@ -60,10 +38,6 @@ class PullRequestBuilder(BuilderBaseClass):
 
     def merged(self, merged: bool):
         self.raw_pr["merged"] = merged
-        return self
-
-    def mergeable(self, mergeable: MergeableState):
-        self.raw_pr["mergeable"] = mergeable
         return self
 
     def number(self, number: str):
@@ -122,22 +96,6 @@ class PullRequestBuilder(BuilderBaseClass):
             self.raw_pr["reviewRequests"]["nodes"].append(  # type: ignore
                 {"requestedReviewer": reviewer.to_raw()}
             )
-        return self
-
-    def commit(self, commit: Union[CommitBuilder, Commit]):
-        return self.commits([commit])
-
-    def commits(self, commits: List[Union[CommitBuilder, Commit]]):
-        for commit in commits:
-            self.raw_pr["commits"]["nodes"].insert(0, commit.to_raw())
-        return self
-
-    def label(self, label: Union[LabelBuilder, Label]):
-        return self.labels([label])
-
-    def labels(self, labels: List[Union[LabelBuilder, Label]]):
-        for label in labels:
-            self.raw_pr["labels"]["nodes"].append(label.to_raw())  # type: ignore
         return self
 
     def requested_reviewer_team(self, team_name: str, member_logins: List[str]):
