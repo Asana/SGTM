@@ -58,11 +58,31 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
                 .submitted_at("2020-01-13T14:59:58Z")
                 .state(ReviewState.CHANGES_REQUESTED)
             )
-            .mergeable(MergeableState.CONFLICTING)
+            .mergeable(MergeableState.UNKNOWN)
             .merged(False)
             .label(builder.label().name(github_logic.AutomergeLabel.IMMEDIATELY.value))
         )
         self.assertTrue(github_logic._is_pull_request_ready_for_automerge(pull_request))
+
+    def test_is_pull_request_ready_for_automerge_immediately_conflicting(
+        self, get_env_mock
+    ):
+        get_env_mock.return_value = "true"
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_FAILED))
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.CHANGES_REQUESTED)
+            )
+            .mergeable(MergeableState.CONFLICTING)
+            .merged(False)
+            .label(builder.label().name(github_logic.AutomergeLabel.IMMEDIATELY.value))
+        )
+        self.assertFalse(
+            github_logic._is_pull_request_ready_for_automerge(pull_request)
+        )
 
     def test_is_pull_request_ready_for_automerge_autofail_if_no_env_variable(
         self, get_env_mock

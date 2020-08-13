@@ -3,7 +3,7 @@ import os
 from typing import List
 from src.logger import logger
 from . import client as github_client
-from src.github.models import PullRequest
+from src.github.models import PullRequest, MergeableState
 from enum import Enum, unique
 
 GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
@@ -176,7 +176,10 @@ def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
 
     # if there are multiple labels, we use the most permissive to define automerge behavior
     if _pull_request_has_label(pull_request, AutomergeLabel.IMMEDIATELY.value):
-        return True
+        return pull_request.mergeable() in (
+            MergeableState.MERGEABLE,
+            MergeableState.UNKNOWN,
+        )
 
     if _pull_request_has_label(pull_request, AutomergeLabel.AFTER_TESTS.value):
         return pull_request.is_build_successful() and pull_request.is_mergeable()
