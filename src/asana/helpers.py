@@ -8,6 +8,8 @@ from src.asana import client as asana_client
 from src.github import logic as github_logic
 from src.logger import logger
 
+URL_REGEX = '([^"\>\<]|^)(http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+)'
+
 
 def task_url_from_task_id(task_id: str) -> str:
     """
@@ -211,8 +213,10 @@ def asana_comment_from_github_comment(comment: Comment) -> str:
     """
     github_author = comment.author()
     display_name = _asana_display_name_for_github_user(github_author)
-    comment_text = _transform_github_mentions_to_asana_mentions(
-        escape(comment.body(), quote=False)
+    comment_text = convert_urls_to_links(
+        _transform_github_mentions_to_asana_mentions(
+            escape(comment.body(), quote=False)
+        )
     )
     return _wrap_in_tag("body")(
         display_name
@@ -229,6 +233,21 @@ _review_action_to_text_map: Dict[ReviewState, str] = {
     ReviewState.COMMENTED: "reviewed",
     ReviewState.DISMISSED: "reviewed",
 }
+
+
+def convert_urls_to_links(text: str) -> str:
+    """
+    Finds all raw URLs in the input text, and returns a string with those URLs
+    replaced with a wrapped URL in an <A> tag. Used for html_* fields in
+    Asana's API.
+    """
+
+    def urlreplace(matchobj):
+        return '{}<A href="{}">{}</A>'.format(
+            matchobj.group(1), matchobj.group(2), matchobj.group(2)
+        )
+
+    return re.sub(URL_REGEX, urlreplace, text)
 
 
 def asana_comment_from_github_review(review: Review) -> str:
@@ -298,11 +317,11 @@ def _task_description_from_pull_request(pull_request: PullRequest) -> str:
         _wrap_in_tag("em")(
             "This is a one-way sync from GitHub to Asana. Do not edit this task or comment on it!"
         )
-        + f"\n\n\uD83D\uDD17 {url}"
+        + convert_urls_to_links(f"\n\n\uD83D\uDD17 {url}")
         + "\n✍️ "
         + author
         + _wrap_in_tag("strong")("\n\nDescription:\n")
-        + escape(pull_request.body(), quote=False)
+        + convert_urls_to_links(escape(pull_request.body(), quote=False))
     )
 
 
