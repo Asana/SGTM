@@ -1,5 +1,5 @@
 import re
-from html import escape
+from html import escape, unescape
 from datetime import datetime, timedelta
 from typing import Callable, Match, Optional, List, Dict
 from src.dynamodb import client as dynamodb_client
@@ -7,6 +7,9 @@ from src.github.models import Comment, PullRequest, Review, ReviewState, User
 from src.asana import client as asana_client
 from src.github import logic as github_logic
 from src.logger import logger
+
+# https://gist.github.com/gruber/8891611
+URL_REGEX = r"""(?i)([^"\>\<]|^)\b((?:https?:(?:/{1,3}|[a-z0-9%])|[a-z0-9.\-]+[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)/)(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))"""
 
 
 def task_url_from_task_id(task_id: str) -> str:
@@ -211,8 +214,10 @@ def asana_comment_from_github_comment(comment: Comment) -> str:
     """
     github_author = comment.author()
     display_name = _asana_display_name_for_github_user(github_author)
-    comment_text = _transform_github_mentions_to_asana_mentions(
-        escape(comment.body(), quote=False)
+    comment_text = convert_urls_to_links(
+        _transform_github_mentions_to_asana_mentions(
+            escape(comment.body(), quote=False)
+        )
     )
     return _wrap_in_tag("body")(
         display_name
@@ -229,6 +234,20 @@ _review_action_to_text_map: Dict[ReviewState, str] = {
     ReviewState.COMMENTED: "reviewed",
     ReviewState.DISMISSED: "reviewed",
 }
+
+
+def convert_urls_to_links(text: str) -> str:
+    """
+    Finds all raw URLs in the input text, and returns a string with those URLs
+    replaced with a wrapped URL in an <A> tag. Used for html_* fields in
+    Asana's API.
+    """
+
+    def urlreplace(matchobj: Match[str]) -> str:
+        url = unescape(matchobj.group(2))
+        return matchobj.group(1) + _wrap_in_tag("A", attrs={"href": url})(url)
+
+    return re.sub(URL_REGEX, urlreplace, text)
 
 
 def asana_comment_from_github_review(review: Review) -> str:
@@ -298,11 +317,11 @@ def _task_description_from_pull_request(pull_request: PullRequest) -> str:
         _wrap_in_tag("em")(
             "This is a one-way sync from GitHub to Asana. Do not edit this task or comment on it!"
         )
-        + f"\n\n\uD83D\uDD17 {url}"
+        + convert_urls_to_links(f"\n\n\uD83D\uDD17 {url}")
         + "\n✍️ "
         + author
         + _wrap_in_tag("strong")("\n\nDescription:\n")
-        + escape(pull_request.body(), quote=False)
+        + convert_urls_to_links(escape(pull_request.body(), quote=False))
     )
 
 

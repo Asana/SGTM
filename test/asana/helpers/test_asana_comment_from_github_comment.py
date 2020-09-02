@@ -1,3 +1,4 @@
+from html import escape
 import src.asana.helpers
 from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 from test.impl.builders import builder, build
@@ -21,6 +22,20 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
             github_comment
         )
         self.assertContainsStrings(asana_comment, ["GITHUB_COMMENT_TEXT"])
+
+    def test_transforms_urls_from_comment_tect(self):
+        url = "https://www.foo.bar/?a=1&b=2"
+        github_comment = build(
+            builder.comment()
+            .author(builder.user("github_unknown_user_login"))
+            .body("Can you refer to the documentation at {}".format(url))
+        )
+        asana_comment = src.asana.helpers.asana_comment_from_github_comment(
+            github_comment
+        )
+        self.assertContainsStrings(
+            asana_comment, ['<A href="{}">{}</A>'.format(escape(url), url)]
+        )
 
     def test_includes_asana_comment_author(self):
         github_comment = build(
