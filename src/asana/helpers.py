@@ -1,5 +1,5 @@
 import re
-from html import escape
+from html import escape, unescape
 from datetime import datetime, timedelta
 from typing import Callable, Match, Optional, List, Dict
 from src.dynamodb import client as dynamodb_client
@@ -244,9 +244,8 @@ def convert_urls_to_links(text: str) -> str:
     """
 
     def urlreplace(matchobj: Match[str]) -> str:
-        return matchobj.group(1) + _wrap_in_tag("A", attrs={"href": matchobj.group(2)})(
-            matchobj.group(2)
-        )
+        url = unescape(matchobj.group(2))
+        return matchobj.group(1) + _wrap_in_tag("A", attrs={"href": url})(url)
 
     return re.sub(URL_REGEX, urlreplace, text)
 

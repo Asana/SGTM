@@ -35,6 +35,16 @@ class TestConvertUrlsToLinks(BaseClass):
         input_text = 'Hey check out <A href="https://www.asana.com">https://www.asana.com</A> to work together effortlessly'
         self.assertEqual(input_text, convert_urls_to_links(input_text))
 
+    def test_markdown_wraped_urls_still_get_converted(self):
+        url = "https://app.asana.com/0/0/12345"
+        input_text = "Pull Request synchronized with [Asana task]({})".format(url)
+        self.assertEqual(
+            'Pull Request synchronized with [Asana task](<A href="{}">{}</A>)'.format(
+                url, url
+            ),
+            convert_urls_to_links(input_text),
+        )
+
 
 if __name__ == "__main__":
     from unittest import main as run_tests
