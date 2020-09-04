@@ -1,4 +1,5 @@
-from src.asana.helpers import convert_urls_to_links
+from html import escape
+from src.asana.helpers import convert_urls_to_links, _link
 
 from test.impl.base_test_case_class import BaseClass
 
@@ -32,7 +33,7 @@ class TestConvertUrlsToLinks(BaseClass):
         self.assertEqual(expected_output, convert_urls_to_links(input_text))
 
     def test_dont_wrap_urls_that_already_are_wrapped_in_a_tag(self):
-        input_text = 'Hey check out <A href="https://www.asana.com">https://www.asana.com</A> to work together effortlessly'
+        input_text = 'Hey check out <A href="https://www.asana.com/a/b/123">https://www.asana.com/a/b/123</A> to work together effortlessly'
         self.assertEqual(input_text, convert_urls_to_links(input_text))
 
     def test_markdown_wraped_urls_still_get_converted(self):
