@@ -1,5 +1,5 @@
 import re
-from html import escape
+from html import escape, unescape
 from datetime import datetime, timedelta
 from typing import Callable, Match, Optional, List, Dict
 from src.dynamodb import client as dynamodb_client
@@ -7,6 +7,9 @@ from src.github.models import Comment, PullRequest, Review, ReviewState, User
 from src.asana import client as asana_client
 from src.github import logic as github_logic
 from src.logger import logger
+
+# https://gist.github.com/gruber/8891611
+URL_REGEX = r"""(?i)([^"\>\<\/\.]|^)\b((?:https?:(/{1,3}))(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))"""
 
 
 def task_url_from_task_id(task_id: str) -> str:
@@ -211,8 +214,10 @@ def asana_comment_from_github_comment(comment: Comment) -> str:
     """
     github_author = comment.author()
     display_name = _asana_display_name_for_github_user(github_author)
-    comment_text = _transform_github_mentions_to_asana_mentions(
-        escape(comment.body(), quote=False)
+    comment_text = convert_urls_to_links(
+        _transform_github_mentions_to_asana_mentions(
+            escape(comment.body(), quote=False)
+        )
     )
     return _wrap_in_tag("body")(
         display_name
@@ -229,6 +234,20 @@ _review_action_to_text_map: Dict[ReviewState, str] = {
     ReviewState.COMMENTED: "reviewed",
     ReviewState.DISMISSED: "reviewed",
 }
+
+
+def convert_urls_to_links(text: str) -> str:
+    """
+    Finds all raw URLs in the input text, and returns a string with those URLs
+    replaced with a wrapped URL in an <A> tag. Used for html_* fields in
+    Asana's API.
+    """
+
+    def urlreplace(matchobj: Match[str]) -> str:
+        url = unescape(matchobj.group(2))
+        return matchobj.group(1) + _link(url)
+
+    return re.sub(URL_REGEX, urlreplace, text)
 
 
 def asana_comment_from_github_review(review: Review) -> str:
@@ -289,7 +308,7 @@ def asana_comment_from_github_review(review: Review) -> str:
 
 
 def _task_description_from_pull_request(pull_request: PullRequest) -> str:
-    url = _link(pull_request.url())
+    link_to_pr = _link(pull_request.url())
     github_author = pull_request.author()
     author = _asana_user_url_from_github_user_handle(github_author.login())
     if author is None:
@@ -298,11 +317,11 @@ def _task_description_from_pull_request(pull_request: PullRequest) -> str:
         _wrap_in_tag("em")(
             "This is a one-way sync from GitHub to Asana. Do not edit this task or comment on it!"
         )
-        + f"\n\n\uD83D\uDD17 {url}"
+        + f"\n\n\uD83D\uDD17 {link_to_pr}"
         + "\n✍️ "
         + author
         + _wrap_in_tag("strong")("\n\nDescription:\n")
-        + escape(pull_request.body(), quote=False)
+        + convert_urls_to_links(escape(pull_request.body(), quote=False))
     )
 
 
@@ -344,4 +363,4 @@ def _wrap_in_tag(
 
 
 def _link(url: str) -> str:
-    return _wrap_in_tag("a", {"href": url})(url)
+    return _wrap_in_tag("A", {"href": url})(url)
