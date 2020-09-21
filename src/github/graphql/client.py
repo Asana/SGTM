@@ -29,7 +29,6 @@ def _execute_graphql_query(query: FrozenSet[str], variables: dict) -> dict:
 
 def get_pull_request(pull_request_id: str) -> PullRequest:
     data = _execute_graphql_query(GetPullRequest, {"id": pull_request_id})
-    print(data)
     return PullRequest(data["pullRequest"])
 
 
