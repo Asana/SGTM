@@ -3,12 +3,28 @@ One-way sync of GitHub pull requests to Asana tasks so engineers can track all o
 
 This is an adapted version of a Clojure app that was originally written for internal use by Asana engineers and is still under active development.
 
-## Installation
+
+## Setup
+Follow these instructions for setting up SGTM to run in your environment and your infrastructure! Note that this is currently only set up for deployment on AWS, so if you are using a cloud provider, you may need to modify some code and deploy the app yourself.
+
+### Fork repository and set up your local repository
+You will need to set some overrides specific to your deployment -- mostly due to the fact that AWS S3 bucket names are globally unique, but you may want to tweak some default configuration settings. So, we recommend forking this repository into your Github organization.
+
+### Installation
 We recommend setting up a virtualenvironment to install and run your python environment. By doing so, you can eliminate
 the risk that SGTM's python dependencies and settings will be mixed up with any such dependencies and settings that you
 may be using in other projects.
 
-When first setting up your repository, we recommend using a virtual environment. Once you have that activated (see below), you should install all required python dependencies using `pip3 install -r requirements.txt -r requirements-dev.txt`.
+When first setting up your repository, we recommend using a virtual environment. Once you have that activated (see [Installing a Virtual Environment for Python](#installing-a-virtual-environment-for-python) below), you should install all required python dependencies using `pip3 install -r requirements.txt -r requirements-dev.txt`.
+
+### Create your credentials for Asana/AWS/Github
+There are three external services you'll need to interact with, and therefore need credentials for.
+
+#### Asana
+
+#### AWS
+
+#### Github
 
 ### Installing a Virtual Environment for Python
 
