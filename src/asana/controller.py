@@ -4,6 +4,8 @@ from . import helpers as asana_helpers
 from src.github.models import Comment, PullRequest, Review
 from src.logger import logger
 from src.dynamodb import client as dynamodb_client
+import urllib.request
+import base64
 
 
 def create_task(repository_id: str) -> Optional[str]:
@@ -43,6 +45,13 @@ def upsert_github_comment_to_task(comment: Comment, task_id: str):
     )
     if asana_comment_id is None:
         logger.info(f"Adding comment {github_comment_id} to task {task_id}")
+
+        attachments = asana_helpers.extract_attachments(comment)
+        for attachment_name, attachment_url, attachment_type in attachments:
+            with urllib.request.urlopen(attachment_url) as f:
+                attachment_contents = f.read()
+                asana_client.create_on_task(task_id, attachment_contents, attachment_name, attachment_type)
+
         asana_comment_id = asana_client.add_comment(
             task_id, asana_helpers.asana_comment_from_github_comment(comment)
         )

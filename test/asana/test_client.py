@@ -148,6 +148,17 @@ class TestAsanaClientFindAllTasksForProject(BaseClass):
             project=project_id, completed_since="now", opt_fields=opt_fields
         )
 
+class TestAsanaClientCreateAttachmentForTask(BaseClass):
+    @patch.object(asana_api_client.attachments, "create_on_task")
+    def test_create_on_task(self, create_on_task):
+        src.asana.client.create_on_task("1", "sample content", "sample_name.png")
+        create_on_task.assert_called_once_with("1", "sample content", "sample_name.png", None)
+
+    @patch.object(asana_api_client.attachments, "create_on_task")
+    def test_create_on_task_with_image_type(self, create_on_task):
+        src.asana.client.create_on_task("1", "sample content", "sample_name.png", "image/png")
+        create_on_task.assert_called_once_with("1", "sample content", "sample_name.png", "image/png")
+
 
 if __name__ == "__main__":
     from unittest import main as run_tests

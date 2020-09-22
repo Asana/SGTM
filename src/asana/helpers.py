@@ -10,7 +10,7 @@ from src.logger import logger
 
 # https://gist.github.com/gruber/8891611
 URL_REGEX = r"""(?i)([^"\>\<\/\.]|^)\b((?:https?:(/{1,3}))(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))"""
-
+IMAGE_TYPES = {".png": "image/png", ".jpg": "image/jpg", ".jpeg": "image/jpeg", ".gif": "image/gif"}
 
 def task_url_from_task_id(task_id: str) -> str:
     """
@@ -226,6 +226,22 @@ def asana_comment_from_github_comment(comment: Comment) -> str:
         + "\n"
         + comment_text
     )
+
+def extract_attachments(comment: Comment) -> List[List[str]]:
+    """
+    Finds, but does not replace, all the image attachment URLS (those that end in png, gif,
+    jpg, or jpeg) in the comment.
+    Returns a list of tuples: [[<file_name>[.<extension>], <file_url>, image/<extension>], ...]
+    """
+    attachments = []
+    matches = re.findall(github_logic.GITHUB_ATTACHMENT_REGEX, comment.body())
+    for img_name, img_url, img_ext in matches:
+        image_type = IMAGE_TYPES.get(img_ext)
+        full_name = img_name
+        if image_type and img_ext not in img_name:
+            full_name = img_name + img_ext
+        attachments.append([full_name, img_url, image_type])
+    return attachments
 
 
 _review_action_to_text_map: Dict[ReviewState, str] = {
