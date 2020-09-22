@@ -10,8 +10,13 @@ class Commit(object):
     def __init__(self, raw_commit: Dict[str, Any]):
         self._raw = copy.deepcopy(raw_commit)
 
+    # A commit's status can be None while the logic to start tests runs right after committing.
     def status(self) -> Optional[str]:
-        return self._raw["commit"].get("status", {}).get("state", None)
+        status = self._raw["commit"].get("status")
+        if status is None:
+            return None
+        else:
+            return status.get("state", None)
 
     def node_id(self) -> str:
         return self._raw["commit"]["node_id"]
