@@ -114,4 +114,6 @@ terraform/terraform.tfstate.backup
 
 # virtualenv
 v-env/
-build-env/
+
+# VSCode
+.vscode

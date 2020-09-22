@@ -14,6 +14,7 @@ fragment FullPullRequest on PullRequest {
   closed
   merged
   mergedAt
+  mergeable
   url
   number
   repository {
@@ -70,6 +71,11 @@ fragment FullPullRequest on PullRequest {
           state
         }
       }
+    }
+  }
+  labels(last: 20) {
+    nodes {
+      name
     }
   }
 }
