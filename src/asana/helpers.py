@@ -7,10 +7,12 @@ from src.github.models import Comment, PullRequest, Review, ReviewState, User
 from src.asana import client as asana_client
 from src.github import logic as github_logic
 from src.logger import logger
+import collections
 
 # https://gist.github.com/gruber/8891611
 URL_REGEX = r"""(?i)([^"\>\<\/\.]|^)\b((?:https?:(/{1,3}))(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))"""
-IMAGE_TYPES = {".png": "image/png", ".jpg": "image/jpg", ".jpeg": "image/jpeg", ".gif": "image/gif"}
+
+AttachmentData = collections.namedtuple("AttachmentData", "file_name file_url image_type")
 
 def task_url_from_task_id(task_id: str) -> str:
     """
@@ -227,21 +229,32 @@ def asana_comment_from_github_comment(comment: Comment) -> str:
         + comment_text
     )
 
-def extract_attachments(comment: Comment) -> List[List[str]]:
+_image_extension_to_type = {".png": "image/png", ".jpg": "image/jpg", ".jpeg": "image/jpeg", ".gif": "image/gif"}
+
+def extract_attachments(comment: Comment) -> List[AttachmentData]:
     """
     Finds, but does not replace, all the image attachment URLS (those that end in png, gif,
     jpg, or jpeg) in the comment.
-    Returns a list of tuples: [[<file_name>[.<extension>], <file_url>, image/<extension>], ...]
     """
     attachments = []
     matches = re.findall(github_logic.GITHUB_ATTACHMENT_REGEX, comment.body())
     for img_name, img_url, img_ext in matches:
-        image_type = IMAGE_TYPES.get(img_ext)
-        full_name = img_name
-        if image_type and img_ext not in img_name:
-            full_name = img_name + img_ext
-        attachments.append([full_name, img_url, image_type])
+        image_type = _image_extension_to_type.get(img_ext)
+        
+        # Asana API accepts multiple attachments with same name, so defaulting to "attachment" is valid
+        full_name = img_name if img_name else "attachment"
+        if image_type and img_ext not in full_name:
+            full_name += img_ext
+        attachments.append(AttachmentData(file_name=full_name, file_url=img_url, image_type=image_type))
     return attachments
+
+
+def create_attachments(comment: Comment) -> None:
+    attachments = asana_helpers.extract_attachments(comment)
+    for attachment in attachments:
+        with urllib.request.urlopen(attachment.file_url) as f:
+            attachment_contents = f.read()
+            asana_client.create_on_task(task_id, attachment_contents, attachment.file_name, attachment.image_type)
 
 
 _review_action_to_text_map: Dict[ReviewState, str] = {

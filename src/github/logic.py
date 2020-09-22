@@ -5,7 +5,7 @@ from src.logger import logger
 from src.github.models import PullRequest
 
 GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
-GITHUB_ATTACHMENT_REGEX = "!\[(.*?)\]\((?P<filetype>.+?(\.png|\.jpg|\.jpeg|\.gif))"
+GITHUB_ATTACHMENT_REGEX = "!\[(.*?)\]\((.+?(\.png|\.jpg|\.jpeg|\.gif))"
 
 
 def inject_asana_task_into_pull_request_body(body: str, task_url: str) -> str:

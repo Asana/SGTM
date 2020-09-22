@@ -28,8 +28,8 @@ class TestExtractAttachments(BaseClass):
         self.assertListEqual(
             attachments,
             [
-                ["photo.png", "www.photopng.com/this.png", "image/png"],
-                ["giferino.gif", "giphy.com/example.gif", "image/gif"]
+                asana_helpers.AttachmentData(file_name="photo.png", file_url="www.photopng.com/this.png", image_type="image/png"),
+                asana_helpers.AttachmentData(file_name="giferino.gif", file_url="giphy.com/example.gif", image_type="image/gif")
             ]
         )
 
@@ -42,11 +42,22 @@ class TestExtractAttachments(BaseClass):
         self.assertListEqual(
             attachments,
             [
-                ["photo.png", "www.photopng.com/this.png", "image/png"],
+                asana_helpers.AttachmentData(file_name="photo.png", file_url="www.photopng.com/this.png", image_type="image/png"),
             ]
         )
 
-    
+    def test_extract_attachment_no_file_name_given(self):
+        github_comment = build(
+            builder.comment()
+            .body("Ok here's the first: ![](www.photopng.com/this.png) and that's it!")
+        )
+        attachments = asana_helpers.extract_attachments(github_comment)
+        self.assertListEqual(
+            attachments,
+            [
+                asana_helpers.AttachmentData(file_name="attachment.png", file_url="www.photopng.com/this.png", image_type="image/png"),
+            ]
+        )
 
 if __name__ == "__main__":
     from unittest import main as run_tests
