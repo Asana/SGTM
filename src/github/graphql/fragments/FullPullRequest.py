@@ -14,6 +14,7 @@ fragment FullPullRequest on PullRequest {
   closed
   merged
   mergedAt
+  mergeable
   url
   number
   repository {
@@ -28,6 +29,16 @@ fragment FullPullRequest on PullRequest {
       requestedReviewer {
         ... on User {
           login
+        }
+        ... on Team {
+          name
+          members(last:20) {
+            nodes {
+              ... on User {
+                login
+              }
+            }
+          }
         }
       }
     }
@@ -60,6 +71,11 @@ fragment FullPullRequest on PullRequest {
           state
         }
       }
+    }
+  }
+  labels(last: 20) {
+    nodes {
+      name
     }
   }
 }

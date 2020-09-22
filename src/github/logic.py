@@ -1,10 +1,19 @@
 import re
+import os
 from typing import List
-from datetime import datetime
 from src.logger import logger
-from src.github.models import PullRequest
+from . import client as github_client
+from src.github.models import PullRequest, MergeableState
+from enum import Enum, unique
 
 GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
+
+
+@unique
+class AutomergeLabel(Enum):
+    AFTER_TESTS_AND_APPROVAL = "merge after tests and approval"
+    AFTER_TESTS = "merge after tests"
+    IMMEDIATELY = "merge immediately"
 
 
 def inject_asana_task_into_pull_request_body(body: str, task_url: str) -> str:
@@ -137,3 +146,56 @@ def all_pull_request_participants(pull_request: PullRequest) -> List[str]:
             if gh_handle
         )
     )
+
+
+# returns True if the pull request was automerge, False if not
+def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
+    if _is_pull_request_ready_for_automerge(pull_request):
+        logger.info(
+            f"Pull request {pull_request.id()} is able to be automerged, automerging now"
+        )
+        github_client.merge_pull_request(
+            pull_request.repository_owner_handle(),
+            pull_request.repository_name(),
+            pull_request.number(),
+            pull_request.title(),
+            pull_request.body(),
+        )
+        return True
+    else:
+        return False
+
+
+def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
+    # enable automerge behind env variable
+    automerge_enabled = os.getenv("SGTM_FEATURE__AUTOMERGE_ENABLED") == "true"
+
+    # autofail if not enabled or pull request isn't open
+    if not automerge_enabled or pull_request.closed() or pull_request.merged():
+        return False
+
+    # if there are multiple labels, we use the most permissive to define automerge behavior
+    if _pull_request_has_label(pull_request, AutomergeLabel.IMMEDIATELY.value):
+        return pull_request.mergeable() in (
+            MergeableState.MERGEABLE,
+            MergeableState.UNKNOWN,
+        )
+
+    if _pull_request_has_label(pull_request, AutomergeLabel.AFTER_TESTS.value):
+        return pull_request.is_build_successful() and pull_request.is_mergeable()
+
+    if _pull_request_has_label(
+        pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+    ):
+        return (
+            pull_request.is_build_successful()
+            and pull_request.is_mergeable()
+            and pull_request.is_approved()
+        )
+
+    return False
+
+
+def _pull_request_has_label(pull_request: PullRequest, label: str) -> bool:
+    label_names = map(lambda label: label.name(), pull_request.labels())
+    return label in label_names

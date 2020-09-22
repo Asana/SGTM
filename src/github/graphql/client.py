@@ -52,10 +52,15 @@ def get_pull_request_and_review(
     return PullRequest(data["pullRequest"]), Review(data["review"])
 
 
-def get_pull_request_for_commit(commit_id: str) -> PullRequest:
+def get_pull_request_for_commit(commit_id: str) -> Optional[PullRequest]:
     data = _execute_graphql_query(GetPullRequestForCommit, {"id": commit_id})
-    pull_request = data["commit"]["associatedPullRequests"]["edges"][0]["node"]
-    return PullRequest(pull_request)
+    edges = data["commit"]["associatedPullRequests"]["edges"]
+
+    if edges:
+        pull_request = data["commit"]["associatedPullRequests"]["edges"][0]["node"]
+        return PullRequest(pull_request)
+    else:
+        return None
 
 
 def get_review_for_database_id(
