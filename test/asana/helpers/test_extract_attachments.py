@@ -8,7 +8,7 @@ class TestExtractAttachments(BaseClass):
             builder.comment()
             .body("No urls here!! ![but some weird formatting] (oops)")
         )
-        attachments = asana_helpers.extract_attachments(github_comment)
+        attachments = asana_helpers._extract_attachments(github_comment)
         self.assertEqual(len(attachments), 0)
 
     def test_extract_attachment_with_unknown_extension(self):
@@ -16,7 +16,7 @@ class TestExtractAttachments(BaseClass):
             builder.comment()
             .body("Ok here it is ![photoo ooo](www.photopng.com/this.fakeg) and there it was")
         )
-        attachments = asana_helpers.extract_attachments(github_comment)
+        attachments = asana_helpers._extract_attachments(github_comment)
         self.assertEqual(len(attachments), 0)
 
     def test_extract_attachments_with_extensions(self):
@@ -24,7 +24,7 @@ class TestExtractAttachments(BaseClass):
             builder.comment()
             .body("Ok here's the first: ![photo.png](www.photopng.com/this.png) and the second!! ![giferino.gif](giphy.com/example.gif)")
         )
-        attachments = asana_helpers.extract_attachments(github_comment)
+        attachments = asana_helpers._extract_attachments(github_comment)
         self.assertListEqual(
             attachments,
             [
@@ -38,7 +38,7 @@ class TestExtractAttachments(BaseClass):
             builder.comment()
             .body("Ok here's the first: ![photo](www.photopng.com/this.png) and that's it!")
         )
-        attachments = asana_helpers.extract_attachments(github_comment)
+        attachments = asana_helpers._extract_attachments(github_comment)
         self.assertListEqual(
             attachments,
             [
@@ -51,11 +51,11 @@ class TestExtractAttachments(BaseClass):
             builder.comment()
             .body("Ok here's the first: ![](www.photopng.com/this.png) and that's it!")
         )
-        attachments = asana_helpers.extract_attachments(github_comment)
+        attachments = asana_helpers._extract_attachments(github_comment)
         self.assertListEqual(
             attachments,
             [
-                asana_helpers.AttachmentData(file_name="attachment.png", file_url="www.photopng.com/this.png", image_type="image/png"),
+                asana_helpers.AttachmentData(file_name="github_attachment.png", file_url="www.photopng.com/this.png", image_type="image/png"),
             ]
         )
 

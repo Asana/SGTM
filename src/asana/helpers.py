@@ -8,6 +8,8 @@ from src.asana import client as asana_client
 from src.github import logic as github_logic
 from src.logger import logger
 import collections
+import urllib.request
+import base64
 
 # https://gist.github.com/gruber/8891611
 URL_REGEX = r"""(?i)([^"\>\<\/\.]|^)\b((?:https?:(/{1,3}))(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))"""
@@ -231,7 +233,7 @@ def asana_comment_from_github_comment(comment: Comment) -> str:
 
 _image_extension_to_type = {".png": "image/png", ".jpg": "image/jpg", ".jpeg": "image/jpeg", ".gif": "image/gif"}
 
-def extract_attachments(comment: Comment) -> List[AttachmentData]:
+def _extract_attachments(comment: Comment) -> List[AttachmentData]:
     """
     Finds, but does not replace, all the image attachment URLS (those that end in png, gif,
     jpg, or jpeg) in the comment.
@@ -241,20 +243,20 @@ def extract_attachments(comment: Comment) -> List[AttachmentData]:
     for img_name, img_url, img_ext in matches:
         image_type = _image_extension_to_type.get(img_ext)
         
-        # Asana API accepts multiple attachments with same name, so defaulting to "attachment" is valid
-        full_name = img_name if img_name else "attachment"
+        # Asana API accepts multiple attachments with same name, so defaulting to "github_attachment" is valid
+        full_name = img_name if img_name else "github_attachment"
         if image_type and img_ext not in full_name:
             full_name += img_ext
         attachments.append(AttachmentData(file_name=full_name, file_url=img_url, image_type=image_type))
     return attachments
 
 
-def create_attachments(comment: Comment) -> None:
-    attachments = asana_helpers.extract_attachments(comment)
+def create_attachments(comment: Comment, task_id: str) -> None:
+    attachments = _extract_attachments(comment)
     for attachment in attachments:
         with urllib.request.urlopen(attachment.file_url) as f:
             attachment_contents = f.read()
-            asana_client.create_on_task(task_id, attachment_contents, attachment.file_name, attachment.image_type)
+            asana_client.create_attachment_on_task(task_id, attachment_contents, attachment.file_name, attachment.image_type)
 
 
 _review_action_to_text_map: Dict[ReviewState, str] = {
