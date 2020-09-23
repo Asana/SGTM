@@ -269,13 +269,12 @@ def create_attachments(comment: Comment, task_id: str) -> None:
         try:
             with urllib.request.urlopen(attachment.file_url) as f:
                 attachment_contents = f.read()
-                
-                    asana_client.create_attachment_on_task(
-                        task_id,
-                        attachment_contents,
-                        attachment.file_name,
-                        attachment.image_type,
-                    )
+                asana_client.create_attachment_on_task(
+                    task_id,
+                    attachment_contents,
+                    attachment.file_name,
+                    attachment.image_type,
+                )
         except Exception as error:
             logger.warn("Attachment creation failed. Creating task comment anyway.")
 
