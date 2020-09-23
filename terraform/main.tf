@@ -151,7 +151,8 @@ resource "aws_lambda_function" "sgtm" {
   environment {
     variables = {
       API_KEYS_S3_BUCKET  = var.api_key_s3_bucket_name,
-      API_KEYS_S3_KEY     = var.api_key_s3_object
+      API_KEYS_S3_KEY     = var.api_key_s3_object,
+      SGTM_FEATURE__AUTOMERGE_ENABLED = "true" 
     }
   }
 }
