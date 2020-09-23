@@ -266,17 +266,18 @@ def _extract_attachments(comment: Comment) -> List[AttachmentData]:
 def create_attachments(comment: Comment, task_id: str) -> None:
     attachments = _extract_attachments(comment)
     for attachment in attachments:
-        with urllib.request.urlopen(attachment.file_url) as f:
-            attachment_contents = f.read()
-            try:
-                asana_client.create_attachment_on_task(
-                    task_id,
-                    attachment_contents,
-                    attachment.file_name,
-                    attachment.image_type,
-                )
-            except Exception as error:
-                logger.warn("Attachment creation failed. Creating task comment anyway.")
+        try:
+            with urllib.request.urlopen(attachment.file_url) as f:
+                attachment_contents = f.read()
+                
+                    asana_client.create_attachment_on_task(
+                        task_id,
+                        attachment_contents,
+                        attachment.file_name,
+                        attachment.image_type,
+                    )
+        except Exception as error:
+            logger.warn("Attachment creation failed. Creating task comment anyway.")
 
 
 _review_action_to_text_map: Dict[ReviewState, str] = {
