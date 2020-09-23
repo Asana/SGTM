@@ -7,6 +7,7 @@ from src.github.models import PullRequest, MergeableState
 from enum import Enum, unique
 
 GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
+GITHUB_ATTACHMENT_REGEX = "!\[(.*?)\]\((.+?(\.png|\.jpg|\.jpeg|\.gif))"
 
 
 @unique

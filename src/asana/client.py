@@ -127,6 +127,17 @@ class AsanaClient(object):
             project=project_id, completed_since="now", opt_fields=opt_fields
         )
 
+    def create_attachment_on_task(
+        self,
+        task_id: str,
+        attachment_content: str,
+        attachment_name: str,
+        attachment_type: str = None,
+    ) -> None:
+        self.asana_api_client.attachments.create_on_task(
+            task_id, attachment_content, attachment_name, attachment_type
+        )
+
 
 def create_task(project_id: str, due_date_str: str = None) -> str:
     """
@@ -176,3 +187,14 @@ def find_all_tasks_for_project(
     project_id: str, opt_fields: Optional[List[OptFields]] = None
 ) -> Iterator[Dict]:
     return AsanaClient.singleton().find_all_tasks_for_project(project_id, opt_fields)
+
+
+def create_attachment_on_task(
+    task_id: str,
+    attachment_content: str,
+    attachment_name: str,
+    attachment_type: str = None,
+) -> None:
+    AsanaClient.singleton().create_attachment_on_task(
+        task_id, attachment_content, attachment_name, attachment_type
+    )
