@@ -276,7 +276,7 @@ def create_attachments(comment: Comment, task_id: str) -> None:
                     attachment.image_type,
                 )
             except Exception as error:
-                logger.info("Attachment creation failed. Creating task comment anyway.")
+                logger.warn("Attachment creation failed. Creating task comment anyway.")
 
 
 _review_action_to_text_map: Dict[ReviewState, str] = {
