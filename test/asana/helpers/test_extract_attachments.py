@@ -5,27 +5,19 @@ from test.impl.builders import builder, build
 
 class TestExtractAttachments(BaseClass):
     def test_extract_no_attachments(self):
-        github_comment = build(
-            builder.comment().body("No urls here!! ![but some weird formatting] (oops)")
-        )
+        github_comment = "No urls here!! ![but some weird formatting] (oops)"
         attachments = asana_helpers._extract_attachments(github_comment)
         self.assertEqual(len(attachments), 0)
 
     def test_extract_attachment_with_unknown_extension(self):
-        github_comment = build(
-            builder.comment().body(
-                "Ok here it is ![photoo ooo](www.photopng.com/this.fakeg) and there it was"
-            )
+        github_comment = (
+            "Ok here it is ![photoo ooo](www.photopng.com/this.fakeg) and there it was"
         )
         attachments = asana_helpers._extract_attachments(github_comment)
         self.assertEqual(len(attachments), 0)
 
     def test_extract_attachments_with_extensions(self):
-        github_comment = build(
-            builder.comment().body(
-                "Ok here's the first: ![photo.png](www.photopng.com/this.png) and the second!! ![giferino.gif](giphy.com/example.gif)"
-            )
-        )
+        github_comment = "Ok here's the first: ![photo.png](www.photopng.com/this.png) and the second!! ![giferino.gif](giphy.com/example.gif)"
         attachments = asana_helpers._extract_attachments(github_comment)
         self.assertListEqual(
             attachments,
@@ -44,10 +36,8 @@ class TestExtractAttachments(BaseClass):
         )
 
     def test_extract_attachment_without_extension(self):
-        github_comment = build(
-            builder.comment().body(
-                "Ok here's the first: ![photo](www.photopng.com/this.png) and that's it!"
-            )
+        github_comment = (
+            "Ok here's the first: ![photo](www.photopng.com/this.png) and that's it!"
         )
         attachments = asana_helpers._extract_attachments(github_comment)
         self.assertListEqual(
@@ -62,10 +52,8 @@ class TestExtractAttachments(BaseClass):
         )
 
     def test_extract_attachment_no_file_name_given(self):
-        github_comment = build(
-            builder.comment().body(
-                "Ok here's the first: ![](www.photopng.com/this.png) and that's it!"
-            )
+        github_comment = (
+            "Ok here's the first: ![](www.photopng.com/this.png) and that's it!"
         )
         attachments = asana_helpers._extract_attachments(github_comment)
         self.assertListEqual(

@@ -243,13 +243,13 @@ _image_extension_to_type = {
 }
 
 
-def _extract_attachments(comment: Comment) -> List[AttachmentData]:
+def _extract_attachments(body_text: str) -> List[AttachmentData]:
     """
     Finds, but does not replace, all the image attachment URLS (those that end in png, gif,
-    jpg, or jpeg) in the comment.
+    jpg, or jpeg) in the body_text.
     """
     attachments = []
-    matches = re.findall(github_logic.GITHUB_ATTACHMENT_REGEX, comment.body())
+    matches = re.findall(github_logic.GITHUB_ATTACHMENT_REGEX, body_text)
     for img_name, img_url, img_ext in matches:
         image_type = _image_extension_to_type.get(img_ext)
 
@@ -263,8 +263,8 @@ def _extract_attachments(comment: Comment) -> List[AttachmentData]:
     return attachments
 
 
-def create_attachments(comment: Comment, task_id: str) -> None:
-    attachments = _extract_attachments(comment)
+def create_attachments(body_text: str, task_id: str) -> None:
+    attachments = _extract_attachments(body_text)
     for attachment in attachments:
         try:
             with urllib.request.urlopen(attachment.file_url) as f:
