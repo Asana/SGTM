@@ -1,5 +1,5 @@
 # SGTM
-One-way sync of GitHub pull requests to Asana tasks so engineers can track all of their work in Asana.
+One-way sync of GitHub pull requests to Asana tasks so engineers can track all of their work in Asana. To see a more detailed explanation of the functionality of SGTM, see the [code_reviews](docs/code_reviews.md) docs.
 
 ## Setup
 Follow these instructions for setting up SGTM to run in your environment and your infrastructure! Note that this is currently only set up for deployment on AWS, so if you are using a cloud provider, you may need to modify some code and deploy the app yourself.
@@ -13,6 +13,9 @@ the risk that SGTM's python dependencies and settings will be mixed up with any 
 may be using in other projects.
 
 When first setting up your repository, we recommend using a virtual environment. Once you have that activated (see [Installing a Virtual Environment for Python](#installing-a-virtual-environment-for-python) below), you should install all required python dependencies using `pip3 install -r requirements.txt -r requirements-dev.txt`.
+
+### Install Terraform
+You'll need to [install Terraform](https://learn.hashicorp.com/tutorials/terraform/install-cli) to launch the infrastructure for SGTM.
 
 ### Create your credentials for Asana/AWS/Github
 There are three external services you'll need to interact with, and therefore need credentials for.
@@ -84,6 +87,9 @@ For each repository that you want to sync to Asana through SGTM:
    1. Statuses
 1. Make sure "Active" is selected
 1. Click "Add webhook"
+
+### Take it for a spin!
+At this point, you should be all set to start getting Pull Requests synced to Asana Tasks. Open up a Pull Request, and Enjoy!
 
 ## Installing a Virtual Environment for Python
 
