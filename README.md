@@ -1,9 +1,6 @@
 # SGTM
 One-way sync of GitHub pull requests to Asana tasks so engineers can track all of their work in Asana.
 
-This is an adapted version of a Clojure app that was originally written for internal use by Asana engineers and is still under active development.
-
-
 ## Setup
 Follow these instructions for setting up SGTM to run in your environment and your infrastructure! Note that this is currently only set up for deployment on AWS, so if you are using a cloud provider, you may need to modify some code and deploy the app yourself.
 
