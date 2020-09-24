@@ -74,11 +74,11 @@ For any repository that you want to sync to Asana through SGTM:
 1. Under "Content Type", select "application/json"
 1. Under "Secret", input your secret token that you generated earlier
 1. Under "Which events would you like to trigger this webhook?", select "Let me select individual events."
-  1. Issue comments
-  1. Pull requests
-  1. Pull request reviews
-  1. Pull request review comments
-  1. Statuses
+   1. Issue comments
+   1. Pull requests
+   1. Pull request reviews
+   1. Pull request review comments
+   1. Statuses
 1. Make sure "Active" is selected
 1. Click "Add webhook"
 
