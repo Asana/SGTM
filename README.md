@@ -32,10 +32,9 @@ You'll need to be able to authenticate with AWS via the command line, and there 
 Again, you will probably want to create a new Github user in your org that is just for SGTM (since SGTM will be updating/merging PRs, it's clearer to attribute those actions to a user that is clearly name "SGTM" or something similar).
 
 1. For the Github user you want to use, generate a [Personal Access Token](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) with the following permissions:
+   * repo (Full control of private repositories)
+   * read:org (Read org and team membership, read org projects)
 1. Generate a [secret token](https://developer.github.com/webhooks/securing/) for your Github webhook. Github suggests generating this via `ruby -rsecurerandom -e 'puts SecureRandom.hex(20)'`, but use whatever method you are comfortable with to generate a secure secret token. Save this somewhere, as you'll need it twice in the later steps.
-
-* repo (Full control of private repositories)
-* read:org (Read org and team membership, read org projects)
 
 Copy this Personal Accesss Token for the next step.
 
