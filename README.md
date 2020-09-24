@@ -44,6 +44,7 @@ You'll need to create two Asana projects: one that will store the mapping of Git
 
 1. Create your "SGTM Users" project (feel free to name this whatever you want -- this is just a suggestion). The requirements of this project are two custom fields named: "Github Username" (Text field) and "user_id" (Number field). Save the `id` of this project (from the URL once created) in `./terraform/terraform.tfvars.json` under `"asana_users_project_id"`.
 1. Create your "SGTM <repo> tasks" project (feel free to name this whatever you want -- this is just a suggestion). Suggested custom fields (though optional) are: "PR Status" and "Build". When these exist on your project, SGTM will update these custom fields based on the merge status and build status of your pull requests.
+   1. If you have multiple repositories you want synced to Asana, you can create several of these projects. Make sure to take note of all of the project IDs for a later step.
 1. Make sure that the Asana user/guest that you created earlier is a member of both of these projects.
 
 ### Update S3 buckets to be uniquely yours
@@ -66,8 +67,14 @@ You'll first need to set up the [Terraform remote state](https://www.terraform.i
 1. Save the output of `terraform apply`, which should print out a `api_gateway_deployment_invoke_url`. You'll need this in the next step.
 1. Push your secrets to the ecrypted S3 bucket that Terraform just created. `cd` back to the root of your repository and run: `python3 ./scripts/setup.py secrets` and follow the prompts.
 
+### Add Mapping of Github Repository -> Asana Project
+For each repository that you are going to sync:
+1. Find that repository's Github Graphql `node_id`:
+   1. You can get this using `curl -i -u <username>:<github_personal_access_token> https://api.github.com/repos/<organization>/<repository>`
+1. Using the "SGTM tasks" project id from [Create Asana Projects](#create-asana-projects), update the sgtm-objects DynamoDb table with the mapping of `{"github-node": "<node_id>", "asana-id": "<project_id>"}`
+
 ### Create Your Github Webhook
-For any repository that you want to sync to Asana through SGTM:
+For each repository that you want to sync to Asana through SGTM:
 1. Navigate to `https://github.com/<organization>/<repository>/settings/hooks`
 1. Click "Add webhook"
 1. Under "Payload URL", input the `api_gateway_deployment_invoke_url` from the previous step
