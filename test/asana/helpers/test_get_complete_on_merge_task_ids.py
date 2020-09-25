@@ -16,14 +16,14 @@ class TestGetCompleteOnMergeTaskIds(BaseClass):
         )
 
         self.assertCountEqual(
-            asana_helpers.get_complete_on_merge_task_ids(pull_request), task_ids
+            asana_helpers.get_completed_on_merge_task_ids(pull_request), task_ids
         )
 
     def test_returns_empty_list_if_no_tasks_to_complete_line(self):
         pull_request = build(builder.pull_request().body(f"Blah blah blah\nblah\n"))
 
         self.assertCountEqual(
-            asana_helpers.get_complete_on_merge_task_ids(pull_request), []
+            asana_helpers.get_completed_on_merge_task_ids(pull_request), []
         )
 
     def test_returns_empty_list_if_no_tasks_to_complete(self):
@@ -34,7 +34,7 @@ class TestGetCompleteOnMergeTaskIds(BaseClass):
         )
 
         self.assertCountEqual(
-            asana_helpers.get_complete_on_merge_task_ids(pull_request), []
+            asana_helpers.get_completed_on_merge_task_ids(pull_request), []
         )
 
 
