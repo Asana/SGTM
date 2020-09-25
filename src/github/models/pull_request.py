@@ -63,7 +63,7 @@ class PullRequest(object):
     def assignee(self) -> Assignee:
         maybe_multi_assignees = self.assignees()
         if len(maybe_multi_assignees) == 1:
-            return Assignee(maybe_multi_assignees[0], AssigneeReason.NO_ASSIGNEE)
+            return Assignee(maybe_multi_assignees[0], AssigneeReason.SINGLE_ASSIGNEE)
         elif len(maybe_multi_assignees) == 0:
             logger.info("GitHub PR has no assignees. Choosing author as assignee")
             return Assignee(self.author_handle(), AssigneeReason.NO_ASSIGNEE)
