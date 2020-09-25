@@ -169,10 +169,10 @@ def _asana_user_id_from_github_handle(github_handle: str) -> Optional[str]:
 
 def _asana_display_name_for_github_user(github_user: User) -> str:
     """
-        Retrieves a display name for a GitHub user that is usable in Asana. If the GitHub user is known by SGTM to
-        be an Asana user, then an Asana user URL will be returned, otherwise the display name will be of the form:
-                GitHub user 'David Brandt (padresmurfa)'
-            or  Github user 'padresmurfa'
+    Retrieves a display name for a GitHub user that is usable in Asana. If the GitHub user is known by SGTM to
+    be an Asana user, then an Asana user URL will be returned, otherwise the display name will be of the form:
+            GitHub user 'David Brandt (padresmurfa)'
+        or  Github user 'padresmurfa'
     """
     asana_author_user = _asana_user_url_from_github_user_handle(github_user.login())
     if asana_author_user is not None:
@@ -299,6 +299,19 @@ def convert_urls_to_links(text: str) -> str:
         return matchobj.group(1) + _link(url)
 
     return re.sub(URL_REGEX, urlreplace, text)
+
+
+def get_close_on_merge_task_ids(pull_request: PullRequest) -> List[str]:
+    """
+    Extracts task ids that the user specified should be closed on merge from
+    the body of the PR.
+    """
+    body_lines = pull_request.body().splitlines()
+    closed_on_merge_line = filter(
+        lambda line: line.startswith("Tasks closed on merge:"), body_lines
+    )
+    task_ids = re.findall("([0-9]+)", closed_on_merge_line)
+    return task_ids
 
 
 def asana_comment_from_github_review(review: Review) -> str:
