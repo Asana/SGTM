@@ -10,6 +10,7 @@ from .review import Review
 from .commit import Commit
 from .user import User
 from .label import Label
+from .assignee import Assignee, AssigneeReason
 import copy
 
 
@@ -59,13 +60,13 @@ class PullRequest(object):
     def reviewers(self) -> List[str]:
         return [review.author_handle() for review in self.reviews()]
 
-    def assignee(self) -> str:
+    def assignee(self) -> Assignee:
         maybe_multi_assignees = self.assignees()
         if len(maybe_multi_assignees) == 1:
-            return maybe_multi_assignees[0]
+            return Assignee(maybe_multi_assignees[0], AssigneeReason.NO_ASSIGNEE)
         elif len(maybe_multi_assignees) == 0:
             logger.info("GitHub PR has no assignees. Choosing author as assignee")
-            return self.author_handle()
+            return Assignee(self.author_handle(), AssigneeReason.NO_ASSIGNEE)
         else:
             assignee = maybe_multi_assignees[0]
             logger.info(
@@ -73,7 +74,7 @@ class PullRequest(object):
                     maybe_multi_assignees, assignee
                 )
             )
-            return assignee
+            return Assignee(assignee, AssigneeReason.MULTIPLE_ASSIGNEES)
 
     def id(self) -> str:
         return self._raw["id"]
