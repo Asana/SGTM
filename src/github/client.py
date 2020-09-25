@@ -25,8 +25,4 @@ def set_pull_request_assignee(owner: str, repository: str, number: int, assignee
 
 def merge_pull_request(owner: str, repository: str, number: int, title: str, body: str):
     pr = _get_pull_request(owner, repository, number)
-
-    # we add the PR number to match Github's default squash and merge title style
-    # which we rely on for code review tests.
-    title_with_number = f"{title} (#{number})"
-    pr.merge(commit_title=title_with_number, commit_message=body, merge_method="squash")
+    pr.merge(commit_title=title, commit_message=body, merge_method="squash")
