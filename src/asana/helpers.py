@@ -316,8 +316,11 @@ def get_close_on_merge_task_ids(pull_request: PullRequest) -> List[str]:
         ),
         None,
     )
-    task_ids = re.findall("#([0-9]+)", closed_on_merge_line)
-    return task_ids
+    if closed_on_merge_line:
+        task_ids = re.findall("#([0-9]+)", closed_on_merge_line)
+        return task_ids
+    else:
+        return []
 
 
 def asana_comment_from_github_review(review: Review) -> str:
