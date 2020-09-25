@@ -168,7 +168,7 @@ def _get_custom_field_enum_option_id(
 
 def _task_assignee_from_pull_request(pull_request: PullRequest) -> Optional[str]:
     assignee = pull_request.assignee()
-    return _asana_user_id_from_github_handle(assignee.get_handle())
+    return _asana_user_id_from_github_handle(assignee.login)
 
 
 def _asana_user_id_from_github_handle(github_handle: str) -> Optional[str]:
@@ -367,14 +367,13 @@ def asana_comment_from_github_review(review: Review) -> str:
 
 
 def _generate_assignee_description(assignee: Assignee) -> str:
-    assignee_handle = assignee.get_handle()
-    assignee_asana_user = _asana_user_url_from_github_user_handle(assignee_handle)
+    assignee_asana_user = _asana_user_url_from_github_user_handle(assignee.login)
     if assignee_asana_user is None:
-        assignee_asana_user = f"GitHub user '{assignee_handle}'"
+        assignee_asana_user = f"GitHub user '{assignee.login}'"
 
-    if assignee.get_assignee_reason() == AssigneeReason.NO_ASSIGNEE:
+    if assignee.reason == AssigneeReason.NO_ASSIGNEE:
         return f"\nAssigned to self, {assignee_asana_user}, because no assignees were selected."
-    elif assignee.get_assignee_reason() == AssigneeReason.MULTIPLE_ASSIGNEES:
+    elif assignee.reason == AssigneeReason.MULTIPLE_ASSIGNEES:
         return f"\nAssigned to {assignee_asana_user}, first assignee alphabetically from assignees provided."
     else:
         # Single assignee, no changes from Pull Request

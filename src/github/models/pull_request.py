@@ -10,8 +10,17 @@ from .review import Review
 from .commit import Commit
 from .user import User
 from .label import Label
-from .assignee import Assignee, AssigneeReason
 import copy
+import collections
+
+
+class AssigneeReason(Enum):
+    NO_ASSIGNEE = "NO_ASSIGNEE"
+    MULTIPLE_ASSIGNEES = "MULTIPLE_ASSIGNEES"
+    SINGLE_ASSIGNEE = "SIGNLE_ASSIGNEE"
+
+
+Assignee = collections.namedtuple("Assignee", "login reason")
 
 
 @unique
@@ -63,10 +72,14 @@ class PullRequest(object):
     def assignee(self) -> Assignee:
         maybe_multi_assignees = self.assignees()
         if len(maybe_multi_assignees) == 1:
-            return Assignee(maybe_multi_assignees[0], AssigneeReason.SINGLE_ASSIGNEE)
+            return Assignee(
+                login=maybe_multi_assignees[0], reason=AssigneeReason.SINGLE_ASSIGNEE
+            )
         elif len(maybe_multi_assignees) == 0:
             logger.info("GitHub PR has no assignees. Choosing author as assignee")
-            return Assignee(self.author_handle(), AssigneeReason.NO_ASSIGNEE)
+            return Assignee(
+                login=self.author_handle(), reason=AssigneeReason.NO_ASSIGNEE
+            )
         else:
             assignee = maybe_multi_assignees[0]
             logger.info(
@@ -74,7 +87,7 @@ class PullRequest(object):
                     maybe_multi_assignees, assignee
                 )
             )
-            return Assignee(assignee, AssigneeReason.MULTIPLE_ASSIGNEES)
+            return Assignee(login=assignee, reason=AssigneeReason.MULTIPLE_ASSIGNEES)
 
     def id(self) -> str:
         return self._raw["id"]
