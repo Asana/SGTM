@@ -371,15 +371,11 @@ def _generate_assignee_description(assignee: Assignee) -> str:
     assignee_asana_user = _asana_user_url_from_github_user_handle(assignee_handle)
     if assignee_asana_user is None:
         assignee_asana_user = f"GitHub user '{assignee_handle}'"
-    description_suffix = "because no assignees were selected."
 
     if assignee.get_assignee_reason() == AssigneeReason.NO_ASSIGNEE:
-        return f"\nAssigned to self, {assignee_asana_user}, " + description_suffix
+        return f"\nAssigned to self, {assignee_asana_user}, because no assignees were selected."
     elif assignee.get_assignee_reason() == AssigneeReason.MULTIPLE_ASSIGNEES:
-        return (
-            f"\nAssigned to {assignee_asana_user}, first assignee alphabetically "
-            + description_suffix
-        )
+        return f"\nAssigned to {assignee_asana_user}, first assignee alphabetically from assignees provided."
     else:
         # Single assignee, no changes from Pull Request
         return ""
