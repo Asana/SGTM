@@ -27,6 +27,6 @@ def merge_pull_request(owner: str, repository: str, number: int, title: str, bod
     pr = _get_pull_request(owner, repository, number)
 
     # we add the PR number to match Github's default squash and merge title style
-    # which we rely on for code review tests
+    # which we rely on for code review tests.
     title_with_number = f"{title} (#{number})"
     pr.merge(commit_title=title_with_number, commit_message=body, merge_method="squash")
