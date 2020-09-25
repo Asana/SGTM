@@ -307,10 +307,16 @@ def get_close_on_merge_task_ids(pull_request: PullRequest) -> List[str]:
     the body of the PR.
     """
     body_lines = pull_request.body().splitlines()
-    closed_on_merge_line = filter(
-        lambda line: line.startswith("Tasks closed on merge:"), body_lines
+    stripped_body_lines = (line.strip() for line in body_lines)
+    closed_on_merge_line = next(
+        (
+            line
+            for line in stripped_body_lines
+            if line.startswith("Tasks to close on merge:")
+        ),
+        None,
     )
-    task_ids = re.findall("([0-9]+)", closed_on_merge_line)
+    task_ids = re.findall("#([0-9]+)", closed_on_merge_line)
     return task_ids
 
 

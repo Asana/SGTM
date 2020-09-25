@@ -32,9 +32,9 @@ def update_task(pull_request: PullRequest, task_id: str):
         if k in ("assignee", "name", "html_notes", "completed", "custom_fields")
     }
     asana_client.update_task(task_id, update_task_fields)
-    asana_client.add_followers(task_id, fields["followers"]
+    asana_client.add_followers(task_id, fields["followers"])
 
-    task_ids_to_close_on_merge = asana_helpers.get_close_on_merge_task_ids(pull_request)
+    # task_ids_to_close_on_merge = asana_helpers.get_close_on_merge_task_ids(pull_request)
 
 
 def upsert_github_comment_to_task(comment: Comment, task_id: str):
