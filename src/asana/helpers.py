@@ -301,23 +301,23 @@ def convert_urls_to_links(text: str) -> str:
     return re.sub(URL_REGEX, urlreplace, text)
 
 
-def get_close_on_merge_task_ids(pull_request: PullRequest) -> List[str]:
+def get_completed_on_merge_task_ids(pull_request: PullRequest) -> List[str]:
     """
-    Extracts task ids that the user specified should be closed on merge from
+    Extracts task ids that the user specified should be completed on merge from
     the body of the PR.
     """
     body_lines = pull_request.body().splitlines()
     stripped_body_lines = (line.strip() for line in body_lines)
-    closed_on_merge_line = next(
+    complete_on_merge_line = next(
         (
             line
             for line in stripped_body_lines
-            if line.startswith("Tasks to close on merge:")
+            if line.startswith("Tasks to complete on merge:")
         ),
         None,
     )
-    if closed_on_merge_line:
-        task_ids = re.findall("#([0-9]+)", closed_on_merge_line)
+    if complete_on_merge_line:
+        task_ids = re.findall("#([0-9]+)", complete_on_merge_line)
         return task_ids
     else:
         return []

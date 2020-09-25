@@ -33,8 +33,16 @@ def update_task(pull_request: PullRequest, task_id: str):
     }
     asana_client.update_task(task_id, update_task_fields)
     asana_client.add_followers(task_id, fields["followers"])
+    maybe_complete_tasks_on_merge(pull_request)
 
-    # task_ids_to_close_on_merge = asana_helpers.get_close_on_merge_task_ids(pull_request)
+
+def maybe_complete_tasks_on_merge(pull_request: PullRequest):
+    if pull_request.merged():
+        task_ids_to_complete_on_merge = asana_helpers.get_completed_on_merge_task_ids(
+            pull_request
+        )
+        for complete_on_merge_task_id in task_ids_to_complete_on_merge:
+            asana_client.update_task(complete_on_merge_task_id, {"completed": True})
 
 
 def upsert_github_comment_to_task(comment: Comment, task_id: str):
