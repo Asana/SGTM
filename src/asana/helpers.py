@@ -3,7 +3,15 @@ from html import escape, unescape
 from datetime import datetime, timedelta
 from typing import Callable, Match, Optional, List, Dict
 from src.dynamodb import client as dynamodb_client
-from src.github.models import Comment, PullRequest, Review, ReviewState, User
+from src.github.models import (
+    Comment,
+    PullRequest,
+    Review,
+    ReviewState,
+    User,
+    Assignee,
+    AssigneeReason,
+)
 from src.asana import client as asana_client
 from src.github import logic as github_logic
 from src.logger import logger
@@ -159,8 +167,8 @@ def _get_custom_field_enum_option_id(
 
 
 def _task_assignee_from_pull_request(pull_request: PullRequest) -> Optional[str]:
-    assignee_handle = pull_request.assignee()
-    return _asana_user_id_from_github_handle(assignee_handle)
+    assignee = pull_request.assignee()
+    return _asana_user_id_from_github_handle(assignee.login)
 
 
 def _asana_user_id_from_github_handle(github_handle: str) -> Optional[str]:
@@ -358,6 +366,20 @@ def asana_comment_from_github_review(review: Review) -> str:
     return _wrap_in_tag("body")(header + comments_html)
 
 
+def _generate_assignee_description(assignee: Assignee) -> str:
+    assignee_asana_user = _asana_user_url_from_github_user_handle(assignee.login)
+    if assignee_asana_user is None:
+        assignee_asana_user = f"GitHub user '{assignee.login}'"
+
+    if assignee.reason == AssigneeReason.NO_ASSIGNEE:
+        return f"\nAssigned to self, {assignee_asana_user}, because no assignees were selected."
+    elif assignee.reason == AssigneeReason.MULTIPLE_ASSIGNEES:
+        return f"\nAssigned to {assignee_asana_user}, first assignee alphabetically from assignees provided."
+    else:
+        # Single assignee, no changes from Pull Request
+        return ""
+
+
 def _task_description_from_pull_request(pull_request: PullRequest) -> str:
     link_to_pr = _link(pull_request.url())
     github_author = pull_request.author()
@@ -371,6 +393,7 @@ def _task_description_from_pull_request(pull_request: PullRequest) -> str:
         + f"\n\n\uD83D\uDD17 {link_to_pr}"
         + "\n✍️ "
         + author
+        + _generate_assignee_description(pull_request.assignee())
         + _wrap_in_tag("strong")("\n\nDescription:\n")
         + convert_urls_to_links(escape(pull_request.body(), quote=False))
     )
