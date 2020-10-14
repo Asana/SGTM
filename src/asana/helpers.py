@@ -331,8 +331,8 @@ def asana_comment_from_github_review(review: Review) -> str:
             _review_action_to_text_map.get(review.state(), "commented")
         )
 
-    review_body = _transform_github_mentions_to_asana_mentions(
-        escape(review.body(), quote=False)
+    review_body = convert_urls_to_links(
+        _transform_github_mentions_to_asana_mentions(escape(review.body(), quote=False))
     )
     if review_body:
         header = (
@@ -346,8 +346,10 @@ def asana_comment_from_github_review(review: Review) -> str:
     inline_comments = [
         _wrap_in_tag("li")(
             _wrap_in_tag("A", attrs={"href": comment.url()})(f"[{i}] ")
-            + _transform_github_mentions_to_asana_mentions(
-                escape(comment.body(), quote=False)
+            + convert_urls_to_links(
+                _transform_github_mentions_to_asana_mentions(
+                    escape(comment.body(), quote=False)
+                )
             )
         )
         for i, comment in enumerate(review.comments(), start=1)
