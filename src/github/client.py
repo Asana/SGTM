@@ -15,6 +15,16 @@ def edit_pr_description(owner: str, repository: str, number: int, description: s
     pr.edit(body=description)
 
 
+def edit_pr_title(owner: str, repository: str, number: int, title: str):
+    pr = _get_pull_request(owner, repository, number)
+    pr.edit(title=title)
+
+
+def add_pr_comment(owner: str, repository: str, number: int, comment: str):
+    pr = _get_pull_request(owner, repository, number)
+    pr.create_issue_comment(comment)
+
+
 def set_pull_request_assignee(owner: str, repository: str, number: int, assignee: str):
     repo = gh_client.get_repo(f"{owner}/{repository}")
     # Using get_issue here because get_pull returns a pull request which only
