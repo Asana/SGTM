@@ -152,8 +152,9 @@ def all_pull_request_participants(pull_request: PullRequest) -> List[str]:
     )
 
 
-# adds warning to title and comment if automerge label is enabled
 def maybe_add_automerge_warning_title_and_comment(pull_request: PullRequest):
+    """Adds title and comment warnings if automerge label is enabled"""
+
     if _is_automerge_feature_enabled():
         owner = pull_request.repository_owner_handle()
         repo_name = pull_request.repository_name()
@@ -186,7 +187,7 @@ def maybe_add_automerge_warning_title_and_comment(pull_request: PullRequest):
             pull_request.set_title(new_title)
 
 
-# returns True if the pull request was automerge, False if not
+# returns True if the pull request was automerged, False if not
 def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
     if _is_pull_request_ready_for_automerge(pull_request):
         logger.info(
@@ -238,7 +239,6 @@ def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
     return False
 
 
-# enable automerge behind env variable
 def _is_automerge_feature_enabled():
     return os.getenv("SGTM_FEATURE__AUTOMERGE_ENABLED") == "true"
 
