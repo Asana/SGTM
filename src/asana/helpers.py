@@ -3,13 +3,28 @@ from html import escape, unescape
 from datetime import datetime, timedelta
 from typing import Callable, Match, Optional, List, Dict
 from src.dynamodb import client as dynamodb_client
-from src.github.models import Comment, PullRequest, Review, ReviewState, User
+from src.github.models import (
+    Comment,
+    PullRequest,
+    Review,
+    ReviewState,
+    User,
+    Assignee,
+    AssigneeReason,
+)
 from src.asana import client as asana_client
 from src.github import logic as github_logic
 from src.logger import logger
+import collections
+import urllib.request
+import base64
 
 # https://gist.github.com/gruber/8891611
 URL_REGEX = r"""(?i)([^"\>\<\/\.]|^)\b((?:https?:(/{1,3}))(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))"""
+
+AttachmentData = collections.namedtuple(
+    "AttachmentData", "file_name file_url image_type"
+)
 
 
 def task_url_from_task_id(task_id: str) -> str:
@@ -152,8 +167,8 @@ def _get_custom_field_enum_option_id(
 
 
 def _task_assignee_from_pull_request(pull_request: PullRequest) -> Optional[str]:
-    assignee_handle = pull_request.assignee()
-    return _asana_user_id_from_github_handle(assignee_handle)
+    assignee = pull_request.assignee()
+    return _asana_user_id_from_github_handle(assignee.login)
 
 
 def _asana_user_id_from_github_handle(github_handle: str) -> Optional[str]:
@@ -228,6 +243,50 @@ def asana_comment_from_github_comment(comment: Comment) -> str:
     )
 
 
+_image_extension_to_type = {
+    ".png": "image/png",
+    ".jpg": "image/jpg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+}
+
+
+def _extract_attachments(body_text: str) -> List[AttachmentData]:
+    """
+    Finds, but does not replace, all the image attachment URLS (those that end in png, gif,
+    jpg, or jpeg) in the body_text.
+    """
+    attachments = []
+    matches = re.findall(github_logic.GITHUB_ATTACHMENT_REGEX, body_text)
+    for img_name, img_url, img_ext in matches:
+        image_type = _image_extension_to_type.get(img_ext)
+
+        # Asana API accepts multiple attachments with same name, so defaulting to "github_attachment" is valid
+        full_name = img_name if img_name else "github_attachment"
+        if image_type and img_ext not in full_name:
+            full_name += img_ext
+        attachments.append(
+            AttachmentData(file_name=full_name, file_url=img_url, image_type=image_type)
+        )
+    return attachments
+
+
+def create_attachments(body_text: str, task_id: str) -> None:
+    attachments = _extract_attachments(body_text)
+    for attachment in attachments:
+        try:
+            with urllib.request.urlopen(attachment.file_url) as f:
+                attachment_contents = f.read()
+                asana_client.create_attachment_on_task(
+                    task_id,
+                    attachment_contents,
+                    attachment.file_name,
+                    attachment.image_type,
+                )
+        except Exception as error:
+            logger.warn("Attachment creation failed. Creating task comment anyway.")
+
+
 _review_action_to_text_map: Dict[ReviewState, str] = {
     ReviewState.APPROVED: "approved",
     ReviewState.CHANGES_REQUESTED: "requested changes",
@@ -272,8 +331,8 @@ def asana_comment_from_github_review(review: Review) -> str:
             _review_action_to_text_map.get(review.state(), "commented")
         )
 
-    review_body = _transform_github_mentions_to_asana_mentions(
-        escape(review.body(), quote=False)
+    review_body = convert_urls_to_links(
+        _transform_github_mentions_to_asana_mentions(escape(review.body(), quote=False))
     )
     if review_body:
         header = (
@@ -287,8 +346,10 @@ def asana_comment_from_github_review(review: Review) -> str:
     inline_comments = [
         _wrap_in_tag("li")(
             _wrap_in_tag("A", attrs={"href": comment.url()})(f"[{i}] ")
-            + _transform_github_mentions_to_asana_mentions(
-                escape(comment.body(), quote=False)
+            + convert_urls_to_links(
+                _transform_github_mentions_to_asana_mentions(
+                    escape(comment.body(), quote=False)
+                )
             )
         )
         for i, comment in enumerate(review.comments(), start=1)
@@ -307,6 +368,20 @@ def asana_comment_from_github_review(review: Review) -> str:
     return _wrap_in_tag("body")(header + comments_html)
 
 
+def _generate_assignee_description(assignee: Assignee) -> str:
+    assignee_asana_user = _asana_user_url_from_github_user_handle(assignee.login)
+    if assignee_asana_user is None:
+        assignee_asana_user = f"GitHub user '{assignee.login}'"
+
+    if assignee.reason == AssigneeReason.NO_ASSIGNEE:
+        return f"\nAssigned to self, {assignee_asana_user}, because no assignees were selected."
+    elif assignee.reason == AssigneeReason.MULTIPLE_ASSIGNEES:
+        return f"\nAssigned to {assignee_asana_user}, first assignee alphabetically from assignees provided."
+    else:
+        # Single assignee, no changes from Pull Request
+        return ""
+
+
 def _task_description_from_pull_request(pull_request: PullRequest) -> str:
     link_to_pr = _link(pull_request.url())
     github_author = pull_request.author()
@@ -320,6 +395,7 @@ def _task_description_from_pull_request(pull_request: PullRequest) -> str:
         + f"\n\n\uD83D\uDD17 {link_to_pr}"
         + "\n✍️ "
         + author
+        + _generate_assignee_description(pull_request.assignee())
         + _wrap_in_tag("strong")("\n\nDescription:\n")
         + convert_urls_to_links(escape(pull_request.body(), quote=False))
     )

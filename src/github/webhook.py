@@ -5,6 +5,7 @@ import time
 import src.github.graphql.client as graphql_client
 from src.dynamodb.lock import dynamodb_lock
 import src.github.controller as github_controller
+import src.github.logic as github_logic
 from src.http import HttpResponse
 from src.logger import logger
 from src.github.models import PullRequestReviewComment, Review
@@ -15,6 +16,8 @@ def _handle_pull_request_webhook(payload: dict) -> HttpResponse:
     pull_request_id = payload["pull_request"]["node_id"]
     with dynamodb_lock(pull_request_id):
         pull_request = graphql_client.get_pull_request(pull_request_id)
+        # a label change will trigger this webhook, so it may trigger automerge
+        github_logic.maybe_automerge_pull_request(pull_request)
         github_controller.upsert_pull_request(pull_request)
         return HttpResponse("200")
 
@@ -51,6 +54,7 @@ def _handle_pull_request_review_webhook(payload: dict) -> HttpResponse:
         pull_request, review = graphql_client.get_pull_request_and_review(
             pull_request_id, review_id
         )
+        github_logic.maybe_automerge_pull_request(pull_request)
         github_controller.upsert_review(pull_request, review)
     return HttpResponse("200")
 
@@ -124,6 +128,7 @@ def _handle_status_webhook(payload: dict) -> HttpResponse:
         return HttpResponse("200")
 
     with dynamodb_lock(pull_request.id()):
+        github_logic.maybe_automerge_pull_request(pull_request)
         github_controller.upsert_pull_request(pull_request)
         return HttpResponse("200")
 

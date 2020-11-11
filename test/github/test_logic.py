@@ -1,195 +1,67 @@
 import unittest
-from datetime import datetime, timedelta
+from unittest.mock import patch
 import src.github.logic as github_logic
-from src.github.models import Review, ReviewState
+from src.github.models import Commit, ReviewState, PullRequest, MergeableState
 from test.impl.builders import builder, build
+import src.github.controller as github_controller
+import src.github.client as github_client
 
 
-class GithubLogicTest(unittest.TestCase):
-    def test_inject_asana_task_into_pull_request_body(self):
-        task_url = "https://asana.com/task/1"
-        self.assertEqual(
-            github_logic.inject_asana_task_into_pull_request_body(
-                "this is the original body", task_url
-            ),
-            f"this is the original body\n\n\nPull Request synchronized with [Asana task]({task_url})",
-        )
-
-    def test_extract_mentions(self):
-        self.assertEqual(github_logic._extract_mentions("hello"), [])
-        self.assertEqual(github_logic._extract_mentions("Hello @There"), ["There"])
-        self.assertEqual(github_logic._extract_mentions("@hello there"), ["hello"])
-        self.assertEqual(
-            github_logic._extract_mentions("@hello @to-all123 there"),
-            ["hello", "to-all123"],
-        )
-        self.assertEqual(github_logic._extract_mentions("hello @*"), [])
-
-    def test_pull_request_comment_mentions(self):
-        pull_request = build(
-            builder.pull_request().comments(
-                [
-                    builder.comment(""),
-                    builder.comment("@one @two @three"),
-                    builder.comment("@four"),
-                ]
-            )
-        )
-        self.assertEqual(
-            github_logic._pull_request_comment_mentions(pull_request),
-            ["one", "two", "three", "four"],
-        )
-
-    def test_pull_request_review_mentions(self):
-        pull_request = build(
-            builder.pull_request().reviews(
-                [
-                    builder.review("").comments(
-                        [builder.comment("@one @two @three"), builder.comment("@four"),]
-                    ),
-                    builder.review("@a @b @c").comments(
-                        [builder.comment(""), builder.comment("@five"),]
-                    ),
-                ]
-            )
-        )
-        self.assertEqual(
-            sorted(github_logic._pull_request_review_mentions(pull_request)),
-            ["a", "b", "c", "five", "four", "one", "three", "two"],
-        )
-
-    def test_pull_request_body_mentions(self):
-        pull_request = builder.pull_request("@foo\n@bar").build()
-        self.assertEqual(
-            github_logic._pull_request_body_mentions(pull_request), ["foo", "bar"]
-        )
-
-    def test_pull_request_commenters(self):
-        pull_request = build(
-            builder.pull_request().comments(
-                [
-                    builder.comment().author(builder.user().login("foo")),
-                    builder.comment().author(builder.user().login("bar")),
-                ]
-            )
-        )
-        self.assertEqual(
-            github_logic._pull_request_commenters(pull_request),
-            ["bar", "foo"],  # sorted
-        )
-
-    def test_pull_request_approved_before_merging_review_approved_after_merge(self):
-        merged_at = datetime.now()
-        submitted_at = merged_at + timedelta(hours=1)
-
-        pull_request = build(
-            builder.pull_request()
-            .reviews(
-                [
-                    builder.review()
-                    .submitted_at(submitted_at)
-                    .state(ReviewState.APPROVED)
-                ]
-            )
-            .merged_at(merged_at)
-        )
-        self.assertFalse(
-            github_logic.pull_request_approved_before_merging(pull_request)
-        )
-
-    def test_pull_request_approved_before_merging_review_approved_before_merge(self):
-        merged_at = datetime.now()
-        submitted_at = merged_at - timedelta(hours=1)
-
-        pull_request = build(
-            builder.pull_request()
-            .reviews(
-                [
-                    builder.review()
-                    .submitted_at(submitted_at)
-                    .state(ReviewState.APPROVED)
-                ]
-            )
-            .merged_at(merged_at)
-        )
-        self.assertTrue(github_logic.pull_request_approved_before_merging(pull_request))
-
-    def test_pull_request_approved_before_merging_review_requested_changes_before_merge(
+@patch.object(github_controller, "upsert_pull_request")
+@patch.object(github_client, "merge_pull_request")
+@patch.object(github_logic, "_is_pull_request_ready_for_automerge")
+class TestMaybeAutomergePullRequest(unittest.TestCase):
+    def test_handle_status_webhook_ready_for_automerge(
         self,
+        is_pull_request_ready_for_automerge_mock,
+        merge_pull_request_mock,
+        upsert_pull_request_mock,
     ):
-        merged_at = datetime.now()
-        submitted_at = merged_at - timedelta(hours=1)
+        # Mock that pull request can be automerged
+        is_pull_request_ready_for_automerge_mock.return_value = True
+        pull_request = build(builder.pull_request())
 
-        pull_request = build(
-            builder.pull_request()
-            .reviews(
-                [
-                    builder.review()
-                    .submitted_at(submitted_at)
-                    .state(ReviewState.CHANGES_REQUESTED)
-                ]
-            )
-            .merged_at(merged_at)
-        )
-        self.assertFalse(
-            github_logic.pull_request_approved_before_merging(pull_request)
+        merged = github_logic.maybe_automerge_pull_request(pull_request)
+
+        self.assertTrue(merged)
+        merge_pull_request_mock.assert_called_with(
+            pull_request.repository_owner_handle(),
+            pull_request.repository_name(),
+            pull_request.number(),
+            pull_request.title(),
+            pull_request.body(),
         )
 
-    def test_pull_request_approved_before_merging_no_reviews(self):
-        pull_request = builder.pull_request().merged_at(datetime.now()).build()
-        self.assertFalse(
-            github_logic.pull_request_approved_before_merging(pull_request)
-        )
-
-    def test_pull_request_approved_after_merging_no_reviews_or_comments(self):
-        pull_request = builder.pull_request().merged_at(datetime.now()).build()
-        self.assertFalse(github_logic.pull_request_approved_after_merging(pull_request))
-
-    def test_pull_request_approved_after_merging_reviews_and_comments_no_approvals(
+    def test_handle_status_webhook_not_ready_for_automerge(
         self,
+        is_pull_request_ready_for_automerge_mock,
+        merge_pull_request_mock,
+        upsert_pull_request_mock,
     ):
-        # The PR has reviews and comments, but neither have approval messages
+        # Mock that pull request cannot be automerged
+        is_pull_request_ready_for_automerge_mock.return_value = False
+        pull_request = build(builder.pull_request())
 
-        merged_at = datetime.now()
-        reviewed_at = merged_at + timedelta(days=1)
-        commented_at = merged_at + timedelta(days=2)
-        pull_request = build(
-            builder.pull_request()
-            .merged_at(datetime.now())
-            .reviews([builder.review("This looks OK").submitted_at(reviewed_at)])
-            .comments(
-                [builder.comment("v cool use of emojis").published_at(commented_at)]
-            )
-        )
-        self.assertFalse(github_logic.pull_request_approved_after_merging(pull_request))
+        merged = github_logic.maybe_automerge_pull_request(pull_request)
 
-    def test_pull_request_approved_after_merging_review_that_had_approval(self):
-        merged_at = datetime.now()
-        reviewed_at = merged_at + timedelta(days=1)
-        commented_at = merged_at + timedelta(days=2)
-        pull_request = build(
-            builder.pull_request()
-            .merged_at(datetime.now())
-            .reviews([builder.review("This looks OK").submitted_at(reviewed_at)])
-            .comments([builder.comment("SGTM!").published_at(commented_at)])
-        )
-        self.assertTrue(github_logic.pull_request_approved_after_merging(pull_request))
+        self.assertFalse(merged)
+        merge_pull_request_mock.assert_not_called()
 
-    def test_pull_request_approved_after_merging_comment_that_had_approval(self):
-        merged_at = datetime.now()
-        reviewed_at = merged_at + timedelta(days=1)
-        commented_at = merged_at + timedelta(days=2)
+
+class TestPullRequestHasLabel(unittest.TestCase):
+    def test_pull_request_with_label(self):
+        label_name = "test label"
         pull_request = build(
-            builder.pull_request()
-            .merged_at(datetime.now())
-            .reviews(
-                [builder.review("This looks great! :+1:").submitted_at(reviewed_at)]
-            )
-            .comments(
-                [builder.comment("v cool use of emojis").published_at(commented_at)]
-            )
+            builder.pull_request().label(builder.label().name(label_name))
         )
-        self.assertTrue(github_logic.pull_request_approved_after_merging(pull_request))
+
+        self.assertTrue(github_logic._pull_request_has_label(pull_request, label_name))
+
+    def test_pull_request_without_label(self):
+        label_name = "test label"
+        pull_request = build(builder.pull_request())
+
+        self.assertFalse(github_logic._pull_request_has_label(pull_request, label_name))
 
 
 if __name__ == "__main__":
