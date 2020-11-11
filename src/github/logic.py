@@ -160,7 +160,8 @@ def maybe_add_automerge_warning_title_and_comment(pull_request: PullRequest):
         repo_name = pull_request.repository_name()
         pr_number = pull_request.number()
 
-        # if it has an automerge label and its title isn't modified, we want to modify the title
+        # if a PR has an automerge label and its title doesn't contain a warning, we want to add a warning
+        # to the title and maybe add a warning comment
         if _pull_request_has_automerge_label(
             pull_request
         ) and not _pull_request_has_automerge_title(pull_request):
