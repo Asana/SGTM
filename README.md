@@ -8,7 +8,7 @@ Follow these instructions for setting up SGTM to run in your environment and you
 You will need to set some overrides specific to your deployment -- mostly due to the fact that AWS S3 bucket names are globally unique, but you may want to tweak some default configuration settings. So, we recommend forking this repository into your Github organization.
 
 ### Installation
-We recommend setting up a virtualenvironment to install and run your python environment. By doing so, you can eliminate
+We recommend setting up a virtual environment to install and run your python environment. By doing so, you can eliminate
 the risk that SGTM's python dependencies and settings will be mixed up with any such dependencies and settings that you
 may be using in other projects.
 
@@ -129,4 +129,3 @@ Please perform the following checks prior to pushing code
 * run `black .` to autoformat your code
 * run `mypy` on each file that you have changed
 * run tests, as described in the previous section
-
