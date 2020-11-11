@@ -19,7 +19,7 @@ Field mapping, GitHub to Asana:
 | PR comment                                        | comment in Asana task. Comes from bot, but `@-mentions` comment author in Asana |
 | PR review                                         | comment in Asana task. Comes from bot, but `@-mentions` review author in Asana |
 | PR participants (author + reviewers + commenters) | followers in Asana task                                      |
-| PR status (open/closed/merged)                    | "Status" custom field in Asana task
+| PR status (open/closed/merged)                    | "PR Status" custom field in Asana task
 | PR build status (pending/success/failure)         | "Build" custom field in Asana task
 
 #### How a GitHub Pull Request looks like
@@ -32,7 +32,7 @@ Field mapping, GitHub to Asana:
 
 A sublety that exists in this flow is the difference between the assignee and reviewers.
 
-* When the assignee is the author of the Pull Request, the action required from them is likely to change the code or address concerns others have raised
+* When the assignee is the author of the Pull Request, the action required from them is likely to change the code or address concerns others have raised.
 * When the assignee is not the author of the Pull Request, then they're the "main reviewer". Although other GitHub reviewers can review the code, the assignee is the one ultimately responsible for ensuring that the code gets reviewed.
 
 ### Reviewing the Pull Request before merge

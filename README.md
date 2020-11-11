@@ -10,9 +10,8 @@ You will need to set some overrides specific to your deployment -- mostly due to
 ### Installation
 We recommend setting up a virtual environment to install and run your python environment. By doing so, you can eliminate
 the risk that SGTM's python dependencies and settings will be mixed up with any such dependencies and settings that you
-may be using in other projects.
-
-When first setting up your repository, we recommend using a virtual environment. Once you have that activated (see [Installing a Virtual Environment for Python](#installing-a-virtual-environment-for-python) below), you should install all required python dependencies using `pip3 install -r requirements.txt -r requirements-dev.txt`.
+may be using in other projects. Once you have that activated (see [Installing a Virtual Environment for Python](#installing-a-virtual-environment-for-python) below),
+you should install all required python dependencies using `pip3 install -r requirements.txt -r requirements-dev.txt`.
 
 ### Install Terraform
 You'll need to [install Terraform](https://learn.hashicorp.com/tutorials/terraform/install-cli) to launch the infrastructure for SGTM.
@@ -42,7 +41,7 @@ Copy this Personal Accesss Token for the next step.
 You'll need to create two Asana projects: one that will store the mapping of Github username to Asana user id, and the other where your Github sync tasks will live.
 
 1. Create your "SGTM Users" project (feel free to name this whatever you want -- this is just a suggestion). The requirements of this project are two custom fields named: "Github Username" (Text field) and "user_id" (Number field). Save the `id` of this project (from the URL once created) in `./terraform/terraform.tfvars.json` under `"asana_users_project_id"`.
-1. Create your "SGTM <repo> tasks" project (feel free to name this whatever you want -- this is just a suggestion). Suggested custom fields (though optional) are: "PR Status" and "Build". When these exist on your project, SGTM will update these custom fields based on the merge status and build status of your pull requests.
+1. Create your "SGTM <repo> tasks" project (feel free to name this whatever you want -- this is just a suggestion). Suggested custom fields (though optional) are: "PR Status" (with values: "Open", "Merged", and "Closed") and "Build" (with values: "Success", "Failure", "Error"). When these exist on your project, SGTM will update these custom fields based on the merge status and build status of your pull requests.
    1. If you have multiple repositories you want synced to Asana, you can create several of these projects. Make sure to take note of all of the project IDs for a later step.
 1. Make sure that the Asana user/guest that you created earlier is a member of both of these projects.
 
