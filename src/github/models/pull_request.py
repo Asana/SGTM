@@ -11,6 +11,16 @@ from .commit import Commit
 from .user import User
 from .label import Label
 import copy
+import collections
+
+
+class AssigneeReason(Enum):
+    NO_ASSIGNEE = "NO_ASSIGNEE"
+    MULTIPLE_ASSIGNEES = "MULTIPLE_ASSIGNEES"
+    SINGLE_ASSIGNEE = "SIGNLE_ASSIGNEE"
+
+
+Assignee = collections.namedtuple("Assignee", "login reason")
 
 
 @unique
@@ -59,13 +69,17 @@ class PullRequest(object):
     def reviewers(self) -> List[str]:
         return [review.author_handle() for review in self.reviews()]
 
-    def assignee(self) -> str:
+    def assignee(self) -> Assignee:
         maybe_multi_assignees = self.assignees()
         if len(maybe_multi_assignees) == 1:
-            return maybe_multi_assignees[0]
+            return Assignee(
+                login=maybe_multi_assignees[0], reason=AssigneeReason.SINGLE_ASSIGNEE
+            )
         elif len(maybe_multi_assignees) == 0:
             logger.info("GitHub PR has no assignees. Choosing author as assignee")
-            return self.author_handle()
+            return Assignee(
+                login=self.author_handle(), reason=AssigneeReason.NO_ASSIGNEE
+            )
         else:
             assignee = maybe_multi_assignees[0]
             logger.info(
@@ -73,7 +87,7 @@ class PullRequest(object):
                     maybe_multi_assignees, assignee
                 )
             )
-            return assignee
+            return Assignee(login=assignee, reason=AssigneeReason.MULTIPLE_ASSIGNEES)
 
     def id(self) -> str:
         return self._raw["id"]
@@ -114,6 +128,10 @@ class PullRequest(object):
     def set_body(self, body: str):
         self._raw = copy.deepcopy(self._raw)
         self._raw["body"] = copy.deepcopy(body)
+
+    def set_title(self, title: str):
+        self._raw = copy.deepcopy(self._raw)
+        self._raw["title"] = copy.deepcopy(title)
 
     def closed(self) -> bool:
         return self._raw["closed"]

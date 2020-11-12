@@ -51,6 +51,70 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
         ]
         self.assertContainsStrings(actual, expected_strings)
 
+    def test_html_body_assigns_to_self(self):
+        pull_request = build(
+            builder.pull_request()
+            .author(builder.user("github_test_user_login"))
+            .url("https://foo.bar/baz")
+            .body("BODY")
+        )
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+        actual = task_fields["html_notes"]
+        expected_strings = [
+            "<body>",
+            "<em>",
+            "This is a one-way sync from GitHub to Asana. Do not edit this task or comment on it!",
+            "</em>",
+            "\uD83D\uDD17",
+            '<A href="https://foo.bar/baz">https://foo.bar/baz</A>',
+            "✍",
+            "TEST_USER_ASANA_DOMAIN_USER_ID",
+            "Assigned to self",
+            "<strong>",
+            "Description:",
+            "</strong>",
+            "BODY",
+            "</body>",
+        ]
+        self.assertContainsStrings(actual, expected_strings)
+
+    def test_html_body_assigns_to_first(self):
+        pull_request = build(
+            builder.pull_request()
+            .author(builder.user("github_test_user_login"))
+            .url("https://foo.bar/baz")
+            .body("BODY")
+            .assignees(
+                [
+                    builder.user("github_assignee_login_billy"),
+                    builder.user("github_assignee_login_annie"),
+                ]
+            )
+        )
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+        actual = task_fields["html_notes"]
+        expected_strings = [
+            "<body>",
+            "<em>",
+            "This is a one-way sync from GitHub to Asana. Do not edit this task or comment on it!",
+            "</em>",
+            "\uD83D\uDD17",
+            '<A href="https://foo.bar/baz">https://foo.bar/baz</A>',
+            "✍",
+            "TEST_USER_ASANA_DOMAIN_USER_ID",
+            "first assignee alphabetically",
+            "<strong>",
+            "Description:",
+            "</strong>",
+            "BODY",
+            "</body>",
+        ]
+        self.assertContainsStrings(actual, expected_strings)
+
 
 class TestExtractsAssigneeFromPullRequest(BaseClass):
     @classmethod

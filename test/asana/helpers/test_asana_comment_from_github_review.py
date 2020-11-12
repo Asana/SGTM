@@ -34,6 +34,25 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
             asana_review_comment, ["GITHUB_REVIEW_TEXT", "GITHUB_REVIEW_COMMENT_TEXT"]
         )
 
+    def test_converts_urls_to_links(self):
+        github_review = build(
+            builder.review()
+            .author(builder.user("github_unknown_user_login"))
+            .state(ReviewState.DEFAULT)
+            .body("https://www.asana.com")
+            .comment(builder.comment().body("http://www.foo.com"))
+        )
+        asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
+            github_review
+        )
+        self.assertContainsStrings(
+            asana_review_comment,
+            [
+                '<A href="{}">{}</A>'.format(url, url)
+                for url in ["https://www.asana.com", "http://www.foo.com"]
+            ],
+        )
+
     def test_handles_no_review_text(self):
         github_review = build(
             builder.review()

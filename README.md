@@ -1,16 +1,96 @@
 # SGTM
-One-way sync of GitHub pull requests to Asana tasks so engineers can track all of their work in Asana.
+One-way sync of GitHub pull requests to Asana tasks so engineers can track all of their work in Asana. To see a more detailed explanation of the functionality of SGTM, see the [code_reviews](docs/code_reviews.md) docs.
 
-This is an adapted version of a Clojure app that was originally written for internal use by Asana engineers and is still under active development.
+## Setup
+Follow these instructions for setting up SGTM to run in your environment and your infrastructure! Note that this is currently only set up for deployment on AWS, so if you are using a cloud provider, you may need to modify some code and deploy the app yourself.
 
-## Installation
-We recommend setting up a virtualenvironment to install and run your python environment. By doing so, you can eliminate
+### Fork repository and set up your local repository
+You will need to set some overrides specific to your deployment -- mostly due to the fact that AWS S3 bucket names are globally unique, but you may want to tweak some default configuration settings. So, we recommend forking this repository into your Github organization.
+
+### Installation
+We recommend setting up a virtual environment to install and run your python environment. By doing so, you can eliminate
 the risk that SGTM's python dependencies and settings will be mixed up with any such dependencies and settings that you
-may be using in other projects.
+may be using in other projects. Once you have that activated (see [Installing a Virtual Environment for Python](#installing-a-virtual-environment-for-python) below),
+you should install all required python dependencies using `pip3 install -r requirements.txt -r requirements-dev.txt`.
 
-When first setting up your repository, we recommend using a virtual environment. Once you have that activated (see below), you should install all required python dependencies using `pip3 install -r requirements.txt -r requirements-dev.txt`.
+### Install Terraform
+You'll need to [install Terraform](https://learn.hashicorp.com/tutorials/terraform/install-cli) to launch the infrastructure for SGTM.
 
-### Installing a Virtual Environment for Python
+### Create your credentials for Asana/AWS/Github
+There are three external services you'll need to interact with, and therefore need credentials for.
+
+#### Asana
+Create a [Personal Access Token](https://developers.asana.com/docs/personal-access-token) in Asana. At Asana, we created a [Guest Account](https://asana.com/guide/help/organizations/guests) to run SGTM as, so no engineer's personal access token is used, and it's clear that there's a specific "SGTM" user who is making the task updates.
+
+Copy this Personal Access Token for the next step.
+
+#### AWS
+You'll need to be able to authenticate with AWS via the command line, and there are a few ways to achieve that. See [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html) for your options, but most likely you'll already have a preferred method of interacting with AWS via the command line.
+
+#### Github
+Again, you will probably want to create a new Github user in your org that is just for SGTM (since SGTM will be updating/merging PRs, it's clearer to attribute those actions to a user that is clearly name "SGTM" or something similar).
+
+1. For the Github user you want to use, generate a [Personal Access Token](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) with the following permissions:
+   * repo (Full control of private repositories)
+   * read:org (Read org and team membership, read org projects)
+1. Generate a [secret token](https://developer.github.com/webhooks/securing/) for your Github webhook. Github suggests generating this via `ruby -rsecurerandom -e 'puts SecureRandom.hex(20)'`, but use whatever method you are comfortable with to generate a secure secret token. Save this somewhere, as you'll need it twice in the later steps.
+
+Copy this Personal Accesss Token for the next step.
+
+### Create Asana Projects
+You'll need to create two Asana projects: one that will store the mapping of Github username to Asana user id, and the other where your Github sync tasks will live.
+
+1. Create your "SGTM Users" project (feel free to name this whatever you want -- this is just a suggestion). The requirements of this project are two custom fields named: "Github Username" (Text field) and "user_id" (Number field). Save the `id` of this project (from the URL once created) in `./terraform/terraform.tfvars.json` under `"asana_users_project_id"`.
+1. Create your "SGTM <repo> tasks" project (feel free to name this whatever you want -- this is just a suggestion). Suggested custom fields (though optional) are: "PR Status" (with values: "Open", "Merged", and "Closed") and "Build" (with values: "Success", "Failure", "Error"). When these exist on your project, SGTM will update these custom fields based on the merge status and build status of your pull requests.
+   1. If you have multiple repositories you want synced to Asana, you can create several of these projects. Make sure to take note of all of the project IDs for a later step.
+1. Make sure that the Asana user/guest that you created earlier is a member of both of these projects.
+
+### Update S3 buckets to be uniquely yours
+1. In `./terraform/terraform.tfvars.json`, any variable that has `"bucket_name"` in it needs to be updated to be a globally unique name. We suggest prefixing it with your org's name like we have.
+1. There's an additional bucket name for the Terraform backend that needs to be updated as well in `./terraform/main.tf` if you search for `[UPDATE ME]`. There should be a comment in the code there explaining why bucket names need to be updated in two places.
+
+### Zip up your code
+From the root of your repository directory, run `./scripts/zip_lambda_code.sh`. This will zip up all of the Python code and dependencies to be pushed to AWS in the next step (the `terraform apply`)
+
+### Run setup script
+You'll first need to set up the [Terraform remote state](https://www.terraform.io/docs/state/remote.html) to be the source of truth for the state of your deployed infrastructure.
+
+1. Run `python3 ./scripts/setup.py state` (this will create  an S3 bucket and DyanmoDb lock table for Terraform)
+1. Initialize and apply the infrastructure:
+```bash
+> cd ./terraform
+> terraform init
+> terraform apply
+```
+1. Save the output of `terraform apply`, which should print out a `api_gateway_deployment_invoke_url`. You'll need this in the next step.
+1. Push your secrets to the ecrypted S3 bucket that Terraform just created. `cd` back to the root of your repository and run: `python3 ./scripts/setup.py secrets` and follow the prompts.
+
+### Add Mapping of Github Repository -> Asana Project
+For each repository that you are going to sync:
+1. Find that repository's Github Graphql `node_id`:
+   1. You can get this using `curl -i -u <username>:<github_personal_access_token> https://api.github.com/repos/<organization>/<repository>`
+1. Using the "SGTM tasks" project id from [Create Asana Projects](#create-asana-projects), update the sgtm-objects DynamoDb table with the mapping of `{"github-node": "<node_id>", "asana-id": "<project_id>"}`
+
+### Create Your Github Webhook
+For each repository that you want to sync to Asana through SGTM:
+1. Navigate to `https://github.com/<organization>/<repository>/settings/hooks`
+1. Click "Add webhook"
+1. Under "Payload URL", input the `api_gateway_deployment_invoke_url` from the previous step
+1. Under "Content Type", select "application/json"
+1. Under "Secret", input your secret token that you generated earlier
+1. Under "Which events would you like to trigger this webhook?", select "Let me select individual events."
+   1. Issue comments
+   1. Pull requests
+   1. Pull request reviews
+   1. Pull request review comments
+   1. Statuses
+1. Make sure "Active" is selected
+1. Click "Add webhook"
+
+### Take it for a spin!
+At this point, you should be all set to start getting Pull Requests synced to Asana Tasks. Open up a Pull Request, and Enjoy!
+
+## Installing a Virtual Environment for Python
 
 See [these instructions](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) for help in
 setting up a virtual environment for Python, or use the following TL;DR version:
@@ -48,4 +128,3 @@ Please perform the following checks prior to pushing code
 * run `black .` to autoformat your code
 * run `mypy` on each file that you have changed
 * run tests, as described in the previous section
-
