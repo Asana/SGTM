@@ -429,10 +429,10 @@ class GithubLogicTest(unittest.TestCase):
             builder.pull_request().reviews(
                 [
                     builder.review("").comments(
-                        [builder.comment("@one @two @three"), builder.comment("@four"),]
+                        [builder.comment("@one @two @three"), builder.comment("@four")]
                     ),
                     builder.review("@a @b @c").comments(
-                        [builder.comment(""), builder.comment("@five"),]
+                        [builder.comment(""), builder.comment("@five")]
                     ),
                 ]
             )
