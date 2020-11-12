@@ -13,6 +13,5 @@ remote_state {
     region = "us-east-1"
 
     key = "${path_relative_to_include()}/terraform.tfstate"
-    # encrypt        = true
   }
 }
