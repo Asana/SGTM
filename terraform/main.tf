@@ -342,20 +342,3 @@ resource "aws_s3_bucket" "api_key_bucket" {
     }
   }
 }
-
-
-### Terraform backend
-
-# terraform {
-#   backend "s3" {
-#     # Should be able to use vars here, but can't in backend configuration
-#     # unfortunately.
-#     # See: https://github.com/hashicorp/terraform/issues/13022
-#     bucket = "asana-sgtm-terraform-state-bucket" # [UPDATE ME] var.terraform_backend_s3_bucket_name
-#     dynamodb_table = "sgtm_terraform_state_lock" # var.terraform_backend_dynamodb_lock_table
-#     region = "us-east-1" # var.aws_region
-#
-#     key    = "terraform.tfstate"
-#   }
-# }
-#
