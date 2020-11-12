@@ -129,6 +129,10 @@ class PullRequest(object):
         self._raw = copy.deepcopy(self._raw)
         self._raw["body"] = copy.deepcopy(body)
 
+    def set_title(self, title: str):
+        self._raw = copy.deepcopy(self._raw)
+        self._raw["title"] = copy.deepcopy(title)
+
     def closed(self) -> bool:
         return self._raw["closed"]
 
