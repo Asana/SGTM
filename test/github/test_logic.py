@@ -166,6 +166,35 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
         )
         add_pr_comment_mock.assert_not_called()
 
+    def test_does_not_add_warning_comment_if_pr_is_approved(
+        self, add_pr_comment_mock, edit_pr_title_mock, is_automerge_feature_enabled_mock
+    ):
+        is_automerge_feature_enabled_mock.return_value = True
+        pull_request = build(
+            builder.pull_request()
+            .title(self.SAMPLE_PR_TITLE)
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
+            )
+        )
+
+        github_logic.maybe_add_automerge_warning_title_and_comment(pull_request)
+
+        edit_pr_title_mock.assert_called_with(
+            pull_request.repository_owner_handle(),
+            pull_request.repository_name(),
+            pull_request.number(),
+            self.SAMPLE_PR_TITLE + github_logic.AUTOMERGE_TITLE_WARNING,
+        )
+        add_pr_comment_mock.assert_not_called()
+
     def test_removes_title_warning_if_label_removed(
         self, add_pr_comment_mock, edit_pr_title_mock, is_automerge_feature_enabled_mock
     ):

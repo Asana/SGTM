@@ -10,7 +10,7 @@ GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
 GITHUB_ATTACHMENT_REGEX = "!\[(.*?)\]\((.+?(\.png|\.jpg|\.jpeg|\.gif))"
 
 AUTOMERGE_TITLE_WARNING = " <auto-merge>"
-AUTOMERGE_COMMENT_WARNING = "**:warning: Reviewer:** If you approve this PR, it will be auto-merged. If you don't want this to be merged, either Request Changes or remove the auto-merge label before accepting."
+AUTOMERGE_COMMENT_WARNING = "**:warning: Reviewer:** If you approve this PR, it will be auto-merged as soon as tests pass. If you don't want this to be auto-merged, either Request Changes or remove the auto-merge label before accepting."
 
 
 @unique
@@ -169,11 +169,13 @@ def maybe_add_automerge_warning_title_and_comment(pull_request: PullRequest):
             github_client.edit_pr_title(owner, repo_name, pr_number, new_title)
             pull_request.set_title(new_title)
 
-            # only add warning comment if it's set to auto-merge after approval, since other auto-merge labels
-            # are irrelevant to reviewers (and create unnecessary noise)
+            # only add warning comment if it's set to auto-merge after approval and hasn't yet been approved to limit noise
             # this will lead to multiple warning comments on the same PR if labels are added and removed multiple times
-            if _pull_request_has_label(
-                pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+            if (
+                _pull_request_has_label(
+                    pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+                and not pull_request.is_approved()
             ):
                 github_client.add_pr_comment(
                     owner, repo_name, pr_number, AUTOMERGE_COMMENT_WARNING
