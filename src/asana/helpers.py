@@ -26,7 +26,7 @@ AttachmentData = collections.namedtuple(
     "AttachmentData", "file_name file_url image_type"
 )
 
-StatusReason = collections.namedtuple("StatusReason", "status reason")
+StatusReason = collections.namedtuple("StatusReason", "isClosed reason")
 
 
 def task_url_from_task_id(task_id: str) -> str:
@@ -48,7 +48,7 @@ def extract_task_fields_from_pull_request(pull_request: PullRequest) -> dict:
         "assignee": _task_assignee_from_pull_request(pull_request),
         "name": _task_name_from_pull_request(pull_request),
         "html_notes": _task_description_from_pull_request(pull_request),
-        "completed": _task_completion_from_pull_request(pull_request),
+        "completed": _task_completion_from_pull_request(pull_request).isClosed,
         "followers": _task_followers_from_pull_request(pull_request),
         "custom_fields": _custom_fields_from_pull_request(pull_request),
     }
@@ -382,31 +382,14 @@ def _generate_assignee_description(assignee: Assignee) -> str:
         return ""
 
 
-def _generate_status_description(pull_request: PullRequest) -> StatusReason:
-    if not pull_request.closed():
-        return StatusReason("not closed", "the pull request is open.")
-    elif not pull_request.merged():
-        return StatusReason(
-            "closed", "the pull request was closed without merging code."
-        )
-    elif github_logic.pull_request_approved_before_merging(pull_request):
-        return StatusReason("closed", "the pull request was approved before merging.")
-    elif github_logic.pull_request_approved_after_merging(pull_request):
-        return StatusReason("closed", "the pull request was approved after merging.")
-    else:
-        return StatusReason(
-            "not closed",
-            "the pull request hasn't yet been approved by a reviewer after merging.",
-        )
-
-
 def _task_description_from_pull_request(pull_request: PullRequest) -> str:
     link_to_pr = _link(pull_request.url())
     github_author = pull_request.author()
     author = _asana_user_url_from_github_user_handle(github_author.login())
     if author is None:
         author = _asana_display_name_for_github_user(github_author)
-    status_reason = _generate_status_description(pull_request)
+    status_reason = _task_completion_from_pull_request(pull_request)
+    status = "closed" if status_reason.isClosed else "not closed"
     return _wrap_in_tag("body")(
         _wrap_in_tag("em")(
             "This is a one-way sync from GitHub to Asana. Do not edit this task or comment on it!"
@@ -415,7 +398,7 @@ def _task_description_from_pull_request(pull_request: PullRequest) -> str:
         + "\n✍️ "
         + author
         + _generate_assignee_description(pull_request.assignee())
-        + f"\n❗️Task is {status_reason.status} because {status_reason.reason}"
+        + f"\n❗️Task is {status} because {status_reason.reason}"
         + _wrap_in_tag("strong")("\n\nDescription:\n")
         + convert_urls_to_links(escape(pull_request.body(), quote=False))
     )
@@ -423,15 +406,18 @@ def _task_description_from_pull_request(pull_request: PullRequest) -> str:
 
 def _task_completion_from_pull_request(pull_request: PullRequest) -> bool:
     if not pull_request.closed():
-        return False
+        return StatusReason(False, "the pull request is open.")
     elif not pull_request.merged():
-        return True
+        return StatusReason(True, "the pull request was closed without merging code.")
     elif github_logic.pull_request_approved_before_merging(pull_request):
-        return True
+        return StatusReason(True, "the pull request was approved before merging.")
     elif github_logic.pull_request_approved_after_merging(pull_request):
-        return True
+        return StatusReason(True, "the pull request was approved after merging.")
     else:
-        return False
+        return StatusReason(
+            False,
+            "the pull request hasn't yet been approved by a reviewer after merging.",
+        )
 
 
 def _task_followers_from_pull_request(pull_request: PullRequest):
