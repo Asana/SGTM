@@ -64,6 +64,158 @@ class TestPullRequestHasLabel(unittest.TestCase):
         self.assertFalse(github_logic._pull_request_has_label(pull_request, label_name))
 
 
+@patch.object(github_logic, "_is_automerge_feature_enabled")
+@patch.object(github_client, "edit_pr_title")
+@patch.object(github_client, "add_pr_comment")
+class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
+    SAMPLE_PR_TITLE = "Sample PR Title"
+
+    def test_noop_if_feature_not_enabled(
+        self, add_pr_comment_mock, edit_pr_title_mock, is_automerge_feature_enabled_mock
+    ):
+        is_automerge_feature_enabled_mock.return_value = False
+        pull_request = build(
+            builder.pull_request().label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
+        )
+
+        github_logic.maybe_add_automerge_warning_title_and_comment(pull_request)
+
+        add_pr_comment_mock.assert_not_called()
+        edit_pr_title_mock.assert_not_called()
+
+    def test_does_not_add_warning_if_no_label(
+        self, add_pr_comment_mock, edit_pr_title_mock, is_automerge_feature_enabled_mock
+    ):
+        is_automerge_feature_enabled_mock.return_value = True
+        pull_request = build(builder.pull_request())
+
+        github_logic.maybe_add_automerge_warning_title_and_comment(pull_request)
+
+        add_pr_comment_mock.assert_not_called()
+        edit_pr_title_mock.assert_not_called()
+
+    def test_adds_warnings_if_label_and_no_warning_in_title(
+        self, add_pr_comment_mock, edit_pr_title_mock, is_automerge_feature_enabled_mock
+    ):
+        is_automerge_feature_enabled_mock.return_value = True
+        pull_request = build(
+            builder.pull_request()
+            .title(self.SAMPLE_PR_TITLE)
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
+        )
+
+        github_logic.maybe_add_automerge_warning_title_and_comment(pull_request)
+
+        edit_pr_title_mock.assert_called_with(
+            pull_request.repository_owner_handle(),
+            pull_request.repository_name(),
+            pull_request.number(),
+            self.SAMPLE_PR_TITLE + github_logic.AUTOMERGE_TITLE_WARNING,
+        )
+        add_pr_comment_mock.assert_called_with(
+            pull_request.repository_owner_handle(),
+            pull_request.repository_name(),
+            pull_request.number(),
+            github_logic.AUTOMERGE_COMMENT_WARNING,
+        )
+
+    def test_does_not_add_warning_if_has_label_and_already_has_warning_in_title(
+        self, add_pr_comment_mock, edit_pr_title_mock, is_automerge_feature_enabled_mock
+    ):
+        is_automerge_feature_enabled_mock.return_value = True
+        pull_request = build(
+            builder.pull_request()
+            .title(self.SAMPLE_PR_TITLE + github_logic.AUTOMERGE_TITLE_WARNING)
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
+        )
+
+        github_logic.maybe_add_automerge_warning_title_and_comment(pull_request)
+
+        edit_pr_title_mock.assert_not_called()
+        add_pr_comment_mock.assert_not_called()
+
+    def test_does_not_add_warning_comment_if_label_does_not_require_approval(
+        self, add_pr_comment_mock, edit_pr_title_mock, is_automerge_feature_enabled_mock
+    ):
+        is_automerge_feature_enabled_mock.return_value = True
+        pull_request = build(
+            builder.pull_request()
+            .title(self.SAMPLE_PR_TITLE)
+            .label(builder.label().name(github_logic.AutomergeLabel.AFTER_TESTS.value))
+        )
+
+        github_logic.maybe_add_automerge_warning_title_and_comment(pull_request)
+
+        edit_pr_title_mock.assert_called_with(
+            pull_request.repository_owner_handle(),
+            pull_request.repository_name(),
+            pull_request.number(),
+            self.SAMPLE_PR_TITLE + github_logic.AUTOMERGE_TITLE_WARNING,
+        )
+        add_pr_comment_mock.assert_not_called()
+
+    def test_does_not_add_warning_comment_if_pr_is_approved(
+        self, add_pr_comment_mock, edit_pr_title_mock, is_automerge_feature_enabled_mock
+    ):
+        is_automerge_feature_enabled_mock.return_value = True
+        pull_request = build(
+            builder.pull_request()
+            .title(self.SAMPLE_PR_TITLE)
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
+            )
+        )
+
+        github_logic.maybe_add_automerge_warning_title_and_comment(pull_request)
+
+        edit_pr_title_mock.assert_called_with(
+            pull_request.repository_owner_handle(),
+            pull_request.repository_name(),
+            pull_request.number(),
+            self.SAMPLE_PR_TITLE + github_logic.AUTOMERGE_TITLE_WARNING,
+        )
+        add_pr_comment_mock.assert_not_called()
+
+    def test_removes_title_warning_if_label_removed(
+        self, add_pr_comment_mock, edit_pr_title_mock, is_automerge_feature_enabled_mock
+    ):
+        is_automerge_feature_enabled_mock.return_value = True
+        pull_request = build(
+            builder.pull_request().title(
+                self.SAMPLE_PR_TITLE + github_logic.AUTOMERGE_TITLE_WARNING
+            )
+        )
+
+        github_logic.maybe_add_automerge_warning_title_and_comment(pull_request)
+
+        edit_pr_title_mock.assert_called_with(
+            pull_request.repository_owner_handle(),
+            pull_request.repository_name(),
+            pull_request.number(),
+            self.SAMPLE_PR_TITLE,
+        )
+        add_pr_comment_mock.assert_not_called()
+
+
 if __name__ == "__main__":
     from unittest import main as run_tests
 
