@@ -18,6 +18,7 @@ s3_client = boto3.client("s3", region_name=REGION)
 
 __tf_vars_file_contents = None
 
+
 def _parse_tfvars_file() -> dict:
     if __tf_vars_file_contents is None:
         directory = os.path.dirname(__file__)
@@ -30,9 +31,14 @@ def _parse_tfvars_file() -> dict:
 def _prompt_for_tf_var(var_name):
     value = None
     while not value:
-        value = input("No Terraform value found for {}. Please enter the value: > ".format(var_name)).strip()
+        value = input(
+            "No Terraform value found for {}. Please enter the value: > ".format(
+                var_name
+            )
+        ).strip()
 
     return value
+
 
 def get_tf_var(var_name):
     value = os.getenv("TF_VAR_" + var_name)
