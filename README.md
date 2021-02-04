@@ -16,6 +16,9 @@ you should install all required python dependencies using `pip3 install -r requi
 ### Install Terraform
 You'll need to [install Terraform](https://learn.hashicorp.com/tutorials/terraform/install-cli) to launch the infrastructure for SGTM.
 
+### Install Terragrunt
+You'll need to [install Terragrunt](https://terragrunt.gruntwork.io/docs/getting-started/install/) to configure Terraform for your own account.
+
 ### Create your credentials for Asana/AWS/Github
 There are three external services you'll need to interact with, and therefore need credentials for.
 
@@ -45,9 +48,10 @@ You'll need to create two Asana projects: one that will store the mapping of Git
    1. If you have multiple repositories you want synced to Asana, you can create several of these projects. Make sure to take note of all of the project IDs for a later step.
 1. Make sure that the Asana user/guest that you created earlier is a member of both of these projects.
 
-### Update S3 buckets to be uniquely yours
-1. In `./terraform/terraform.tfvars.json`, any variable that has `"bucket_name"` in it needs to be updated to be a globally unique name. We suggest prefixing it with your org's name like we have.
-1. There's an additional bucket name for the Terraform backend that needs to be updated as well in `./terraform/main.tf` if you search for `[UPDATE ME]`. There should be a comment in the code there explaining why bucket names need to be updated in two places.
+### Set your Terraform variables
+NOTE: AWS S3 Bucket names are globally unique, so you will need to choose your own bucket names to be unique that no other AWS account has already created.
+1. In `./terraform/variables.tf`, any variable that is listed without a default value needs to be set. The preferred method of setting these values is through [environment variables](https://www.terraform.io/docs/cli/config/environment-variables.html#tf_var_name). For example, to se terraform variable `asana_users_project_id`, you'll want to set an environment variable `TF_VAR_asana_users_project_id`.
+1. Save these somewhere that you and others collaborating on this deployment could share (we save ours in an Asana task internally, of course) since these will need to be the same each time you apply new changes.
 
 ### Zip up your code
 From the root of your repository directory, run `./scripts/zip_lambda_code.sh`. This will zip up all of the Python code and dependencies to be pushed to AWS in the next step (the `terraform apply`)
@@ -59,10 +63,10 @@ You'll first need to set up the [Terraform remote state](https://www.terraform.i
 1. Initialize and apply the infrastructure:
 ```bash
 > cd ./terraform
-> terraform init
-> terraform apply
+> terragrunt init
+> terragrunt apply
 ```
-1. Save the output of `terraform apply`, which should print out a `api_gateway_deployment_invoke_url`. You'll need this in the next step.
+1. Save the output of `terragrunt apply`, which should print out a `api_gateway_deployment_invoke_url`. You'll need this in the next step.
 1. Push your secrets to the ecrypted S3 bucket that Terraform just created. `cd` back to the root of your repository and run: `python3 ./scripts/setup.py secrets` and follow the prompts.
 
 ### Add Mapping of Github Repository -> Asana Project
