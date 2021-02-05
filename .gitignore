@@ -9,6 +9,7 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
+build-env/
 develop-eggs/
 dist/
 downloads/
@@ -111,6 +112,7 @@ terraform/.terraform
 terraform/terraform.tfstate
 terraform/terraform.backup
 terraform/terraform.tfstate.backup
+terraform/backend.tf
 
 # virtualenv
 v-env/
