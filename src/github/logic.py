@@ -5,6 +5,7 @@ from src.logger import logger
 from . import client as github_client
 from src.github.models import PullRequest, MergeableState
 from enum import Enum, unique
+from src.github.helpers import pull_request_has_label
 
 GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
 GITHUB_ATTACHMENT_REGEX = "!\[(.*?)\]\((.+?(\.png|\.jpg|\.jpeg|\.gif))"
@@ -172,7 +173,7 @@ def maybe_add_automerge_warning_title_and_comment(pull_request: PullRequest):
             # only add warning comment if it's set to auto-merge after approval and hasn't yet been approved to limit noise
             # this will lead to multiple warning comments on the same PR if labels are added and removed multiple times
             if (
-                _pull_request_has_label(
+                pull_request_has_label(
                     pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
                 )
                 and not pull_request.is_approved()
@@ -221,16 +222,16 @@ def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
         return False
 
     # if there are multiple labels, we use the most permissive to define automerge behavior
-    if _pull_request_has_label(pull_request, AutomergeLabel.IMMEDIATELY.value):
+    if pull_request_has_label(pull_request, AutomergeLabel.IMMEDIATELY.value):
         return pull_request.mergeable() in (
             MergeableState.MERGEABLE,
             MergeableState.UNKNOWN,
         )
 
-    if _pull_request_has_label(pull_request, AutomergeLabel.AFTER_TESTS.value):
+    if pull_request_has_label(pull_request, AutomergeLabel.AFTER_TESTS.value):
         return pull_request.is_build_successful() and pull_request.is_mergeable()
 
-    if _pull_request_has_label(
+    if pull_request_has_label(
         pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
     ):
         return (
@@ -249,13 +250,13 @@ def _is_automerge_feature_enabled():
 def _pull_request_has_automerge_label(pull_request: PullRequest) -> bool:
     return any(
         map(
-            lambda label: _pull_request_has_label(pull_request, label.value),
+            lambda label: pull_request_has_label(pull_request, label.value),
             AutomergeLabel,
         )
     )
 
 
-def _pull_request_has_label(pull_request: PullRequest, label: str) -> bool:
+def pull_request_has_label(pull_request: PullRequest, label: str) -> bool:
     label_names = map(lambda label: label.name(), pull_request.labels())
     return label in label_names
 

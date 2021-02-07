@@ -5,6 +5,7 @@ from src.github.models import Commit, ReviewState, PullRequest, MergeableState
 from test.impl.builders import builder, build
 import src.github.controller as github_controller
 import src.github.client as github_client
+from src.github.helpers import pull_request_has_label
 
 
 @patch.object(github_controller, "upsert_pull_request")
@@ -55,13 +56,13 @@ class TestPullRequestHasLabel(unittest.TestCase):
             builder.pull_request().label(builder.label().name(label_name))
         )
 
-        self.assertTrue(github_logic._pull_request_has_label(pull_request, label_name))
+        self.assertTrue(github_logic.pull_request_has_label(pull_request, label_name))
 
     def test_pull_request_without_label(self):
         label_name = "test label"
         pull_request = build(builder.pull_request())
 
-        self.assertFalse(github_logic._pull_request_has_label(pull_request, label_name))
+        self.assertFalse(github_logic.pull_request_has_label(pull_request, label_name))
 
 
 @patch.object(github_logic, "_is_automerge_feature_enabled")
