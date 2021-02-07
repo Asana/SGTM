@@ -1,10 +1,11 @@
 from typing import Optional
 from . import client as asana_client
 from . import helpers as asana_helpers
+from . import logic as asana_logic
 from src.github.models import Comment, PullRequest, Review
 from src.logger import logger
 from src.dynamodb import client as dynamodb_client
-from src.github.helpers import pull_request_has_label
+from src.github import helpers as github_helpers
 
 
 def create_task(repository_id: str) -> Optional[str]:
@@ -38,7 +39,7 @@ def update_task(pull_request: PullRequest, task_id: str):
 
 
 def maybe_complete_tasks_on_merge(pull_request: PullRequest):
-    if _is_autocomplete_feature_enabled and pull_request.merged():
+    if asana_logic.should_autocomplete_tasks_on_merge(pull_request):
         task_ids_to_complete_on_merge = asana_helpers.get_completed_on_merge_task_ids(
             pull_request
         )
@@ -103,7 +104,3 @@ def delete_comment(github_comment_id: str):
     )
     if asana_comment_id is not None:
         asana_client.delete_comment(asana_comment_id)
-
-
-def _is_autocomplete_feature_enabled():
-    return os.getenv("SGTM_FEATURE__AUTOCOMPLETE_ENABLED") == "true"

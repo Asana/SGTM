@@ -6,8 +6,6 @@ from test.impl.base_test_case_class import BaseClass
 
 from src.github.models import Review, Comment
 from src.asana import controller
-from src.asana import client
-from src.asana import helpers
 
 
 @patch("src.asana.helpers.asana_comment_from_github_review")
@@ -113,32 +111,33 @@ class TestUpsertGithubReviewToTask(BaseClass):
         add_comment.assert_not_called()
 
 
-@patch.object(client, "update_task")
-@patch.object(helpers, "get_completed_on_merge_task_ids")
+@patch("src.asana.client.update_task")
+@patch("src.asana.helpers.get_completed_on_merge_task_ids")
+@patch("src.asana.logic.should_autocomplete_tasks_on_merge", return_value=True)
 class TestMaybeCompleteTasksOnMerge(BaseClass):
-    def test_noop_if_pull_request_not_merged(
-        self, get_completed_on_merge_task_ids_mock, update_task_mock
-    ):
-        pull_request = build(builder.pull_request().merged(False))
-        controller.maybe_complete_tasks_on_merge(pull_request)
-        update_task_mock.assert_not_called()
-
     def test_noop_if_no_task_ids_to_complete(
-        self, get_completed_on_merge_task_ids_mock, update_task_mock
+        self,
+        should_autocomplete_tasks_on_merge_mock,
+        get_completed_on_merge_task_ids_mock,
+        update_task_mock,
     ):
         get_completed_on_merge_task_ids_mock.return_value = []
         pull_request = build(builder.pull_request().merged(True))
         controller.maybe_complete_tasks_on_merge(pull_request)
         update_task_mock.assert_not_called()
 
-    def test_updates_task_with_completed_true_if_has_task_id(
-        self, get_completed_on_merge_task_ids_mock, update_task_mock
+    def test_updates_tasks_with_completed_true_if_has_task_id(
+        self,
+        should_autocomplete_tasks_on_merge_mock,
+        get_completed_on_merge_task_ids_mock,
+        update_task_mock,
     ):
-        task_id = "123"
-        get_completed_on_merge_task_ids_mock.return_value = [task_id]
+        task_ids = ["123", "456"]
+        get_completed_on_merge_task_ids_mock.return_value = task_ids
         pull_request = build(builder.pull_request().merged(True))
         controller.maybe_complete_tasks_on_merge(pull_request)
-        update_task_mock.assert_called_once_with(task_id, {"completed": True})
+        update_task_mock.assert_any_call(task_ids[0], {"completed": True})
+        update_task_mock.assert_any_call(task_ids[0], {"completed": True})
 
 
 if __name__ == "__main__":
