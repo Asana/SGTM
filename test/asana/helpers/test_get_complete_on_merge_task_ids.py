@@ -10,8 +10,7 @@ class TestGetCompleteOnMergeTaskIds(BaseClass):
         pull_request = build(
             builder.pull_request().body(
                 f"Blah blah blah\nblah\n\
-                Tasks to complete on merge: [#{task_ids[0]}](https://app.asana.com/0/1162076285812014/{task_ids[0]}/f), \
-                [#{task_ids[1]}](https://app.asana.com/0/1162076285812014/{task_ids[1]}/f)"
+                Asana tasks:\nhttps://app.asana.com/0/1162076285812014/{task_ids[0]}/f https://app.asana.com/0/1162076285812014/{task_ids[1]}/f"
             )
         )
 
@@ -19,18 +18,16 @@ class TestGetCompleteOnMergeTaskIds(BaseClass):
             asana_helpers.get_completed_on_merge_task_ids(pull_request), task_ids
         )
 
-    def test_returns_empty_list_if_no_tasks_to_complete_line(self):
+    def test_returns_empty_list_if_no_asana_tasks_line(self):
         pull_request = build(builder.pull_request().body(f"Blah blah blah\nblah\n"))
 
         self.assertCountEqual(
             asana_helpers.get_completed_on_merge_task_ids(pull_request), []
         )
 
-    def test_returns_empty_list_if_no_tasks_to_complete(self):
+    def test_returns_empty_list_if_no_linked_tasks(self):
         pull_request = build(
-            builder.pull_request().body(
-                f"Blah blah blah\nblah\nTasks to complete on merge:"
-            )
+            builder.pull_request().body(f"Blah blah blah\nblah\nAsana tasks:")
         )
 
         self.assertCountEqual(

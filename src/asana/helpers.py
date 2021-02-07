@@ -316,16 +316,20 @@ def get_completed_on_merge_task_ids(pull_request: PullRequest) -> List[str]:
     """
     body_lines = pull_request.body().splitlines()
     stripped_body_lines = (line.strip() for line in body_lines)
-    complete_on_merge_line = next(
-        (
-            line
-            for line in stripped_body_lines
-            if line.startswith("Tasks to complete on merge:")
-        ),
-        None,
-    )
-    if complete_on_merge_line:
-        task_ids = re.findall("#([0-9]+)", complete_on_merge_line)
+    task_url_line = None
+    seen_asana_tasks_line = False
+    for line in stripped_body_lines:
+        if seen_asana_tasks_line:
+            task_url_line = line
+            break
+        if line.startswith("Asana tasks:"):
+            seen_asana_tasks_line = True
+
+    if task_url_line:
+        task_urls = task_url_line.split()
+        task_ids = []
+        for url in task_urls:
+            task_ids.append(re.findall("\d+(?!.*\d)", url)[0])
         return task_ids
     else:
         return []
