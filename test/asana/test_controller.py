@@ -112,16 +112,16 @@ class TestUpsertGithubReviewToTask(BaseClass):
 
 
 @patch("src.asana.client.update_task")
-@patch("src.asana.helpers.get_completed_on_merge_task_ids")
+@patch("src.asana.helpers.get_linked_task_ids")
 @patch("src.asana.logic.should_autocomplete_tasks_on_merge", return_value=True)
 class TestMaybeCompleteTasksOnMerge(BaseClass):
     def test_noop_if_no_task_ids_to_complete(
         self,
         should_autocomplete_tasks_on_merge_mock,
-        get_completed_on_merge_task_ids_mock,
+        get_linked_task_ids_mock,
         update_task_mock,
     ):
-        get_completed_on_merge_task_ids_mock.return_value = []
+        get_linked_task_ids_mock.return_value = []
         pull_request = build(builder.pull_request().merged(True))
         controller.maybe_complete_tasks_on_merge(pull_request)
         update_task_mock.assert_not_called()
@@ -129,11 +129,11 @@ class TestMaybeCompleteTasksOnMerge(BaseClass):
     def test_updates_tasks_with_completed_true_if_has_task_id(
         self,
         should_autocomplete_tasks_on_merge_mock,
-        get_completed_on_merge_task_ids_mock,
+        get_linked_task_ids_mock,
         update_task_mock,
     ):
         task_ids = ["123", "456"]
-        get_completed_on_merge_task_ids_mock.return_value = task_ids
+        get_linked_task_ids_mock.return_value = task_ids
         pull_request = build(builder.pull_request().merged(True))
         controller.maybe_complete_tasks_on_merge(pull_request)
         update_task_mock.assert_any_call(task_ids[0], {"completed": True})

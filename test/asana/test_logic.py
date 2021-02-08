@@ -12,7 +12,9 @@ class TestShouldAutocompleteTasksOnMerge(BaseClass):
             builder.pull_request()
             .merged(True)
             .label(
-                builder.label().name(asana_logic.AutocompleteLabel.COMPLETE_ON_MERGE)
+                builder.label().name(
+                    asana_logic.AutocompleteLabel.COMPLETE_ON_MERGE.value
+                )
             )
         )
         self.assertFalse(asana_logic.should_autocomplete_tasks_on_merge(pull_request))
@@ -22,7 +24,9 @@ class TestShouldAutocompleteTasksOnMerge(BaseClass):
             builder.pull_request()
             .merged(False)
             .label(
-                builder.label().name(asana_logic.AutocompleteLabel.COMPLETE_ON_MERGE)
+                builder.label().name(
+                    asana_logic.AutocompleteLabel.COMPLETE_ON_MERGE.value
+                )
             )
         )
         self.assertFalse(asana_logic.should_autocomplete_tasks_on_merge(pull_request))
@@ -36,7 +40,9 @@ class TestShouldAutocompleteTasksOnMerge(BaseClass):
             builder.pull_request()
             .merged(True)
             .label(
-                builder.label().name(asana_logic.AutocompleteLabel.COMPLETE_ON_MERGE)
+                builder.label().name(
+                    asana_logic.AutocompleteLabel.COMPLETE_ON_MERGE.value
+                )
             )
         )
         self.assertTrue(asana_logic.should_autocomplete_tasks_on_merge(pull_request))

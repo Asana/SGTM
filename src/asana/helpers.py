@@ -309,10 +309,9 @@ def convert_urls_to_links(text: str) -> str:
     return re.sub(URL_REGEX, urlreplace, text)
 
 
-def get_completed_on_merge_task_ids(pull_request: PullRequest) -> List[str]:
+def get_linked_task_ids(pull_request: PullRequest) -> List[str]:
     """
-    Extracts task ids that the user specified should be completed on merge from
-    the body of the PR.
+    Extracts linked task ids from the body of the PR.
     """
     body_lines = pull_request.body().splitlines()
     stripped_body_lines = (line.strip() for line in body_lines)
