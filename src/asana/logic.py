@@ -10,7 +10,6 @@ class AutocompleteLabel(Enum):
 
 
 def should_autocomplete_tasks_on_merge(pull_request: PullRequest):
-    # TODO: add check that it hasn't been completed already
     return (
         _is_autocomplete_feature_enabled()
         and pull_request.merged()
