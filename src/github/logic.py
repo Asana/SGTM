@@ -256,10 +256,5 @@ def _pull_request_has_automerge_label(pull_request: PullRequest) -> bool:
     )
 
 
-def pull_request_has_label(pull_request: PullRequest, label: str) -> bool:
-    label_names = map(lambda label: label.name(), pull_request.labels())
-    return label in label_names
-
-
 def _pull_request_has_automerge_title(pull_request: PullRequest) -> bool:
     return AUTOMERGE_TITLE_WARNING in pull_request.title()
