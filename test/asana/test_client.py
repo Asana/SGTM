@@ -62,6 +62,17 @@ class TestAsanaClientUpdateTask(BaseClass):
             update_task.assert_called_once_with("TASK_ID", {"FIELD": "VALUE"})
 
 
+class TestAsanaClientCompleteTask(BaseClass):
+    def test_complete_task_requires_task_id(self):
+        with self.assertRaises(ValueError):
+            src.asana.client.complete_task(None)
+
+    def test_completes_task(self):
+        with patch.object(src.asana.client, "update_task") as update_task:
+            src.asana.client.complete_task("TASK_ID")
+            update_task.assert_called_once_with("TASK_ID", {"completed": True})
+
+
 class TestAsanaClientAddFollowers(BaseClass):
     def test_add_followers_requires_a_task_id_and_followers(self):
         with self.assertRaises(ValueError):

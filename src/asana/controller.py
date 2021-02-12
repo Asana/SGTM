@@ -42,7 +42,7 @@ def maybe_complete_tasks_on_merge(pull_request: PullRequest):
     if asana_logic.should_autocomplete_tasks_on_merge(pull_request):
         task_ids_to_complete_on_merge = asana_helpers.get_linked_task_ids(pull_request)
         for complete_on_merge_task_id in task_ids_to_complete_on_merge:
-            asana_client.update_task(complete_on_merge_task_id, {"completed": True})
+            asana_client.complete_task(complete_on_merge_task_id)
 
 
 def upsert_github_comment_to_task(comment: Comment, task_id: str):

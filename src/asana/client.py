@@ -10,8 +10,8 @@ OptFields = Literal["custom_fields"]
 
 def validate_object_id(object_id: str, message: str):
     """
-        Validates that object_id seems to be a valid Asana object-id, raising a ValueError with the message 'message'
-        if this is not the case
+    Validates that object_id seems to be a valid Asana object-id, raising a ValueError with the message 'message'
+    if this is not the case
     """
     if (
         object_id is None
@@ -24,9 +24,9 @@ def validate_object_id(object_id: str, message: str):
 
 class AsanaClient(object):
     """
-        Encapsulates the Asana client interface, as exposed to the world. There is a single (singleton) instance of
-        the Asana client in the process, which is lazily created upon the first request. This pattern supports test code
-        that does not require Asana.
+    Encapsulates the Asana client interface, as exposed to the world. There is a single (singleton) instance of
+    the Asana client in the process, which is lazily created upon the first request. This pattern supports test code
+    that does not require Asana.
     """
 
     # the singleton instance of AsanaClient
@@ -49,7 +49,7 @@ class AsanaClient(object):
 
     def create_task(self, project_id: str, due_date_str: str = None) -> str:
         """
-            Creates an Asana task in the specified project, returning the task_id
+        Creates an Asana task in the specified project, returning the task_id
         """
         validate_object_id(project_id, "AsanaClient.create_task requires a project_id")
 
@@ -61,7 +61,7 @@ class AsanaClient(object):
 
     def update_task(self, task_id: str, fields: dict):
         """
-            Updates the specified Asana task, setting the provided fields
+        Updates the specified Asana task, setting the provided fields
         """
         validate_object_id(task_id, "AsanaClient.update_task requires a task_id")
         if fields is None or not fields:
@@ -72,7 +72,7 @@ class AsanaClient(object):
 
     def add_followers(self, task_id: str, followers: List[str]):
         """
-            Adds followers to the specified task. The followers should be Asana domain-user ids.
+        Adds followers to the specified task. The followers should be Asana domain-user ids.
         """
         validate_object_id(task_id, "AsanaClient.add_followers requires a task_id")
         if followers is None or not followers:
@@ -85,8 +85,8 @@ class AsanaClient(object):
 
     def add_comment(self, task_id: str, comment_body: str) -> str:
         """
-            Adds a html-formatted comment to the specified task. The comment will be posted on behalf of the SGTM
-            user. Returns the object id of the comment
+        Adds a html-formatted comment to the specified task. The comment will be posted on behalf of the SGTM
+        user. Returns the object id of the comment
         """
         validate_object_id(task_id, "AsanaClient.add_comment requires a task_id")
         if comment_body is None or not comment_body:
@@ -117,11 +117,11 @@ class AsanaClient(object):
         self, project_id: str, opt_fields: Optional[List[OptFields]]
     ) -> Iterator[Dict]:
         """
-            Returns an iterator of all tasks (represented as dicts) in a
-            specific project id. `opt_fields` will be passed through to the
-            Asana API as extra fields that the API should return. By default,
-            only "gid" would be returned, which is the global id of the task.
-            See: https://developers.asana.com/docs/get-multiple-tasks
+        Returns an iterator of all tasks (represented as dicts) in a
+        specific project id. `opt_fields` will be passed through to the
+        Asana API as extra fields that the API should return. By default,
+        only "gid" would be returned, which is the global id of the task.
+        See: https://developers.asana.com/docs/get-multiple-tasks
         """
         return self.asana_api_client.tasks.find_all(
             project=project_id, completed_since="now", opt_fields=opt_fields
@@ -141,36 +141,40 @@ class AsanaClient(object):
 
 def create_task(project_id: str, due_date_str: str = None) -> str:
     """
-        Creates an Asana task in the specified project, returning the task_id
+    Creates an Asana task in the specified project, returning the task_id
     """
     return AsanaClient.singleton().create_task(project_id, due_date_str=due_date_str)
 
 
 def update_task(task_id: str, fields: dict):
     """
-        Updates the specified Asana task, setting the provided fields
+    Updates the specified Asana task, setting the provided fields
     """
     return AsanaClient.singleton().update_task(task_id, fields)
 
 
+def complete_task(task_id: str):
+    return update_task(task_id, {"completed": True})
+
+
 def add_followers(task_id: str, followers: List[str]):
     """
-        Adds followers to the specified task. The followers should be Asana domain-user ids.
+    Adds followers to the specified task. The followers should be Asana domain-user ids.
     """
     return AsanaClient.singleton().add_followers(task_id, followers)
 
 
 def add_comment(task_id: str, comment_body: str) -> str:
     """
-        Adds a html-formatted comment to the specified task. The comment will be posted on behalf of the SGTM
-        user. Returns the object id of the comment
+    Adds a html-formatted comment to the specified task. The comment will be posted on behalf of the SGTM
+    user. Returns the object id of the comment
     """
     return AsanaClient.singleton().add_comment(task_id, comment_body)
 
 
 def get_project_custom_fields(project_id: str) -> Iterator[Dict]:
     """
-        Retrieve's the custom fields in the specified project.
+    Retrieve's the custom fields in the specified project.
     """
     return AsanaClient.singleton().get_project_custom_fields(project_id)
 
