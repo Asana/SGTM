@@ -312,6 +312,9 @@ def convert_urls_to_links(text: str) -> str:
 def get_linked_task_ids(pull_request: PullRequest) -> List[str]:
     """
     Extracts linked task ids from the body of the PR.
+    We expect linked tasks to be in the description in a line under the line containing "Asana tasks:".
+
+    :return: Returns a list of task ids.
     """
     body_lines = pull_request.body().splitlines()
     stripped_body_lines = (line.strip() for line in body_lines)
@@ -328,7 +331,9 @@ def get_linked_task_ids(pull_request: PullRequest) -> List[str]:
         task_urls = task_url_line.split()
         task_ids = []
         for url in task_urls:
-            task_ids.append(re.findall("\d+(?!.*\d)", url)[0])
+            maybe_id = re.search("\d+(?!.*\d)", url)
+            if maybe_id is not None:
+                task_ids.append(maybe_id.group())
         return task_ids
     else:
         return []
