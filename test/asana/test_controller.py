@@ -1,4 +1,5 @@
 from unittest.mock import patch, Mock, MagicMock, call
+from test.impl.builders import builder, build
 
 
 from test.impl.base_test_case_class import BaseClass
@@ -108,6 +109,35 @@ class TestUpsertGithubReviewToTask(BaseClass):
             [("123", self.ASANA_COMMENT_ID), ("456", self.ASANA_COMMENT_ID)]
         )
         add_comment.assert_not_called()
+
+
+@patch("src.asana.client.complete_task")
+@patch("src.asana.helpers.get_linked_task_ids")
+@patch("src.asana.logic.should_autocomplete_tasks_on_merge", return_value=True)
+class TestMaybeCompleteTasksOnMerge(BaseClass):
+    def test_noop_if_no_task_ids_to_complete(
+        self,
+        should_autocomplete_tasks_on_merge_mock,
+        get_linked_task_ids_mock,
+        complete_task_mock,
+    ):
+        get_linked_task_ids_mock.return_value = []
+        pull_request = build(builder.pull_request().merged(True))
+        controller.maybe_complete_tasks_on_merge(pull_request)
+        complete_task_mock.assert_not_called()
+
+    def test_updates_tasks_with_completed_true_if_has_task_id(
+        self,
+        should_autocomplete_tasks_on_merge_mock,
+        get_linked_task_ids_mock,
+        complete_task_mock,
+    ):
+        task_ids = ["123", "456"]
+        get_linked_task_ids_mock.return_value = task_ids
+        pull_request = build(builder.pull_request().merged(True))
+        controller.maybe_complete_tasks_on_merge(pull_request)
+        complete_task_mock.assert_any_call(task_ids[0])
+        complete_task_mock.assert_any_call(task_ids[1])
 
 
 if __name__ == "__main__":

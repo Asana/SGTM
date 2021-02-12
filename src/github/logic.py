@@ -1,10 +1,11 @@
 import re
-import os
 from typing import List
 from src.logger import logger
 from . import client as github_client
 from src.github.models import PullRequest, MergeableState
 from enum import Enum, unique
+from src.github.helpers import pull_request_has_label
+from src.config import SGTM_FEATURE__AUTOMERGE_ENABLED
 
 GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
 GITHUB_ATTACHMENT_REGEX = "!\[(.*?)\]\((.+?(\.png|\.jpg|\.jpeg|\.gif))"
@@ -155,7 +156,7 @@ def all_pull_request_participants(pull_request: PullRequest) -> List[str]:
 def maybe_add_automerge_warning_title_and_comment(pull_request: PullRequest):
     """Adds title and comment warnings if automerge label is enabled"""
 
-    if _is_automerge_feature_enabled():
+    if SGTM_FEATURE__AUTOMERGE_ENABLED:
         owner = pull_request.repository_owner_handle()
         repo_name = pull_request.repository_name()
         pr_number = pull_request.number()
@@ -172,7 +173,7 @@ def maybe_add_automerge_warning_title_and_comment(pull_request: PullRequest):
             # only add warning comment if it's set to auto-merge after approval and hasn't yet been approved to limit noise
             # this will lead to multiple warning comments on the same PR if labels are added and removed multiple times
             if (
-                _pull_request_has_label(
+                pull_request_has_label(
                     pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
                 )
                 and not pull_request.is_approved()
@@ -214,23 +215,25 @@ def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
 
 
 def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
-    automerge_enabled = _is_automerge_feature_enabled()
-
     # autofail if not enabled or pull request isn't open
-    if not automerge_enabled or pull_request.closed() or pull_request.merged():
+    if (
+        not SGTM_FEATURE__AUTOMERGE_ENABLED
+        or pull_request.closed()
+        or pull_request.merged()
+    ):
         return False
 
     # if there are multiple labels, we use the most permissive to define automerge behavior
-    if _pull_request_has_label(pull_request, AutomergeLabel.IMMEDIATELY.value):
+    if pull_request_has_label(pull_request, AutomergeLabel.IMMEDIATELY.value):
         return pull_request.mergeable() in (
             MergeableState.MERGEABLE,
             MergeableState.UNKNOWN,
         )
 
-    if _pull_request_has_label(pull_request, AutomergeLabel.AFTER_TESTS.value):
+    if pull_request_has_label(pull_request, AutomergeLabel.AFTER_TESTS.value):
         return pull_request.is_build_successful() and pull_request.is_mergeable()
 
-    if _pull_request_has_label(
+    if pull_request_has_label(
         pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
     ):
         return (
@@ -242,22 +245,13 @@ def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
     return False
 
 
-def _is_automerge_feature_enabled():
-    return os.getenv("SGTM_FEATURE__AUTOMERGE_ENABLED") == "true"
-
-
 def _pull_request_has_automerge_label(pull_request: PullRequest) -> bool:
     return any(
         map(
-            lambda label: _pull_request_has_label(pull_request, label.value),
+            lambda label: pull_request_has_label(pull_request, label.value),
             AutomergeLabel,
         )
     )
-
-
-def _pull_request_has_label(pull_request: PullRequest, label: str) -> bool:
-    label_names = map(lambda label: label.name(), pull_request.labels())
-    return label in label_names
 
 
 def _pull_request_has_automerge_title(pull_request: PullRequest) -> bool:

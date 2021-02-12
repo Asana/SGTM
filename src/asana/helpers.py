@@ -177,10 +177,10 @@ def _asana_user_id_from_github_handle(github_handle: str) -> Optional[str]:
 
 def _asana_display_name_for_github_user(github_user: User) -> str:
     """
-        Retrieves a display name for a GitHub user that is usable in Asana. If the GitHub user is known by SGTM to
-        be an Asana user, then an Asana user URL will be returned, otherwise the display name will be of the form:
-                GitHub user 'David Brandt (padresmurfa)'
-            or  Github user 'padresmurfa'
+    Retrieves a display name for a GitHub user that is usable in Asana. If the GitHub user is known by SGTM to
+    be an Asana user, then an Asana user URL will be returned, otherwise the display name will be of the form:
+            GitHub user 'David Brandt (padresmurfa)'
+        or  Github user 'padresmurfa'
     """
     asana_author_user = _asana_user_url_from_github_user_handle(github_user.login())
     if asana_author_user is not None:
@@ -307,6 +307,36 @@ def convert_urls_to_links(text: str) -> str:
         return matchobj.group(1) + _link(url)
 
     return re.sub(URL_REGEX, urlreplace, text)
+
+
+def get_linked_task_ids(pull_request: PullRequest) -> List[str]:
+    """
+    Extracts linked task ids from the body of the PR.
+    We expect linked tasks to be in the description in a line under the line containing "Asana tasks:".
+
+    :return: Returns a list of task ids.
+    """
+    body_lines = pull_request.body().splitlines()
+    stripped_body_lines = (line.strip() for line in body_lines)
+    task_url_line = None
+    seen_asana_tasks_line = False
+    for line in stripped_body_lines:
+        if seen_asana_tasks_line:
+            task_url_line = line
+            break
+        if line.startswith("Asana tasks:"):
+            seen_asana_tasks_line = True
+
+    if task_url_line:
+        task_urls = task_url_line.split()
+        task_ids = []
+        for url in task_urls:
+            maybe_id = re.search("\d+(?!.*\d)", url)
+            if maybe_id is not None:
+                task_ids.append(maybe_id.group())
+        return task_ids
+    else:
+        return []
 
 
 def asana_comment_from_github_review(review: Review) -> str:

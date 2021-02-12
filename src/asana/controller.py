@@ -1,9 +1,11 @@
 from typing import Optional
 from . import client as asana_client
 from . import helpers as asana_helpers
+from . import logic as asana_logic
 from src.github.models import Comment, PullRequest, Review
 from src.logger import logger
 from src.dynamodb import client as dynamodb_client
+from src.github import helpers as github_helpers
 
 
 def create_task(repository_id: str) -> Optional[str]:
@@ -33,6 +35,14 @@ def update_task(pull_request: PullRequest, task_id: str):
     }
     asana_client.update_task(task_id, update_task_fields)
     asana_client.add_followers(task_id, fields["followers"])
+    maybe_complete_tasks_on_merge(pull_request)
+
+
+def maybe_complete_tasks_on_merge(pull_request: PullRequest):
+    if asana_logic.should_autocomplete_tasks_on_merge(pull_request):
+        task_ids_to_complete_on_merge = asana_helpers.get_linked_task_ids(pull_request)
+        for complete_on_merge_task_id in task_ids_to_complete_on_merge:
+            asana_client.complete_task(complete_on_merge_task_id)
 
 
 def upsert_github_comment_to_task(comment: Comment, task_id: str):
