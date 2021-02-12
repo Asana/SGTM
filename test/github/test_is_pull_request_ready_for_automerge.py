@@ -8,12 +8,9 @@ import src.github.controller as github_controller
 import src.github.client as github_client
 
 
-@patch.object(github_logic, "_is_automerge_feature_enabled")
 class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
-    def test_is_pull_request_ready_for_automerge_after_tests_and_approval(
-        self, is_automerge_feature_enabled_mock
-    ):
-        is_automerge_feature_enabled_mock.return_value = True
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_after_tests_and_approval(self):
         pull_request = build(
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
@@ -32,10 +29,8 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
         )
         self.assertTrue(github_logic._is_pull_request_ready_for_automerge(pull_request))
 
-    def test_is_pull_request_ready_for_automerge_after_tests(
-        self, is_automerge_feature_enabled_mock
-    ):
-        is_automerge_feature_enabled_mock.return_value = True
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_after_tests(self):
         pull_request = build(
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
@@ -50,10 +45,8 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
         )
         self.assertTrue(github_logic._is_pull_request_ready_for_automerge(pull_request))
 
-    def test_is_pull_request_ready_for_automerge_immediately(
-        self, is_automerge_feature_enabled_mock
-    ):
-        is_automerge_feature_enabled_mock.return_value = True
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_immediately(self):
         pull_request = build(
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_FAILED))
@@ -68,10 +61,8 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
         )
         self.assertTrue(github_logic._is_pull_request_ready_for_automerge(pull_request))
 
-    def test_is_pull_request_ready_for_automerge_immediately_conflicting(
-        self, is_automerge_feature_enabled_mock
-    ):
-        is_automerge_feature_enabled_mock.return_value = True
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_immediately_conflicting(self):
         pull_request = build(
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_FAILED))
@@ -88,10 +79,8 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             github_logic._is_pull_request_ready_for_automerge(pull_request)
         )
 
-    def test_is_pull_request_ready_for_automerge_autofail_if_feature_not_enabled(
-        self, is_automerge_feature_enabled_mock
-    ):
-        is_automerge_feature_enabled_mock.return_value = False
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", False)
+    def test_is_pull_request_ready_for_automerge_autofail_if_feature_not_enabled(self):
         pull_request = build(
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
@@ -108,10 +97,8 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             github_logic._is_pull_request_ready_for_automerge(pull_request)
         )
 
-    def test_is_pull_request_ready_for_automerge_autofail_if_merged(
-        self, is_automerge_feature_enabled_mock
-    ):
-        is_automerge_feature_enabled_mock.return_value = True
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_autofail_if_merged(self):
         pull_request = build(
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
@@ -133,10 +120,8 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             github_logic._is_pull_request_ready_for_automerge(pull_request)
         )
 
-    def test_is_pull_request_ready_for_automerge_autofail_if_closed(
-        self, is_automerge_feature_enabled_mock
-    ):
-        is_automerge_feature_enabled_mock.return_value = True
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_autofail_if_closed(self):
         pull_request = build(
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
@@ -158,10 +143,8 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             github_logic._is_pull_request_ready_for_automerge(pull_request)
         )
 
-    def test_is_pull_request_ready_for_automerge_build_failed(
-        self, is_automerge_feature_enabled_mock
-    ):
-        is_automerge_feature_enabled_mock.return_value = True
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_build_failed(self):
         pull_request = build(
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_FAILED))
@@ -178,10 +161,8 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             github_logic._is_pull_request_ready_for_automerge(pull_request)
         )
 
-    def test_is_pull_request_ready_for_automerge_build_pending(
-        self, is_automerge_feature_enabled_mock
-    ):
-        is_automerge_feature_enabled_mock.return_value = True
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_build_pending(self):
         pull_request = build(
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_PENDING))
@@ -198,10 +179,10 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             github_logic._is_pull_request_ready_for_automerge(pull_request)
         )
 
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
     def test_is_pull_request_ready_for_automerge_after_approval_reviewer_requested_changes(
-        self, is_automerge_feature_enabled_mock
+        self,
     ):
-        is_automerge_feature_enabled_mock.return_value = True
         pull_request = build(
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
@@ -222,10 +203,10 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             github_logic._is_pull_request_ready_for_automerge(pull_request)
         )
 
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
     def test_is_pull_request_ready_for_automerge_after_approval_approved_and_requested_changes(
-        self, is_automerge_feature_enabled_mock
+        self,
     ):
-        is_automerge_feature_enabled_mock.return_value = True
         author_1 = builder.user().login("author_1")
         author_2 = builder.user().login("author_2")
         pull_request = build(
@@ -255,10 +236,10 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             github_logic._is_pull_request_ready_for_automerge(pull_request)
         )
 
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
     def test_is_pull_request_ready_for_automerge_changes_after_approval_requested_then_approval(
-        self, is_automerge_feature_enabled_mock
+        self,
     ):
-        is_automerge_feature_enabled_mock.return_value = True
         author_1 = builder.user().login("author_1")
         author_2 = builder.user().login("author_2")
         pull_request = build(
@@ -290,10 +271,8 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
         )
         self.assertTrue(github_logic._is_pull_request_ready_for_automerge(pull_request))
 
-    def test_is_pull_request_ready_for_automerge_after_tests_no_review(
-        self, is_automerge_feature_enabled_mock
-    ):
-        is_automerge_feature_enabled_mock.return_value = True
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_after_tests_no_review(self):
         pull_request = build(
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
@@ -310,10 +289,8 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             github_logic._is_pull_request_ready_for_automerge(pull_request)
         )
 
-    def test_is_pull_request_ready_for_automerge_after_approval_no_review(
-        self, is_automerge_feature_enabled_mock
-    ):
-        is_automerge_feature_enabled_mock.return_value = True
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_after_approval_no_review(self):
         pull_request = build(
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
@@ -324,10 +301,8 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
         )
         self.assertTrue(github_logic._is_pull_request_ready_for_automerge(pull_request))
 
-    def test_is_pull_request_ready_for_automerge_no_automerge_label(
-        self, is_automerge_feature_enabled_mock
-    ):
-        is_automerge_feature_enabled_mock.return_value = True
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_no_automerge_label(self):
         pull_request = build(
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
@@ -344,10 +319,10 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             github_logic._is_pull_request_ready_for_automerge(pull_request)
         )
 
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
     def test_is_pull_request_ready_for_automerge_after_approval_mergeable_is_false(
-        self, is_automerge_feature_enabled_mock
+        self,
     ):
-        is_automerge_feature_enabled_mock.return_value = True
         pull_request = build(
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
@@ -368,10 +343,8 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             github_logic._is_pull_request_ready_for_automerge(pull_request)
         )
 
-    def test_is_pull_request_ready_for_automerge_after_tests_mergeable_is_false(
-        self, is_automerge_feature_enabled_mock
-    ):
-        is_automerge_feature_enabled_mock.return_value = True
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_after_tests_mergeable_is_false(self):
         pull_request = build(
             builder.pull_request()
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
