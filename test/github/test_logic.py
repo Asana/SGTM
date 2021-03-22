@@ -80,10 +80,9 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
             )
         )
 
-        github_logic.maybe_add_automerge_warning_title_and_comment(pull_request)
+        github_logic.maybe_add_automerge_warning_comment(pull_request)
 
         add_pr_comment_mock.assert_not_called()
-        edit_pr_title_mock.assert_not_called()
 
     @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
     def test_does_not_add_warning_if_no_label(
@@ -91,13 +90,12 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
     ):
         pull_request = build(builder.pull_request())
 
-        github_logic.maybe_add_automerge_warning_title_and_comment(pull_request)
+        github_logic.maybe_add_automerge_warning_comment(pull_request)
 
         add_pr_comment_mock.assert_not_called()
-        edit_pr_title_mock.assert_not_called()
 
     @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
-    def test_adds_warnings_if_label_and_no_warning_in_title(
+    def test_adds_warnings_if_label_and_no_warning_in_comments(
         self, add_pr_comment_mock, edit_pr_title_mock
     ):
         pull_request = build(
@@ -110,14 +108,8 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
             )
         )
 
-        github_logic.maybe_add_automerge_warning_title_and_comment(pull_request)
+        github_logic.maybe_add_automerge_warning_comment(pull_request)
 
-        edit_pr_title_mock.assert_called_with(
-            pull_request.repository_owner_handle(),
-            pull_request.repository_name(),
-            pull_request.number(),
-            self.SAMPLE_PR_TITLE + github_logic.AUTOMERGE_TITLE_WARNING,
-        )
         add_pr_comment_mock.assert_called_with(
             pull_request.repository_owner_handle(),
             pull_request.repository_name(),
@@ -126,12 +118,18 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
         )
 
     @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
-    def test_does_not_add_warning_if_has_label_and_already_has_warning_in_title(
+    def test_does_not_add_warning_if_has_label_and_already_has_warning_in_comments(
         self, add_pr_comment_mock, edit_pr_title_mock
     ):
         pull_request = build(
             builder.pull_request()
-            .title(self.SAMPLE_PR_TITLE + github_logic.AUTOMERGE_TITLE_WARNING)
+            .comments(
+                [
+                    builder.comment()
+                    .author(builder.user("github_unknown_user_login"))
+                    .body(github_logic.AUTOMERGE_COMMENT_WARNING)
+                ]
+            )
             .label(
                 builder.label().name(
                     github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
@@ -139,7 +137,7 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
             )
         )
 
-        github_logic.maybe_add_automerge_warning_title_and_comment(pull_request)
+        github_logic.maybe_add_automerge_warning_comment(pull_request)
 
         edit_pr_title_mock.assert_not_called()
         add_pr_comment_mock.assert_not_called()
@@ -154,14 +152,8 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
             .label(builder.label().name(github_logic.AutomergeLabel.AFTER_TESTS.value))
         )
 
-        github_logic.maybe_add_automerge_warning_title_and_comment(pull_request)
+        github_logic.maybe_add_automerge_warning_comment(pull_request)
 
-        edit_pr_title_mock.assert_called_with(
-            pull_request.repository_owner_handle(),
-            pull_request.repository_name(),
-            pull_request.number(),
-            self.SAMPLE_PR_TITLE + github_logic.AUTOMERGE_TITLE_WARNING,
-        )
         add_pr_comment_mock.assert_not_called()
 
     @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
@@ -183,34 +175,8 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
             )
         )
 
-        github_logic.maybe_add_automerge_warning_title_and_comment(pull_request)
+        github_logic.maybe_add_automerge_warning_comment(pull_request)
 
-        edit_pr_title_mock.assert_called_with(
-            pull_request.repository_owner_handle(),
-            pull_request.repository_name(),
-            pull_request.number(),
-            self.SAMPLE_PR_TITLE + github_logic.AUTOMERGE_TITLE_WARNING,
-        )
-        add_pr_comment_mock.assert_not_called()
-
-    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
-    def test_removes_title_warning_if_label_removed(
-        self, add_pr_comment_mock, edit_pr_title_mock
-    ):
-        pull_request = build(
-            builder.pull_request().title(
-                self.SAMPLE_PR_TITLE + github_logic.AUTOMERGE_TITLE_WARNING
-            )
-        )
-
-        github_logic.maybe_add_automerge_warning_title_and_comment(pull_request)
-
-        edit_pr_title_mock.assert_called_with(
-            pull_request.repository_owner_handle(),
-            pull_request.repository_name(),
-            pull_request.number(),
-            self.SAMPLE_PR_TITLE,
-        )
         add_pr_comment_mock.assert_not_called()
 
 

@@ -10,7 +10,6 @@ from src.config import SGTM_FEATURE__AUTOMERGE_ENABLED
 GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
 GITHUB_ATTACHMENT_REGEX = "!\[(.*?)\]\((.+?(\.png|\.jpg|\.jpeg|\.gif))"
 
-AUTOMERGE_TITLE_WARNING = " <auto-merge>"
 AUTOMERGE_COMMENT_WARNING = "**:warning: Reviewer:** If you approve this PR, it will be auto-merged as soon as tests pass. If you don't want this to be auto-merged, either Request Changes or remove the auto-merge label before accepting."
 
 
@@ -153,25 +152,20 @@ def all_pull_request_participants(pull_request: PullRequest) -> List[str]:
     )
 
 
-def maybe_add_automerge_warning_title_and_comment(pull_request: PullRequest):
-    """Adds title and comment warnings if automerge label is enabled"""
+def maybe_add_automerge_warning_comment(pull_request: PullRequest):
+    """Adds comment warnings if automerge label is enabled"""
 
     if SGTM_FEATURE__AUTOMERGE_ENABLED:
         owner = pull_request.repository_owner_handle()
         repo_name = pull_request.repository_name()
         pr_number = pull_request.number()
 
-        # if a PR has an automerge label and its title doesn't contain a warning, we want to add a warning
-        # to the title and maybe add a warning comment
+        # if a PR has an automerge label and doesn't contain a comment warning, we want to maybe add a warning comment
         if _pull_request_has_automerge_label(
             pull_request
-        ) and not _pull_request_has_automerge_title(pull_request):
-            new_title = pull_request.title() + AUTOMERGE_TITLE_WARNING
-            github_client.edit_pr_title(owner, repo_name, pr_number, new_title)
-            pull_request.set_title(new_title)
+        ) and not _pull_request_has_automerge_comment(pull_request):
 
             # only add warning comment if it's set to auto-merge after approval and hasn't yet been approved to limit noise
-            # this will lead to multiple warning comments on the same PR if labels are added and removed multiple times
             if (
                 pull_request_has_label(
                     pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
@@ -181,14 +175,6 @@ def maybe_add_automerge_warning_title_and_comment(pull_request: PullRequest):
                 github_client.add_pr_comment(
                     owner, repo_name, pr_number, AUTOMERGE_COMMENT_WARNING
                 )
-
-        # remove automerge warning in title if PR doesn't have label anymore
-        elif not _pull_request_has_automerge_label(
-            pull_request
-        ) and _pull_request_has_automerge_title(pull_request):
-            new_title = pull_request.title().replace(AUTOMERGE_TITLE_WARNING, "")
-            github_client.edit_pr_title(owner, repo_name, pr_number, new_title)
-            pull_request.set_title(new_title)
 
 
 # returns True if the pull request was automerged, False if not
@@ -254,5 +240,8 @@ def _pull_request_has_automerge_label(pull_request: PullRequest) -> bool:
     )
 
 
-def _pull_request_has_automerge_title(pull_request: PullRequest) -> bool:
-    return AUTOMERGE_TITLE_WARNING in pull_request.title()
+def _pull_request_has_automerge_comment(pull_request: PullRequest) -> bool:
+    return any(
+        comment.body() == AUTOMERGE_COMMENT_WARNING
+        for comment in pull_request.comments()
+    )
