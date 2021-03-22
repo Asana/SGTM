@@ -13,6 +13,6 @@ query GetPullRequest($id: ID!) {
 }
 """
 
-GetPullRequest: FrozenSet[str] = (
-    frozenset([_get_pull_request]) | FullPullRequest | FullReview
-)
+GetPullRequest: FrozenSet[str] = frozenset(
+    [_get_pull_request]
+) | FullPullRequest | FullReview

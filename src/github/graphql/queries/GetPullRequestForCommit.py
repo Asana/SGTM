@@ -20,6 +20,6 @@ query GetPullRequestForCommit($id: ID!) {
 }
 """
 
-GetPullRequestForCommit: FrozenSet[str] = (
-    frozenset([_get_pull_request_for_commit]) | FullPullRequest | FullReview
-)
+GetPullRequestForCommit: FrozenSet[str] = frozenset(
+    [_get_pull_request_for_commit]
+) | FullPullRequest | FullReview

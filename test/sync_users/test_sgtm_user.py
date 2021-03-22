@@ -50,11 +50,7 @@ class TestSgtmUser(unittest.TestCase):
 
     def test_from_custom_fields_list__missing_custom_fields_returns_None(self):
         custom_fields = [
-            {
-                "name": "some-unknown_custom-field",
-                "type": "text",
-                "text_value": "foo",
-            },
+            {"name": "some-unknown_custom-field", "type": "text", "text_value": "foo",},
             {
                 "name": SgtmUser.USER_ID_CUSTOM_FIELD_NAME,
                 "type": "number",

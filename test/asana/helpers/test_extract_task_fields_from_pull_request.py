@@ -409,11 +409,7 @@ class TestExtractsFollowersFromPullRequest(BaseClass):
         pull_request = build(
             builder.pull_request()
             .comments(
-                [
-                    builder.comment()
-                    .published_at("2020-01-13T14:59:58Z")
-                    .body("LGTM!"),
-                ]
+                [builder.comment().published_at("2020-01-13T14:59:58Z").body("LGTM!"),]
             )
             .requested_reviewers([builder.user("github_test_user_login")])
         )
@@ -480,8 +476,8 @@ class TestExtractsFollowersFromPullRequest(BaseClass):
 
 class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
     """
-    This test case asserts that our behaviour is properly defined, even when some of our assumptions about GitHub
-    are proven to be broken.
+        This test case asserts that our behaviour is properly defined, even when some of our assumptions about GitHub
+        are proven to be broken.
     """
 
     def test_does_not_care_about_merged_at_even_if_it_is_illegal_if_merged_is_false(
