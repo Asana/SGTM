@@ -161,20 +161,20 @@ def maybe_add_automerge_warning_comment(pull_request: PullRequest):
         pr_number = pull_request.number()
 
         # if a PR has an automerge label and doesn't contain a comment warning, we want to maybe add a warning comment
-        if _pull_request_has_automerge_label(
-            pull_request
-        ) and not _pull_request_has_automerge_comment(pull_request):
+        # only add warning comment if it's set to auto-merge after approval and hasn't yet been approved to limit noise
 
-            # only add warning comment if it's set to auto-merge after approval and hasn't yet been approved to limit noise
-            if (
-                pull_request_has_label(
-                    pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
-                )
-                and not pull_request.is_approved()
-            ):
-                github_client.add_pr_comment(
-                    owner, repo_name, pr_number, AUTOMERGE_COMMENT_WARNING
-                )
+        if (
+            _pull_request_has_automerge_label(pull_request)
+            and pull_request_has_label(
+                pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+            )
+            and not _pull_request_has_automerge_comment(pull_request)
+            and not pull_request.is_approved()
+        ):
+
+            github_client.add_pr_comment(
+                owner, repo_name, pr_number, AUTOMERGE_COMMENT_WARNING
+            )
 
 
 # returns True if the pull request was automerged, False if not
