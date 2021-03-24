@@ -33,7 +33,7 @@ class MockDynamoDbTestCase(BaseClass):
     @classmethod
     def setUpClass(cls):
         mock_dynamodb2().__enter__()
-        client = boto3.client("dynamodb")
+        client = boto3.client("dynamodb", region_name="us-east-1")
 
         # our DynamoDb Schema #DynamoDbSchema
         client.create_table(

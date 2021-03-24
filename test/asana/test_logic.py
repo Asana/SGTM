@@ -32,9 +32,7 @@ class TestShouldAutocompleteTasksOnMerge(BaseClass):
         self.assertFalse(asana_logic.should_autocomplete_tasks_on_merge(pull_request))
 
     @patch("src.asana.logic.SGTM_FEATURE__AUTOCOMPLETE_ENABLED", True)
-    def test_false_if_pull_request_does_not_have_autocomplete_label(
-        self,
-    ):
+    def test_false_if_pull_request_does_not_have_autocomplete_label(self):
         pull_request = build(builder.pull_request().merged(True))
         self.assertFalse(asana_logic.should_autocomplete_tasks_on_merge(pull_request))
 
