@@ -11,6 +11,7 @@ GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
 GITHUB_ATTACHMENT_REGEX = "!\[(.*?)\]\((.+?(\.png|\.jpg|\.jpeg|\.gif))"
 
 AUTOMERGE_COMMENT_WARNING = "**:warning: Reviewer:** If you approve this PR, it will be auto-merged as soon as tests pass. If you don't want this to be auto-merged, either Request Changes or remove the auto-merge label before accepting."
+AUTOMERGE_CONFLICT_COMMENT_WARNING = ":x: Attempted to merge due to auto-merge flag but failed because of a merge conflict."
 
 
 @unique
@@ -217,19 +218,36 @@ def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
         )
 
     if pull_request_has_label(pull_request, AutomergeLabel.AFTER_TESTS.value):
+        if pull_request.is_build_successful() and pull_request.mergeable() == MergeableState.CONFLICTING:
+            add_automerge_conflict_failure_comment(pull_request)
+        
         return pull_request.is_build_successful() and pull_request.is_mergeable()
 
     if pull_request_has_label(
         pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
     ):
+        if (
+            pull_request.is_build_successful()
+            and pull_request.is_approved()
+            and pull_request.mergeable() == MergeableState.CONFLICTING
+        ):
+            add_automerge_conflict_failure_comment(pull_request)
+
         return (
             pull_request.is_build_successful()
-            and pull_request.is_mergeable()
             and pull_request.is_approved()
+            and pull_request.is_mergeable()
         )
 
     return False
 
+def add_automerge_conflict_failure_comment(pull_request: PullRequest):
+    github_client.add_pr_comment(
+        pull_request.repository_owner_handle(), 
+        pull_request.repository_name(), 
+        pull_request.number(), 
+        AUTOMERGE_CONFLICT_COMMENT_WARNING
+    )
 
 def _pull_request_has_automerge_label(pull_request: PullRequest) -> bool:
     return any(
