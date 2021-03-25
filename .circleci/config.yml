@@ -33,7 +33,7 @@ workflows:
   main:
     jobs:
       - test
-      - black
+      - black:
         filters:
           branches:
             ignore: master
