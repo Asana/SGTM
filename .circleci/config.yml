@@ -4,6 +4,17 @@ orbs:
   python: circleci/python@0.2.1
 
 jobs:
+  black:
+    executor: python/default
+    steps:
+      - checkout
+      - python/load-cache
+      - python/install-deps
+      - run: pip install -r requirements-dev.txt
+      - python/save-cache
+      - run:
+          command: black src test scripts
+
   test:
     executor: python/default
     steps:
@@ -22,3 +33,7 @@ workflows:
   main:
     jobs:
       - test
+      - black
+        filters:
+          branches:
+            ignore: master
