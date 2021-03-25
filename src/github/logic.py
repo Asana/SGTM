@@ -218,9 +218,12 @@ def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
         )
 
     if pull_request_has_label(pull_request, AutomergeLabel.AFTER_TESTS.value):
-        if pull_request.is_build_successful() and pull_request.mergeable() == MergeableState.CONFLICTING:
+        if (
+            pull_request.is_build_successful()
+            and pull_request.mergeable() == MergeableState.CONFLICTING
+        ):
             add_automerge_conflict_failure_comment(pull_request)
-        
+
         return pull_request.is_build_successful() and pull_request.is_mergeable()
 
     if pull_request_has_label(
@@ -241,13 +244,15 @@ def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
 
     return False
 
+
 def add_automerge_conflict_failure_comment(pull_request: PullRequest):
     github_client.add_pr_comment(
-        pull_request.repository_owner_handle(), 
-        pull_request.repository_name(), 
-        pull_request.number(), 
-        AUTOMERGE_CONFLICT_COMMENT_WARNING
+        pull_request.repository_owner_handle(),
+        pull_request.repository_name(),
+        pull_request.number(),
+        AUTOMERGE_CONFLICT_COMMENT_WARNING,
     )
+
 
 def _pull_request_has_automerge_label(pull_request: PullRequest) -> bool:
     return any(

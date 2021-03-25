@@ -48,15 +48,13 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
         self.assertFalse(merged)
         merge_pull_request_mock.assert_not_called()
 
+
 @patch.object(github_client, "add_pr_comment")
 @patch.object(github_controller, "upsert_pull_request")
 @patch.object(github_client, "merge_pull_request")
 class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
     def test_handle_status_webhook_not_ready_for_automerge_due_to_conflict(
-        self,
-        merge_pull_request_mock,
-        upsert_pull_request_mock,
-        add_pr_comment_mock
+        self, merge_pull_request_mock, upsert_pull_request_mock, add_pr_comment_mock
     ):
         pull_request = build(
             builder.pull_request()
@@ -64,11 +62,13 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             .merged(False)
             .mergeable(MergeableState.CONFLICTING)
             .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
-            .reviews([
-                builder.review()
-                .submitted_at("2020-01-13T14:59:57Z")
-                .state(ReviewState.APPROVED)
-            ])
+            .reviews(
+                [
+                    builder.review()
+                    .submitted_at("2020-01-13T14:59:57Z")
+                    .state(ReviewState.APPROVED)
+                ]
+            )
             .label(
                 builder.label().name(
                     github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
