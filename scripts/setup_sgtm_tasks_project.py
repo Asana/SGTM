@@ -2,6 +2,7 @@
 
 import argparse
 from dataclasses import dataclass
+from typing import List
 
 import asana
 import sys
@@ -16,7 +17,7 @@ class EnumOption:
 @dataclass
 class CustomField:
     name: str
-    enum_options: [EnumOption]
+    enum_options: List[EnumOption]
 
 
 CUSTOM_FIELDS = [
