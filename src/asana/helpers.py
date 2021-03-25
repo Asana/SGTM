@@ -103,9 +103,6 @@ def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
     We currently expect the project to have two custom fields with its corresponding enum options:
         • PR Status: "Open", "Closed", "Merged"
         • Build: "Success", "Failure"
-
-    TODO: Write script to set up an Asana project with these custom fields
-    (https://app.asana.com/0/1149418478823393/1162588814088433/f)
     """
     repository_id = pull_request.repository_id()
     project_id = dynamodb_client.get_asana_id_from_github_node_id(repository_id)
