@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import List
 
 import asana
-import sys
 
 
 @dataclass
@@ -22,7 +21,7 @@ class CustomField:
 
 CUSTOM_FIELDS = [
     CustomField(
-        name="PR Status",
+        name="PR Status Test 123",
         enum_options=[
             EnumOption(name="Open", color="green"),
             EnumOption(name="Merged", color="purple"),
@@ -30,7 +29,7 @@ CUSTOM_FIELDS = [
         ],
     ),
     CustomField(
-        name="Build",
+        name="Build Test 123",
         enum_options=[
             EnumOption(name="Success", color="green"),
             EnumOption(name="Failure", color="red"),
@@ -55,48 +54,64 @@ def parse_args():
         required=True,
     )
 
-    parser.add_argument(
+    subparsers = parser.add_subparsers(
+        title="Sub-commands",
+    )
+
+    parser_create = subparsers.add_parser(
+        "create",
+        help="""Use this option if you want to set up a new project from scratch""",
+    )
+
+    parser_create.add_argument(
         "-n",
         "--new_project_name",
-        help="""The Asana Project name - use this if you want to set up a project from scratch
-		""",
+        help="""The Asana Project name""",
         type=str,
-        required=False,
+        required=True,
     )
 
-    parser.add_argument(
+    parser_create.add_argument(
         "-t",
         "--team_id",
-        help="""Only required if you are creating a new project - this is the global ID of the team that
-		you want to share the project with
+        help="""This is the global ID of the team that you want to share the project with. You can find this in the URL
+        by navigating to the desired team in Asana
 		""",
         type=str,
-        required=False,
+        required=True,
     )
 
-    parser.add_argument(
+    parser_create.set_defaults(func=setup_new_project)
+
+    parser_update = subparsers.add_parser(
+        "update",
+        help="""Use this option if you have an existing Asana Project that you want to use to sync 
+        SGTM tasks""",
+    )
+
+    parser_update.add_argument(
         "-e",
         "--existing_project_id",
-        help="""The global ID of an existing Asana Project - use this if you have an existing Asana project that you want to use 
-		to sync SGTM tasks
-		""",
+        help="""The global ID of an existing Asana Project""",
         type=str,
-        required=False,
+        required=True,
     )
+
+    parser_update.set_defaults(func=setup_existing_project)
 
     return parser.parse_args()
 
 
-def setup_new_project(project_name: str, team_id: str, pat: str) -> None:
-    client = AsanaClient(pat)
-    project_id = client.create_project(project_name, team_id)
+def setup_new_project(args) -> None:
+    client = AsanaClient(args.personal_access_token)
+    project_id = client.create_project(args.new_project_name, args.team_id)
     client.setup_custom_fields(project_id)
 
 
-def setup_existing_project(project_id: str, pat: str) -> None:
-    client = AsanaClient(pat)
-    client.setup_custom_fields(project_id)
-    client.add_user_to_project(project_id)
+def setup_existing_project(args) -> None:
+    client = AsanaClient(args.personal_access_token)
+    client.setup_custom_fields(args.existing_project_id)
+    client.add_user_to_project(args.existing_project_id)
 
 
 class AsanaClient(object):
@@ -175,23 +190,4 @@ class AsanaClient(object):
 
 if __name__ == "__main__":
     args = parse_args()
-
-    if args.new_project_name and args.existing_project_id:
-        print(
-            "Cannot select both an existing project and a new project, please try again"
-        )
-        sys.exit(0)
-
-    if args.new_project_name:
-        if not args.team_id:
-            print(
-                "A project needs to be associated with a team, please provide the team ID and try again"
-            )
-            sys.exit(0)
-
-        setup_new_project(
-            args.new_project_name, args.team_id, args.personal_access_token
-        )
-
-    if args.existing_project_id:
-        setup_existing_project(args.existing_project_id, args.personal_access_token)
+    args.func(args)
