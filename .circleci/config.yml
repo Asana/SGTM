@@ -1,0 +1,40 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@0.2.1
+
+commands:
+  setup:
+    steps:
+      - checkout
+      - python/load-cache
+      - python/install-deps
+      - run: pip install -r requirements-dev.txt
+      - python/save-cache
+
+jobs:
+  black:
+    executor: python/default
+    steps:
+      - setup
+      - run:
+          command: black --check src test scripts
+
+  test:
+    executor: python/default
+    steps:
+      - setup
+      - run:
+          command: python3 -m unittest discover
+          name: Test
+          environment:
+            AWS_DEFAULT_REGION: us-east-1
+
+workflows:
+  main:
+    jobs:
+      - test
+      - black:
+        filters:
+          branches:
+            ignore: master
