@@ -169,7 +169,9 @@ def maybe_add_automerge_warning_comment(pull_request: PullRequest):
             and pull_request_has_label(
                 pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
             )
-            and not _pull_request_has_automerge_comment(pull_request)
+            and not _pull_request_has_warning_comment(
+                pull_request, AUTOMERGE_COMMENT_WARNING
+            )
             and not pull_request.is_approved()
         ):
 
@@ -221,6 +223,9 @@ def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
         if (
             pull_request.is_build_successful()
             and pull_request.mergeable() == MergeableState.CONFLICTING
+            and not _pull_request_has_warning_comment(
+                pull_request, AUTOMERGE_CONFLICT_COMMENT_WARNING
+            )
         ):
             add_automerge_conflict_failure_comment(pull_request)
 
@@ -233,6 +238,9 @@ def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
             pull_request.is_build_successful()
             and pull_request.is_approved()
             and pull_request.mergeable() == MergeableState.CONFLICTING
+            and not _pull_request_has_warning_comment(
+                pull_request, AUTOMERGE_CONFLICT_COMMENT_WARNING
+            )
         ):
             add_automerge_conflict_failure_comment(pull_request)
 
@@ -263,8 +271,5 @@ def _pull_request_has_automerge_label(pull_request: PullRequest) -> bool:
     )
 
 
-def _pull_request_has_automerge_comment(pull_request: PullRequest) -> bool:
-    return any(
-        comment.body() == AUTOMERGE_COMMENT_WARNING
-        for comment in pull_request.comments()
-    )
+def _pull_request_has_warning_comment(pull_request: PullRequest, warning: str) -> bool:
+    return any(comment.body() == warning for comment in pull_request.comments())

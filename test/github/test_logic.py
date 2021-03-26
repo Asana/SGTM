@@ -53,7 +53,43 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
 @patch.object(github_controller, "upsert_pull_request")
 @patch.object(github_client, "merge_pull_request")
 class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
-    def test_handle_status_webhook_not_ready_for_automerge_due_to_conflict(
+    def test_adds_comment_not_ready_for_automerge_due_to_conflict(
+        self, merge_pull_request_mock, upsert_pull_request_mock, add_pr_comment_mock
+    ):
+        pull_request = build(
+            builder.pull_request()
+            .title("Sample PR")
+            .merged(False)
+            .mergeable(MergeableState.CONFLICTING)
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .reviews(
+                [
+                    builder.review()
+                    .submitted_at("2020-01-13T14:59:57Z")
+                    .state(ReviewState.APPROVED)
+                ]
+            )
+            .comments(
+                [
+                    builder.comment()
+                    .author(builder.user("github_unknown_user_login"))
+                    .body(github_logic.AUTOMERGE_CONFLICT_COMMENT_WARNING)
+                ]
+            )
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
+        )
+
+        merged = github_logic._is_pull_request_ready_for_automerge(pull_request)
+
+        self.assertFalse(merged)
+        merge_pull_request_mock.assert_not_called()
+        add_pr_comment_mock.assert_not_called()
+
+    def test_does_not_add_comment_not_ready_for_automerge_due_to_conflict_twice(
         self, merge_pull_request_mock, upsert_pull_request_mock, add_pr_comment_mock
     ):
         pull_request = build(
