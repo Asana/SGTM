@@ -92,8 +92,7 @@ def setup_state(args):
 
     s3_client = boto3.client("s3", region_name=REGION)
     s3_client.create_bucket(
-        ACL="private",
-        Bucket=bucket_name,
+        ACL="private", Bucket=bucket_name,
     )
 
     s3_client.put_bucket_versioning(
@@ -114,13 +113,9 @@ def setup_state(args):
     # Setup DynamoDB table #DynamoDbSchema
     client = boto3.client("dynamodb", region_name=REGION)
     client.create_table(
-        AttributeDefinitions=[
-            {"AttributeName": "LockID", "AttributeType": "S"},
-        ],
+        AttributeDefinitions=[{"AttributeName": "LockID", "AttributeType": "S"}],
         TableName=table_name,
-        KeySchema=[
-            {"AttributeName": "LockID", "KeyType": "HASH"},
-        ],
+        KeySchema=[{"AttributeName": "LockID", "KeyType": "HASH"}],
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
     )
 
