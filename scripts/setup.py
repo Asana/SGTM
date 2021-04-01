@@ -113,9 +113,9 @@ def setup_state(args):
     # Setup DynamoDB table #DynamoDbSchema
     client = boto3.client("dynamodb", region_name=REGION)
     client.create_table(
-        AttributeDefinitions=[{"AttributeName": "LockID", "AttributeType": "S"},],
+        AttributeDefinitions=[{"AttributeName": "LockID", "AttributeType": "S"}],
         TableName=table_name,
-        KeySchema=[{"AttributeName": "LockID", "KeyType": "HASH"},],
+        KeySchema=[{"AttributeName": "LockID", "KeyType": "HASH"}],
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
     )
 
