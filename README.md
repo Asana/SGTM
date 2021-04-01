@@ -36,7 +36,7 @@ Again, you will probably want to create a new Github user in your org that is ju
 1. For the Github user you want to use, generate a [Personal Access Token](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) with the following permissions:
    * repo (Full control of private repositories)
    * read:org (Read org and team membership, read org projects)
-1. Generate a [secret token](https://developer.github.com/webhooks/securing/) for your Github webhook. Github suggests generating this via `ruby -rsecurerandom -e 'puts SecureRandom.hex(20)'`, but use whatever method you are comfortable with to generate a secure secret token. Save this somewhere, as you'll need it twice in the later steps.
+2. Generate a [secret token](https://developer.github.com/webhooks/securing/) for your Github webhook. Github suggests generating this via `ruby -rsecurerandom -e 'puts SecureRandom.hex(20)'`, but use whatever method you are comfortable with to generate a secure secret token. Save this somewhere, as you'll need it twice in the later steps.
 
 Copy this Personal Accesss Token for the next step.
 
@@ -44,14 +44,22 @@ Copy this Personal Accesss Token for the next step.
 You'll need to create two Asana projects: one that will store the mapping of Github username to Asana user id, and the other where your Github sync tasks will live.
 
 1. Create your "SGTM Users" project (feel free to name this whatever you want -- this is just a suggestion). The requirements of this project are two custom fields named: "Github Username" (Text field) and "user_id" (Number field). Save the `id` of this project (from the URL once created) in `./terraform/terraform.tfvars.json` under `"asana_users_project_id"`.
-1. Create your "SGTM <repo> tasks" project (feel free to name this whatever you want -- this is just a suggestion). Suggested custom fields (though optional) are: "PR Status" (with values: "Open", "Merged", and "Closed") and "Build" (with values: "Success", "Failure", "Error"). When these exist on your project, SGTM will update these custom fields based on the merge status and build status of your pull requests.
-   1. If you have multiple repositories you want synced to Asana, you can create several of these projects. Make sure to take note of all of the project IDs for a later step.
-1. Make sure that the Asana user/guest that you created earlier is a member of both of these projects.
+2. To create your "SGTM <repo> tasks" project, use the `setup_sgtm_tasks_project.py` script. The script will prompt you for the PAT you generated earlier, and guide you through setting up a brand new project or updating an existing project with the recommended Custom Fields.
+     ```
+      >>> To setup a new project
+      python3 scripts/setup_sgtm_tasks_project.py  -p "<PAT>" create -n "<PROJECT NAME>" -t "<TEAM ID>"
+           
+      >>> To update an existing project with the suggested custom fields
+      python3 scripts/setup_sgtm_tasks_project.py  -p "<PAT>" update -e "<EXISTING PROJECT ID>"
+      ```
+    1. If you have multiple repositories you want synced to Asana, you can create several of these projects. Make sure to take note of all of the project IDs for a later step.
+    2. If you are on Asana Basic and do not have access to Custom Fields, the script will skip that step - SGTM will work even without the suggested fields
+3. Make sure that the Asana user/guest that you created earlier is a member of both of these projects.
 
 ### Set your Terraform variables
 NOTE: AWS S3 Bucket names are globally unique, so you will need to choose your own bucket names to be unique that no other AWS account has already created.
 1. In `./terraform/variables.tf`, any variable that is listed without a default value needs to be set. The preferred method of setting these values is through [environment variables](https://www.terraform.io/docs/cli/config/environment-variables.html#tf_var_name). For example, to se terraform variable `asana_users_project_id`, you'll want to set an environment variable `TF_VAR_asana_users_project_id`.
-1. Save these somewhere that you and others collaborating on this deployment could share (we save ours in an Asana task internally, of course) since these will need to be the same each time you apply new changes.
+2. Save these somewhere that you and others collaborating on this deployment could share (we save ours in an Asana task internally, of course) since these will need to be the same each time you apply new changes.
 
 ### Zip up your code
 From the root of your repository directory, run `./scripts/zip_lambda_code.sh`. This will zip up all of the Python code and dependencies to be pushed to AWS in the next step (the `terraform apply`)
@@ -60,7 +68,7 @@ From the root of your repository directory, run `./scripts/zip_lambda_code.sh`. 
 You'll first need to set up the [Terraform remote state](https://www.terraform.io/docs/state/remote.html) to be the source of truth for the state of your deployed infrastructure.
 
 1. Run `python3 ./scripts/setup.py state` (this will create  an S3 bucket and DyanmoDb lock table for Terraform)
-1. Initialize and apply the infrastructure:
+2. Initialize and apply the infrastructure:
 ```bash
 > cd ./terraform
 > terragrunt init
