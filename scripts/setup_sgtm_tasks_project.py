@@ -93,7 +93,7 @@ def parse_args():
     parser_update.add_argument(
         "-e",
         "--existing_project_id",
-        help="""The global ID of an existing Asana Project""",
+        help="""The global ID of an existing Asana Project. You can find this in the URL by navigating to the project in Asana""",
         type=str,
         required=True,
     )
@@ -107,6 +107,9 @@ def setup_new_project(args) -> None:
     client = AsanaClient(args.personal_access_token)
     project_id = client.create_project(args.new_project_name, args.team_id)
     client.setup_custom_fields(project_id)
+    print(
+        f"The ID of your newly created project '{args.new_project_name}' is {project_id}"
+    )
 
 
 def setup_existing_project(args) -> None:
