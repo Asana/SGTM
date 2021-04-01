@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import List
 
 import asana
+import sys
 
 
 @dataclass
@@ -125,7 +126,30 @@ class AsanaClient(object):
         Get the workspace ID that the user who created the PAT is a part of
         """
         pat_user = self.client.users.me()
-        return pat_user["workspaces"][0]["gid"]
+        if len(pat_user["workspaces"]) == 1:
+            return pat_user["workspaces"][0]["gid"]
+        else:
+            workspaces = pat_user["workspaces"]
+            workspace_list = [
+                (workspace["name"], workspace["gid"]) for workspace in workspaces
+            ]
+
+            for i, (workspace_name, workspace_id) in enumerate(workspace_list):
+                print(f"{i + 1}. {workspace_name}, {workspace_id}")
+
+            index = int(
+                input(
+                    f"Please select the workspace you want to create the SGTM project/the SGTM project exists in."
+                    f" - Enter a number between 1 and {len(workspace_list)}: "
+                )
+            )
+
+            try:
+                workspace = workspace_list[index - 1]
+                return workspace[1]
+            except IndexError as e:
+                print("Invalid selection - please try again.")
+                sys.exit(0)
 
     def _get_user_id(self) -> str:
         """
@@ -168,7 +192,18 @@ class AsanaClient(object):
                     }
                 )
 
-            response = self.client.custom_fields.create_custom_field(custom_field_data)
+            try:
+                response = self.client.custom_fields.create_custom_field(
+                    custom_field_data
+                )
+            except asana.error.PremiumOnlyError:
+                print(
+                    "Custom Fields are not available for free users or guests. If you're using Asana"
+                    " Basic, you can continue setting up SGTM without setting up the custom fields. If you're on"
+                    " Asana Premium, please verify that the PAT you passed in does not correspond to a guest and try again."
+                )
+                return
+
             custom_field_gid = response["gid"]
 
             self.client.projects.add_custom_field_setting_for_project(
