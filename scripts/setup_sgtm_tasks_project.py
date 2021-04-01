@@ -55,9 +55,7 @@ def parse_args():
         required=True,
     )
 
-    subparsers = parser.add_subparsers(
-        title="Sub-commands",
-    )
+    subparsers = parser.add_subparsers(title="Sub-commands",)
 
     parser_create = subparsers.add_parser(
         "create",
@@ -210,10 +208,7 @@ class AsanaClient(object):
             custom_field_gid = response["gid"]
 
             self.client.projects.add_custom_field_setting_for_project(
-                project_id,
-                {
-                    "custom_field": custom_field_gid,
-                },
+                project_id, {"custom_field": custom_field_gid,},
             )
 
     def add_user_to_project(self, project_id: str) -> None:
