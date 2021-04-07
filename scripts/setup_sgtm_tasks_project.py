@@ -4,7 +4,7 @@ import argparse
 from dataclasses import dataclass
 from typing import List
 
-import asana
+import asana  # type: ignore
 import sys
 
 
@@ -22,7 +22,7 @@ class CustomField:
 
 CUSTOM_FIELDS = [
     CustomField(
-        name="PR Status Test 123",
+        name="PR Status",
         enum_options=[
             EnumOption(name="Open", color="green"),
             EnumOption(name="Merged", color="purple"),
@@ -30,7 +30,7 @@ CUSTOM_FIELDS = [
         ],
     ),
     CustomField(
-        name="Build Test 123",
+        name="Build",
         enum_options=[
             EnumOption(name="Success", color="green"),
             EnumOption(name="Failure", color="red"),
@@ -176,26 +176,23 @@ class AsanaClient(object):
         Create the custom fields that SGTM requires and add them to the given project
         """
         for custom_field in CUSTOM_FIELDS:
+            enum_options = [
+                {"name": enum_option.name, "color": enum_option.color, "enabled": True}
+                for enum_option in custom_field.enum_options
+            ]
+
             custom_field_data = {
                 "name": custom_field.name,
                 "enabled": True,
                 "workspace": self.workspace_id,
                 "resource_subtype": "enum",
-                "enum_options": [],
+                "enum_options": enum_options,
+                "is_global_to_workspace": False,
             }
 
-            for enum_option in custom_field.enum_options:
-                custom_field_data["enum_options"].append(
-                    {
-                        "name": enum_option.name,
-                        "color": enum_option.color,
-                        "enabled": True,
-                    }
-                )
-
             try:
-                response = self.client.custom_fields.create_custom_field(
-                    custom_field_data
+                self.client.projects.add_custom_field_setting(
+                    project_id, {"custom_field": custom_field_data},
                 )
             except asana.error.PremiumOnlyError:
                 print(
@@ -205,20 +202,12 @@ class AsanaClient(object):
                 )
                 return
 
-            custom_field_gid = response["gid"]
-
-            self.client.projects.add_custom_field_setting_for_project(
-                project_id, {"custom_field": custom_field_gid},
-            )
-
     def add_user_to_project(self, project_id: str) -> None:
         """
         Add the PAT user as a follower to the given project
         """
         user_id = self._get_user_id()
-        self.client.projects.add_followers_for_project(
-            project_id, {"followers": user_id}
-        )
+        self.client.projects.add_followers(project_id, {"followers": user_id})
 
 
 if __name__ == "__main__":
