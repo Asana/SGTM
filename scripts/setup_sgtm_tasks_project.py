@@ -4,7 +4,7 @@ import argparse
 from dataclasses import dataclass
 from typing import List
 
-import asana
+import asana  # type: ignore
 import sys
 
 
@@ -176,23 +176,19 @@ class AsanaClient(object):
         Create the custom fields that SGTM requires and add them to the given project
         """
         for custom_field in CUSTOM_FIELDS:
+            enum_options = [
+                {"name": enum_option.name, "color": enum_option.color, "enabled": True}
+                for enum_option in custom_field.enum_options
+            ]
+
             custom_field_data = {
                 "name": custom_field.name,
                 "enabled": True,
                 "workspace": self.workspace_id,
                 "resource_subtype": "enum",
+                "enum_options": enum_options,
                 "is_global_to_workspace": False,
-                "enum_options": [],
             }
-
-            for enum_option in custom_field.enum_options:
-                custom_field_data["enum_options"].append(
-                    {
-                        "name": enum_option.name,
-                        "color": enum_option.color,
-                        "enabled": True,
-                    }
-                )
 
             try:
                 self.client.projects.add_custom_field_setting(
@@ -211,9 +207,7 @@ class AsanaClient(object):
         Add the PAT user as a follower to the given project
         """
         user_id = self._get_user_id()
-        self.client.projects.add_followers(
-            project_id, {"followers": user_id}
-        )
+        self.client.projects.add_followers(project_id, {"followers": user_id})
 
 
 if __name__ == "__main__":
