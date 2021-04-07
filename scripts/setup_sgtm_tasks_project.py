@@ -22,7 +22,7 @@ class CustomField:
 
 CUSTOM_FIELDS = [
     CustomField(
-        name="PR Status Test 123",
+        name="PR Status",
         enum_options=[
             EnumOption(name="Open", color="green"),
             EnumOption(name="Merged", color="purple"),
@@ -30,7 +30,7 @@ CUSTOM_FIELDS = [
         ],
     ),
     CustomField(
-        name="Build Test 123",
+        name="Build",
         enum_options=[
             EnumOption(name="Success", color="green"),
             EnumOption(name="Failure", color="red"),
@@ -181,6 +181,7 @@ class AsanaClient(object):
                 "enabled": True,
                 "workspace": self.workspace_id,
                 "resource_subtype": "enum",
+                "is_global_to_workspace": False,
                 "enum_options": [],
             }
 
@@ -194,8 +195,8 @@ class AsanaClient(object):
                 )
 
             try:
-                response = self.client.custom_fields.create_custom_field(
-                    custom_field_data
+                self.client.projects.add_custom_field_setting(
+                    project_id, {"custom_field": custom_field_data},
                 )
             except asana.error.PremiumOnlyError:
                 print(
@@ -205,18 +206,12 @@ class AsanaClient(object):
                 )
                 return
 
-            custom_field_gid = response["gid"]
-
-            self.client.projects.add_custom_field_setting_for_project(
-                project_id, {"custom_field": custom_field_gid},
-            )
-
     def add_user_to_project(self, project_id: str) -> None:
         """
         Add the PAT user as a follower to the given project
         """
         user_id = self._get_user_id()
-        self.client.projects.add_followers_for_project(
+        self.client.projects.add_followers(
             project_id, {"followers": user_id}
         )
 
