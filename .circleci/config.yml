@@ -42,10 +42,10 @@ workflows:
     jobs:
       - test
       - black:
-        filters:
-          branches:
-            ignore: master
+          filters:
+            branches:
+              ignore: master
       - mypy:
-        filters:
-          branches:
-            ignore: master
+          filters:
+            branches:
+              ignore: master
