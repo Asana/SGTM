@@ -21,6 +21,11 @@ import base64
 
 # https://gist.github.com/gruber/8891611
 URL_REGEX = r"""(?i)([^"\>\<\/\.]|^)\b((?:https?:(/{1,3}))(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))"""
+BOLD_ASTERISK_REGEX = r"""\*\*(.*?)\*\*"""
+BOLD_UNDERSCORE_REGEX = r"""__(.*?)__"""
+ITALICS_ASTERISK_REGEX = r"""\*(.*?)\*"""
+ITALICS_UNDERSCORE_REGEX = r"""_(.*?)_"""
+STRIKETHROUGH_REGEX = r"""~~(.*?)~~"""
 
 AttachmentData = collections.namedtuple(
     "AttachmentData", "file_name file_url image_type"
@@ -393,6 +398,55 @@ def asana_comment_from_github_review(review: Review) -> str:
         comments_html = ""
 
     return _wrap_in_tag("body")(header + comments_html)
+
+
+def _format_github_text_for_asana(text: str) -> str:
+    convert_urls_to_links(
+        _transform_github_mentions_to_asana_mentions(
+            transform_github_markdown_for_asana(escape(text, quote=False))
+        )
+    )
+
+
+def transform_github_markdown_for_asana(text: str) -> str:
+    return _transform_strikethrough_markdown_for_asana(
+        _transform_italics_markdown_for_asana(_transform_bold_markdown_for_asana(text))
+    )
+
+
+def _transform_bold_markdown_for_asana(text: str) -> str:
+    def _bold_to_strong_tag(match: Match[str]) -> str:
+        return f"<strong>{match.group(1)}</strong>" ""
+
+    # I defined separate regexes for the asterisk and underscore cases because I'm not good at regex
+    # and I thought this would be less convoluted to work with later
+    return re.sub(
+        BOLD_ASTERISK_REGEX,
+        _bold_to_strong_tag,
+        re.sub(BOLD_UNDERSCORE_REGEX, _bold_to_strong_tag, text),
+    )
+
+
+def _transform_italics_markdown_for_asana(text: str) -> str:
+    def _italics_to_em_tag(match: Match[str]) -> str:
+        return f"<em>{match.group(1)}</em>" ""
+
+    # I defined separate regexes for the asterisk and underscore cases because I'm not good at regex
+    # and I thought this would be less convoluted to work with later
+    return re.sub(
+        ITALICS_ASTERISK_REGEX,
+        _italics_to_em_tag,
+        re.sub(ITALICS_UNDERSCORE_REGEX, _italics_to_em_tag, text),
+    )
+
+
+def _transform_strikethrough_markdown_for_asana(text: str) -> str:
+    def _strikethrough_to_s_tag(match: Match[str]) -> str:
+        return f"<s>{match.group(1)}</s>" ""
+
+    # I defined separate regexes for the asterisk and underscore cases because I'm not good at regex
+    # and I thought this would be less convoluted to work with later
+    return re.sub(STRIKETHROUGH_REGEX, _strikethrough_to_s_tag, text)
 
 
 def _generate_assignee_description(assignee: Assignee) -> str:
