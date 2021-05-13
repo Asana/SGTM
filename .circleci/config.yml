@@ -9,7 +9,7 @@ commands:
       - checkout
       - python/install-packages:
           pkg-manager: pip
-          args: -r requirements.txt -r requirements-dev.txt
+          args: -r requirements-dev.txt
 
 jobs:
   black:
