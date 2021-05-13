@@ -448,7 +448,7 @@ def _task_description_from_pull_request(pull_request: PullRequest) -> str:
     if author is None:
         author = _asana_display_name_for_github_user(github_author)
     status_reason = _task_completion_from_pull_request(pull_request)
-    status = "closed" if status_reason.isClosed else "not closed"
+    status = "complete" if status_reason.isClosed else "incomplete"
     return _wrap_in_tag("body")(
         _wrap_in_tag("em")(
             "This is a one-way sync from GitHub to Asana. Do not edit this task or comment on it!"
@@ -463,7 +463,7 @@ def _task_description_from_pull_request(pull_request: PullRequest) -> str:
     )
 
 
-def _task_completion_from_pull_request(pull_request: PullRequest) -> bool:
+def _task_completion_from_pull_request(pull_request: PullRequest) -> StatusReason:
     if not pull_request.closed():
         return StatusReason(False, "the pull request is open.")
     elif not pull_request.merged():

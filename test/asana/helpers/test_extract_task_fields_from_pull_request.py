@@ -130,7 +130,7 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
         actual = task_fields["html_notes"]
         expected_strings = [
             "<body>",
-            "not closed",
+            "incomplete",
             "the pull request is open.",
             "BODY",
             "</body>",
@@ -176,7 +176,7 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
         actual = task_fields["html_notes"]
         expected_strings = [
             "<body>",
-            "closed",
+            "complete",
             "the pull request was approved before merging.",
             "BODY",
             "</body>",
@@ -204,7 +204,7 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
         actual = task_fields["html_notes"]
         expected_strings = [
             "<body>",
-            "closed",
+            "complete",
             "the pull request was approved before merging.",
             "BODY",
             "</body>",
@@ -232,7 +232,7 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
         actual = task_fields["html_notes"]
         expected_strings = [
             "<body>",
-            "not closed",
+            "incomplete",
             "the pull request hasn't yet been approved by a reviewer after merging.",
             "BODY",
             "</body>",
