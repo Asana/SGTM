@@ -21,6 +21,9 @@ import base64
 
 # https://gist.github.com/gruber/8891611
 URL_REGEX = r"""(?i)([^"\>\<\/\.]|^)\b((?:https?:(/{1,3}))(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))"""
+BOLD_REGEX = r"""(\*|_){2}(.*?)\1{2}(?!\w|\d)"""
+ITALICS_REGEX = r"""(\*|_)(.*?)\1(?!\w|\d)"""
+STRIKETHROUGH_REGEX = r"""~(.*?)~(?!\w|\d)"""
 
 AttachmentData = collections.namedtuple(
     "AttachmentData", "file_name file_url image_type"
@@ -105,9 +108,6 @@ def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
     We currently expect the project to have two custom fields with its corresponding enum options:
         • PR Status: "Open", "Closed", "Merged"
         • Build: "Success", "Failure"
-
-    TODO: Write script to set up an Asana project with these custom fields
-    (https://app.asana.com/0/1149418478823393/1162588814088433/f)
     """
     repository_id = pull_request.repository_id()
     project_id = dynamodb_client.get_asana_id_from_github_node_id(repository_id)
@@ -179,10 +179,10 @@ def _asana_user_id_from_github_handle(github_handle: str) -> Optional[str]:
 
 def _asana_display_name_for_github_user(github_user: User) -> str:
     """
-        Retrieves a display name for a GitHub user that is usable in Asana. If the GitHub user is known by SGTM to
-        be an Asana user, then an Asana user URL will be returned, otherwise the display name will be of the form:
-                GitHub user 'David Brandt (padresmurfa)'
-            or  Github user 'padresmurfa'
+    Retrieves a display name for a GitHub user that is usable in Asana. If the GitHub user is known by SGTM to
+    be an Asana user, then an Asana user URL will be returned, otherwise the display name will be of the form:
+            GitHub user 'David Brandt (padresmurfa)'
+        or  Github user 'padresmurfa'
     """
     asana_author_user = _asana_user_url_from_github_user_handle(github_user.login())
     if asana_author_user is not None:
@@ -231,11 +231,7 @@ def asana_comment_from_github_comment(comment: Comment) -> str:
     """
     github_author = comment.author()
     display_name = _asana_display_name_for_github_user(github_author)
-    comment_text = convert_urls_to_links(
-        _transform_github_mentions_to_asana_mentions(
-            escape(comment.body(), quote=False)
-        )
-    )
+    comment_text = _format_github_text_for_asana(comment.body())
     return _wrap_in_tag("body")(
         display_name
         + " "
@@ -311,6 +307,36 @@ def convert_urls_to_links(text: str) -> str:
     return re.sub(URL_REGEX, urlreplace, text)
 
 
+def get_linked_task_ids(pull_request: PullRequest) -> List[str]:
+    """
+    Extracts linked task ids from the body of the PR.
+    We expect linked tasks to be in the description in a line under the line containing "Asana tasks:".
+
+    :return: Returns a list of task ids.
+    """
+    body_lines = pull_request.body().splitlines()
+    stripped_body_lines = (line.strip() for line in body_lines)
+    task_url_line = None
+    seen_asana_tasks_line = False
+    for line in stripped_body_lines:
+        if seen_asana_tasks_line:
+            task_url_line = line
+            break
+        if line.startswith("Asana tasks:"):
+            seen_asana_tasks_line = True
+
+    if task_url_line:
+        task_urls = task_url_line.split()
+        task_ids = []
+        for url in task_urls:
+            maybe_id = re.search("\d+(?!.*\d)", url)
+            if maybe_id is not None:
+                task_ids.append(maybe_id.group())
+        return task_ids
+    else:
+        return []
+
+
 def asana_comment_from_github_review(review: Review) -> str:
     """
     Extracts the GitHub author and comments from a GitHub Review, and transforms them into
@@ -333,9 +359,7 @@ def asana_comment_from_github_review(review: Review) -> str:
             _review_action_to_text_map.get(review.state(), "commented")
         )
 
-    review_body = _transform_github_mentions_to_asana_mentions(
-        escape(review.body(), quote=False)
-    )
+    review_body = _format_github_text_for_asana(review.body())
     if review_body:
         header = (
             _wrap_in_tag("strong")(f"{user_display_name} {review_action} :\n")
@@ -348,9 +372,7 @@ def asana_comment_from_github_review(review: Review) -> str:
     inline_comments = [
         _wrap_in_tag("li")(
             _wrap_in_tag("A", attrs={"href": comment.url()})(f"[{i}] ")
-            + _transform_github_mentions_to_asana_mentions(
-                escape(comment.body(), quote=False)
-            )
+            + _format_github_text_for_asana(comment.body())
         )
         for i, comment in enumerate(review.comments(), start=1)
     ]
@@ -366,6 +388,43 @@ def asana_comment_from_github_review(review: Review) -> str:
         comments_html = ""
 
     return _wrap_in_tag("body")(header + comments_html)
+
+
+def _format_github_text_for_asana(text: str) -> str:
+    return convert_urls_to_links(
+        _transform_github_mentions_to_asana_mentions(
+            transform_github_markdown_for_asana(escape(text, quote=False))
+        )
+    )
+
+
+def transform_github_markdown_for_asana(text: str) -> str:
+    return _transform_strikethrough_markdown_for_asana(
+        _transform_italics_markdown_for_asana(_transform_bold_markdown_for_asana(text))
+    )
+
+
+def _transform_bold_markdown_for_asana(text: str) -> str:
+    def _bold_to_strong_tag(match: Match[str]) -> str:
+        return f"<strong>{match.group(2)}</strong>" ""
+
+    return re.sub(BOLD_REGEX, _bold_to_strong_tag, text)
+
+
+def _transform_italics_markdown_for_asana(text: str) -> str:
+    def _italics_to_em_tag(match: Match[str]) -> str:
+        return f"<em>{match.group(2)}</em>" ""
+
+    return re.sub(ITALICS_REGEX, _italics_to_em_tag, text)
+
+
+def _transform_strikethrough_markdown_for_asana(text: str) -> str:
+    def _strikethrough_to_s_tag(match: Match[str]) -> str:
+        return f"<s>{match.group(1)}</s>" ""
+
+    # I defined separate regexes for the asterisk and underscore cases because I'm not good at regex
+    # and I thought this would be less convoluted to work with later
+    return re.sub(STRIKETHROUGH_REGEX, _strikethrough_to_s_tag, text)
 
 
 def _generate_assignee_description(assignee: Assignee) -> str:
@@ -400,7 +459,7 @@ def _task_description_from_pull_request(pull_request: PullRequest) -> str:
         + _generate_assignee_description(pull_request.assignee())
         + f"\n❗️Task is {status} because {status_reason.reason}"
         + _wrap_in_tag("strong")("\n\nDescription:\n")
-        + convert_urls_to_links(escape(pull_request.body(), quote=False))
+        + _format_github_text_for_asana(pull_request.body())
     )
 
 

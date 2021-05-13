@@ -21,3 +21,15 @@ LOCK_TABLE = os.getenv("LOCK_TABLE", "sgtm-lock")
 OBJECTS_TABLE = os.getenv("OBJECTS_TABLE", "sgtm-objects")
 USERS_TABLE = os.getenv("USERS_TABLE", "sgtm-users")
 ASANA_USERS_PROJECT_ID = os.getenv("ASANA_USERS_PROJECT_ID", "")
+
+# Feature flags
+def is_feature_flag_enabled(flag_name: str) -> bool:
+    return os.getenv(flag_name) == "true"
+
+
+SGTM_FEATURE__AUTOCOMPLETE_ENABLED = is_feature_flag_enabled(
+    "SGTM_FEATURE__AUTOCOMPLETE_ENABLED"
+)
+SGTM_FEATURE__AUTOMERGE_ENABLED = is_feature_flag_enabled(
+    "SGTM_FEATURE__AUTOMERGE_ENABLED"
+)

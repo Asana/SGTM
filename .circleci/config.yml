@@ -1,0 +1,52 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@1.4.0
+
+commands:
+  setup:
+    steps:
+      - checkout
+      - run: pip install -r requirements.txt
+      - run: pip install -r requirements-dev.txt
+
+jobs:
+  black:
+    docker:
+      - image: circleci/python:3.7
+    steps:
+      - setup
+      - run:
+          command: black --check src test scripts
+
+  mypy:
+    docker:
+      - image: circleci/python:3.7
+    steps:
+      - setup
+      - run:
+          command: mypy src test scripts
+
+  test:
+    docker:
+      - image: circleci/python:3.7
+    steps:
+      - setup
+      - run:
+          command: python3 -m unittest discover
+          name: Test
+          environment:
+            AWS_DEFAULT_REGION: us-east-1
+
+workflows:
+  main:
+    jobs:
+      - test
+      - black:
+          filters:
+            branches:
+              ignore: master
+      - mypy:
+          filters:
+            branches:
+              ignore: master

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from __future__ import print_function
 import argparse
 from io import BytesIO
@@ -14,12 +16,39 @@ REGION = "us-east-1"
 s3_client = boto3.client("s3", region_name=REGION)
 
 
+__tf_vars_file_contents = None
+
+
 def _parse_tfvars_file() -> dict:
-    directory = os.path.dirname(__file__)
-    file_name = os.path.join(directory, "../terraform/terraform.tfvars.json")
-    with open(file_name) as f:
-        obj = json.load(f)
-    return obj
+    if __tf_vars_file_contents is None:
+        directory = os.path.dirname(__file__)
+        file_name = os.path.join(directory, "../terraform/terraform.tfvars.json")
+        with open(file_name) as f:
+            __tf_vars_file_contents = json.load(f)
+    return __tf_vars_file_contents
+
+
+def _prompt_for_tf_var(var_name):
+    value = None
+    while not value:
+        value = input(
+            "No Terraform value found for {}. Please enter the value: > ".format(
+                var_name
+            )
+        ).strip()
+
+    return value
+
+
+def get_tf_var(var_name):
+    value = os.getenv("TF_VAR_" + var_name)
+    if value is None:
+        value = _parse_tfvars_file().get(var_name)
+
+    if value is None:
+        value = _prompt_for_tf_var(var_name)
+
+    return value
 
 
 def set_api_keys(args):
@@ -31,9 +60,8 @@ def set_api_keys(args):
         return
 
     # Get bucket name and key name
-    tfvars = _parse_tfvars_file()
-    bucket_name = tfvars["api_key_s3_bucket_name"]
-    key_name = tfvars["api_key_s3_object"]
+    bucket_name = get_tf_var("api_key_s3_bucket_name")
+    key_name = get_tf_var("api_key_s3_object")
 
     keys = {}
     try:
@@ -59,9 +87,8 @@ def set_api_keys(args):
 
 def setup_state(args):
     # Setup terraform backend S3 bucket
-    tfvars = _parse_tfvars_file()
-    bucket_name = tfvars["terraform_backend_s3_bucket_name"]
-    table_name = tfvars["terraform_backend_dynamodb_lock_table"]
+    bucket_name = get_tf_var("terraform_backend_s3_bucket_name")
+    table_name = get_tf_var("terraform_backend_dynamodb_lock_table")
 
     s3_client = boto3.client("s3", region_name=REGION)
     s3_client.create_bucket(
@@ -86,9 +113,9 @@ def setup_state(args):
     # Setup DynamoDB table #DynamoDbSchema
     client = boto3.client("dynamodb", region_name=REGION)
     client.create_table(
-        AttributeDefinitions=[{"AttributeName": "LockID", "AttributeType": "S"},],
+        AttributeDefinitions=[{"AttributeName": "LockID", "AttributeType": "S"}],
         TableName=table_name,
-        KeySchema=[{"AttributeName": "LockID", "KeyType": "HASH"},],
+        KeySchema=[{"AttributeName": "LockID", "KeyType": "HASH"}],
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
     )
 

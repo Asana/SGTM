@@ -10,6 +10,10 @@ class TestSgtmUser(unittest.TestCase):
         user = SgtmUser("JerrySeinfeld", "123")
         self.assertEqual(user.github_handle, "jerryseinfeld")
 
+    def test_constructor_removes_whitespace_from_github_handle(self):
+        user = SgtmUser(" JerrySeinfeld\n ", "123")
+        self.assertEqual(user.github_handle, "jerryseinfeld")
+
     def test_constructor_handles_None(self):
         user = SgtmUser(None, None)
         self.assertEqual(user.github_handle, None)
