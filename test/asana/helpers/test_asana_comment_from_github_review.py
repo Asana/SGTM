@@ -53,6 +53,31 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
             ],
         )
 
+    def test_transform_github_markdown_for_asana(self):
+        github_review = build(
+            builder.review()
+            .author(builder.user("github_unknown_user_login"))
+            .state(ReviewState.DEFAULT)
+            .comment(
+                builder.comment().body(
+                    "**bold** __also bold__ *italics* _also italics_ and ~stricken~"
+                )
+            )
+        )
+        asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
+            github_review
+        )
+        self.assertContainsStrings(
+            asana_review_comment,
+            [
+                "<strong>bold</strong>",
+                "<strong>also bold</strong>",
+                "<em>italics</em>",
+                "<em>also italics</em>",
+                "<s>stricken</s>",
+            ],
+        )
+
     def test_handles_no_review_text(self):
         github_review = build(
             builder.review()
