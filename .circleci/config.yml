@@ -13,21 +13,24 @@ commands:
 
 jobs:
   black:
-    executor: python/default
+    docker:
+      - image: circleci/python:3.7
     steps:
       - setup
       - run:
           command: black --check src test scripts
 
   mypy:
-    executor: python/default
+    docker:
+      - image: circleci/python:3.7
     steps:
       - setup
       - run:
           command: mypy src test scripts
 
   test:
-    executor: python/default
+    docker:
+      - image: circleci/python:3.7
     steps:
       - setup
       - run:

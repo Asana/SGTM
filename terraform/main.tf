@@ -152,8 +152,8 @@ resource "aws_lambda_function" "sgtm" {
     variables = {
       API_KEYS_S3_BUCKET  = var.api_key_s3_bucket_name,
       API_KEYS_S3_KEY     = var.api_key_s3_object,
-      SGTM_FEATURE__AUTOMERGE_ENABLED = "true",
-      SGTM_FEATURE__AUTOCOMPLETE_ENABLED = "true" 
+      SGTM_FEATURE__AUTOMERGE_ENABLED = var.sgtm_feature__automerge_enabled,
+      SGTM_FEATURE__AUTOCOMPLETE_ENABLED = var.sgtm_feature__autocomplete_enabled, 
     }
   }
 }
