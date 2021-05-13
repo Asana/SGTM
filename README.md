@@ -102,6 +102,32 @@ For each repository that you want to sync to Asana through SGTM:
 ### Take it for a spin!
 At this point, you should be all set to start getting Pull Requests synced to Asana Tasks. Open up a Pull Request, and Enjoy!
 
+## Optional Features
+SGTM has a few optional power features that are disabled by default, but can be enabled with environment variables.
+### Auto-merge pull requests
+SGTM can merge your pull requests automatically when certain conditions are fulfilled. This behavior is controlled by adding labels to the PR in Github. If this feature is enabled, there are 3 different labels you can apply to your PR to cause the PR to be auto-merged under different conditions:
+* 🔍 `merge after tests and approval`: auto-merge this PR once tests pass and the PR is approved
+* 🧪 `merge after tests`: auto-merge this PR once tests pass (regardless of approval status)
+* 🚢 `merge immediately`: auto-merge this PR immediately
+
+In all cases, a PR with merge conflicts will not be auto-merged.
+
+**How to enable**:
+* Set an env variable of `TF_VAR_SGTM_FEATURE__AUTOMERGE_ENABLED` to `true`
+* Create labels in your repository of `merge after tests and approval`, `merge after tests` and `merge immediately`
+
+### Auto-complete linked tasks
+At Asana, pull requests often have corresponding Asana tasks that can be completed when the pull request merges. With this feature enabled, setting a Github label of `complete tasks on merge` on a PR will automatically complete any linked Asana tasks. Asana tasks can be linked by adding their URLs to a line under the string `Asana tasks:` in the PR description, as demonstrated below:
+```
+Asana tasks:
+<task_to_complete_url> <another_task_to_complete_url>
+```
+**How to enable**:
+* Set an env variable of `TF_VAR_SGTM_FEATURE__AUTOCOMPLETE_ENABLED` to `true`
+* Create a label of `complete tasks on merge` in your repository
+
+*Note*: If the SGTM user in your Asana domain doesn't have access to a linked task, it won't be able to merge it. You can add the SGTM user as a collaborator on a task to give it the ability to auto-complete the task.
+
 ## Installing a Virtual Environment for Python
 
 See [these instructions](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) for help in
