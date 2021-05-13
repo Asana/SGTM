@@ -9,6 +9,7 @@ commands:
       - checkout
       - python/install-packages:
           pip-dependency-file: requirements.txt
+      - python/install-packages:
           pip-dependency-file: requirements-dev.txt
 
 jobs:
