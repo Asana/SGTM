@@ -1,16 +1,14 @@
 version: 2.1
 
 orbs:
-  python: circleci/python@0.2.1
+  python: circleci/python@1.4.0
 
 commands:
   setup:
     steps:
       - checkout
-      - python/load-cache
-      - python/install-deps
+      - run: pip install -r requirements.txt
       - run: pip install -r requirements-dev.txt
-      - python/save-cache
 
 jobs:
   black:
