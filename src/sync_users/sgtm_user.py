@@ -19,7 +19,7 @@ class SgtmUser(object):
 
         # always lower-case github handles
         if self.github_handle:
-            self.github_handle = self.github_handle.lower()
+            self.github_handle = self.github_handle.lower().strip()
 
         self.domain_user_id = domain_user_id
 
