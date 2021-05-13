@@ -21,11 +21,9 @@ import base64
 
 # https://gist.github.com/gruber/8891611
 URL_REGEX = r"""(?i)([^"\>\<\/\.]|^)\b((?:https?:(/{1,3}))(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))"""
-BOLD_ASTERISK_REGEX = r"""\*\*(.*?)\*\*"""
-BOLD_UNDERSCORE_REGEX = r"""__(.*?)__"""
-ITALICS_ASTERISK_REGEX = r"""\*(.*?)\*"""
-ITALICS_UNDERSCORE_REGEX = r"""_(.*?)_"""
-STRIKETHROUGH_REGEX = r"""~~(.*?)~~"""
+BOLD_REGEX = r"""(\*|_){2}(.*?)\1{2}(?!\w|\d)"""
+ITALICS_REGEX = r"""(\*|_)(.*?)\1(?!\w|\d)"""
+STRIKETHROUGH_REGEX = r"""~~(.*?)~~(?!\w|\d)"""
 
 AttachmentData = collections.namedtuple(
     "AttachmentData", "file_name file_url image_type"
@@ -231,11 +229,7 @@ def asana_comment_from_github_comment(comment: Comment) -> str:
     """
     github_author = comment.author()
     display_name = _asana_display_name_for_github_user(github_author)
-    comment_text = convert_urls_to_links(
-        _transform_github_mentions_to_asana_mentions(
-            escape(comment.body(), quote=False)
-        )
-    )
+    comment_text = _format_github_text_for_asana(comment.body())
     return _wrap_in_tag("body")(
         display_name
         + " "
@@ -363,9 +357,7 @@ def asana_comment_from_github_review(review: Review) -> str:
             _review_action_to_text_map.get(review.state(), "commented")
         )
 
-    review_body = convert_urls_to_links(
-        _transform_github_mentions_to_asana_mentions(escape(review.body(), quote=False))
-    )
+    review_body = _format_github_text_for_asana(review.body())
     if review_body:
         header = (
             _wrap_in_tag("strong")(f"{user_display_name} {review_action} :\n")
@@ -378,11 +370,7 @@ def asana_comment_from_github_review(review: Review) -> str:
     inline_comments = [
         _wrap_in_tag("li")(
             _wrap_in_tag("A", attrs={"href": comment.url()})(f"[{i}] ")
-            + convert_urls_to_links(
-                _transform_github_mentions_to_asana_mentions(
-                    escape(comment.body(), quote=False)
-                )
-            )
+            + _format_github_text_for_asana(comment.body())
         )
         for i, comment in enumerate(review.comments(), start=1)
     ]
@@ -401,7 +389,7 @@ def asana_comment_from_github_review(review: Review) -> str:
 
 
 def _format_github_text_for_asana(text: str) -> str:
-    convert_urls_to_links(
+    return convert_urls_to_links(
         _transform_github_mentions_to_asana_mentions(
             transform_github_markdown_for_asana(escape(text, quote=False))
         )
@@ -416,28 +404,16 @@ def transform_github_markdown_for_asana(text: str) -> str:
 
 def _transform_bold_markdown_for_asana(text: str) -> str:
     def _bold_to_strong_tag(match: Match[str]) -> str:
-        return f"<strong>{match.group(1)}</strong>" ""
+        return f"<strong>{match.group(2)}</strong>" ""
 
-    # I defined separate regexes for the asterisk and underscore cases because I'm not good at regex
-    # and I thought this would be less convoluted to work with later
-    return re.sub(
-        BOLD_ASTERISK_REGEX,
-        _bold_to_strong_tag,
-        re.sub(BOLD_UNDERSCORE_REGEX, _bold_to_strong_tag, text),
-    )
+    return re.sub(BOLD_REGEX, _bold_to_strong_tag, text)
 
 
 def _transform_italics_markdown_for_asana(text: str) -> str:
     def _italics_to_em_tag(match: Match[str]) -> str:
-        return f"<em>{match.group(1)}</em>" ""
+        return f"<em>{match.group(2)}</em>" ""
 
-    # I defined separate regexes for the asterisk and underscore cases because I'm not good at regex
-    # and I thought this would be less convoluted to work with later
-    return re.sub(
-        ITALICS_ASTERISK_REGEX,
-        _italics_to_em_tag,
-        re.sub(ITALICS_UNDERSCORE_REGEX, _italics_to_em_tag, text),
-    )
+    return re.sub(ITALICS_REGEX, _italics_to_em_tag, text)
 
 
 def _transform_strikethrough_markdown_for_asana(text: str) -> str:
@@ -478,7 +454,7 @@ def _task_description_from_pull_request(pull_request: PullRequest) -> str:
         + author
         + _generate_assignee_description(pull_request.assignee())
         + _wrap_in_tag("strong")("\n\nDescription:\n")
-        + convert_urls_to_links(escape(pull_request.body(), quote=False))
+        + _format_github_text_for_asana(pull_request.body())
     )
 
 
