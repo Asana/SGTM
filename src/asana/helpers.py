@@ -23,7 +23,7 @@ import base64
 URL_REGEX = r"""(?i)([^"\>\<\/\.]|^)\b((?:https?:(/{1,3}))(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))"""
 BOLD_REGEX = r"""(\*|_){2}(.*?)\1{2}(?!\w|\d)"""
 ITALICS_REGEX = r"""(\*|_)(.*?)\1(?!\w|\d)"""
-STRIKETHROUGH_REGEX = r"""~~(.*?)~~(?!\w|\d)"""
+STRIKETHROUGH_REGEX = r"""~(.*?)~(?!\w|\d)"""
 
 AttachmentData = collections.namedtuple(
     "AttachmentData", "file_name file_url image_type"
