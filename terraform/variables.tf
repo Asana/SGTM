@@ -41,3 +41,15 @@ variable "asana_users_project_id" {
   type        = string
   description = "Project ID that holds the tasks that map Github handles to Asana user ids"
 }
+
+variable "sgtm_feature__automerge_enabled" {
+  type        = string
+  description = "'true' if behavior to automerge pull requests with Github labels is enabled"
+  default     = "false"
+}
+
+variable "sgtm_feature__autocomplete_enabled" {
+  type        = string
+  description = "'true' if behavior to autocomplete linked tasks with Github labels is enabled"
+  default     = "false"
+}
