@@ -8,6 +8,7 @@ commands:
     steps:
       - checkout
       - python/install-packages:
+          pkg-manager: pip
           args: -r requirements.txt -r requirements-dev.txt
 
 jobs:
