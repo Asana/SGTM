@@ -7,8 +7,9 @@ commands:
   setup:
     steps:
       - checkout
-      - run: pip install -r requirements.txt
-      - run: pip install -r requirements-dev.txt
+      - python/install-packages:
+          pkg-manager: pip
+          args: -r requirements-dev.txt
 
 jobs:
   black:
