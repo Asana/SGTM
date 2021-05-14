@@ -1,4 +1,5 @@
 import src.asana.helpers
+from unittest.mock import patch, Mock
 from src.github.models import ReviewState
 from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 from test.impl.builders import builder, build
@@ -110,6 +111,129 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
             "<strong>",
             "Description:",
             "</strong>",
+            "BODY",
+            "</body>",
+        ]
+        self.assertContainsStrings(actual, expected_strings)
+
+    def test_html_body_status_not_closed(self):
+        pull_request = build(
+            builder.pull_request()
+            .author(builder.user("github_test_user_login"))
+            .url("https://foo.bar/baz")
+            .body("BODY")
+            .closed(False)
+        )
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+        actual = task_fields["html_notes"]
+        expected_strings = [
+            "<body>",
+            "incomplete",
+            "the pull request is open.",
+            "BODY",
+            "</body>",
+        ]
+        self.assertContainsStrings(actual, expected_strings)
+
+    def test_html_body_status_closed_not_merged(self):
+        pull_request = build(
+            builder.pull_request()
+            .author(builder.user("github_test_user_login"))
+            .url("https://foo.bar/baz")
+            .body("BODY")
+            .closed(True)
+            .merged(False)
+        )
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+        actual = task_fields["html_notes"]
+        expected_strings = [
+            "<body>",
+            "closed",
+            "the pull request was closed without merging code.",
+            "BODY",
+            "</body>",
+        ]
+        self.assertContainsStrings(actual, expected_strings)
+
+    @patch("src.github.logic.pull_request_approved_before_merging")
+    def test_html_body_status_closed_approved_before(self, approved_before_merging):
+        approved_before_merging.return_value = True
+        pull_request = build(
+            builder.pull_request()
+            .author(builder.user("github_test_user_login"))
+            .url("https://foo.bar/baz")
+            .body("BODY")
+            .closed(True)
+            .merged(True)
+        )
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+        actual = task_fields["html_notes"]
+        expected_strings = [
+            "<body>",
+            "complete",
+            "the pull request was approved before merging.",
+            "BODY",
+            "</body>",
+        ]
+        self.assertContainsStrings(actual, expected_strings)
+
+    @patch("src.github.logic.pull_request_approved_before_merging")
+    @patch("src.github.logic.pull_request_approved_after_merging")
+    def test_html_body_status_closed_approved_after(
+        self, approved_before_merging, approved_after_merging
+    ):
+        approved_before_merging.return_value = False
+        approved_after_merging.return_value = True
+        pull_request = build(
+            builder.pull_request()
+            .author(builder.user("github_test_user_login"))
+            .url("https://foo.bar/baz")
+            .body("BODY")
+            .closed(True)
+            .merged(True)
+        )
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+        actual = task_fields["html_notes"]
+        expected_strings = [
+            "<body>",
+            "complete",
+            "the pull request was approved before merging.",
+            "BODY",
+            "</body>",
+        ]
+        self.assertContainsStrings(actual, expected_strings)
+
+    @patch("src.github.logic.pull_request_approved_before_merging")
+    @patch("src.github.logic.pull_request_approved_after_merging")
+    def test_html_body_status_merged_not_approved(
+        self, approved_before_merging, approved_after_merging
+    ):
+        approved_before_merging.return_value = False
+        approved_after_merging.return_value = False
+        pull_request = build(
+            builder.pull_request()
+            .author(builder.user("github_test_user_login"))
+            .url("https://foo.bar/baz")
+            .body("BODY")
+            .closed(True)
+            .merged(True)
+        )
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+        actual = task_fields["html_notes"]
+        expected_strings = [
+            "<body>",
+            "incomplete",
+            "the pull request hasn't yet been approved by a reviewer after merging.",
             "BODY",
             "</body>",
         ]
