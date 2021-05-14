@@ -29,7 +29,7 @@ AttachmentData = collections.namedtuple(
     "AttachmentData", "file_name file_url image_type"
 )
 
-StatusReason = collections.namedtuple("StatusReason", "isClosed reason")
+StatusReason = collections.namedtuple("StatusReason", "is_complete reason")
 
 
 def task_url_from_task_id(task_id: str) -> str:
@@ -51,7 +51,7 @@ def extract_task_fields_from_pull_request(pull_request: PullRequest) -> dict:
         "assignee": _task_assignee_from_pull_request(pull_request),
         "name": _task_name_from_pull_request(pull_request),
         "html_notes": _task_description_from_pull_request(pull_request),
-        "completed": _task_completion_from_pull_request(pull_request).isClosed,
+        "completed": _task_completion_from_pull_request(pull_request).is_complete,
         "followers": _task_followers_from_pull_request(pull_request),
         "custom_fields": _custom_fields_from_pull_request(pull_request),
     }
@@ -448,7 +448,7 @@ def _task_description_from_pull_request(pull_request: PullRequest) -> str:
     if author is None:
         author = _asana_display_name_for_github_user(github_author)
     status_reason = _task_completion_from_pull_request(pull_request)
-    status = "complete" if status_reason.isClosed else "incomplete"
+    status = "complete" if status_reason.is_complete else "incomplete"
     return _wrap_in_tag("body")(
         _wrap_in_tag("em")(
             "This is a one-way sync from GitHub to Asana. Do not edit this task or comment on it!"
