@@ -113,7 +113,7 @@ SGTM can merge your pull requests automatically when certain conditions are fulf
 In all cases, a PR with merge conflicts will not be auto-merged.
 
 **How to enable**:
-* Set an env variable of `TF_VAR_SGTM_FEATURE__AUTOMERGE_ENABLED` to `true`
+* Set an env variable of `TF_VAR_sgtm_feature__automerge_enabled` to `true`
 * Create labels in your repository of `merge after tests and approval`, `merge after tests` and `merge immediately`
 
 ### Auto-complete linked tasks
@@ -123,7 +123,7 @@ Asana tasks:
 <task_to_complete_url> <another_task_to_complete_url>
 ```
 **How to enable**:
-* Set an env variable of `TF_VAR_SGTM_FEATURE__AUTOCOMPLETE_ENABLED` to `true`
+* Set an env variable of `TF_VAR_sgtm_feature__autocomplete_enabled` to `true`
 * Create a label of `complete tasks on merge` in your repository
 
 *Note*: If the SGTM user in your Asana domain doesn't have access to a linked task, it won't be able to merge it. You can add the SGTM user as a collaborator on a task to give it the ability to auto-complete the task.
