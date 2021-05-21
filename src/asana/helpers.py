@@ -24,6 +24,7 @@ URL_REGEX = r"""(?i)([^"\>\<\/\.]|^)\b((?:https?:(/{1,3}))(?:[^\s()<>{}\[\]]+|\(
 BOLD_REGEX = r"""(\*|_){2}(.*?)\1{2}(?!\w|\d)"""
 ITALICS_REGEX = r"""(\*|_)(.*?)\1(?!\w|\d)"""
 STRIKETHROUGH_REGEX = r"""~(.*?)~(?!\w|\d)"""
+CODE_REGEX = r"""`(.*?)`(?!\w|\d)"""
 
 AttachmentData = collections.namedtuple(
     "AttachmentData", "file_name file_url image_type"
@@ -399,32 +400,43 @@ def _format_github_text_for_asana(text: str) -> str:
 
 
 def transform_github_markdown_for_asana(text: str) -> str:
-    return _transform_strikethrough_markdown_for_asana(
-        _transform_italics_markdown_for_asana(_transform_bold_markdown_for_asana(text))
+    return _transform_code_markdown_for_asana(
+        _transform_strikethrough_markdown_for_asana(
+            _transform_italics_markdown_for_asana(
+                _transform_bold_markdown_for_asana(text)
+            )
+        )
     )
 
 
 def _transform_bold_markdown_for_asana(text: str) -> str:
     def _bold_to_strong_tag(match: Match[str]) -> str:
-        return f"<strong>{match.group(2)}</strong>" ""
+        return _wrap_in_tag("strong")(match.group(2))
 
     return re.sub(BOLD_REGEX, _bold_to_strong_tag, text)
 
 
 def _transform_italics_markdown_for_asana(text: str) -> str:
     def _italics_to_em_tag(match: Match[str]) -> str:
-        return f"<em>{match.group(2)}</em>" ""
+        return _wrap_in_tag("em")(match.group(2))
 
     return re.sub(ITALICS_REGEX, _italics_to_em_tag, text)
 
 
 def _transform_strikethrough_markdown_for_asana(text: str) -> str:
     def _strikethrough_to_s_tag(match: Match[str]) -> str:
-        return f"<s>{match.group(1)}</s>" ""
+        return _wrap_in_tag("s")(match.group(1))
 
     # I defined separate regexes for the asterisk and underscore cases because I'm not good at regex
     # and I thought this would be less convoluted to work with later
     return re.sub(STRIKETHROUGH_REGEX, _strikethrough_to_s_tag, text)
+
+
+def _transform_code_markdown_for_asana(text: str) -> str:
+    def _backtick_to_code_tag(match: Match[str]) -> str:
+        return _wrap_in_tag("code")(match.group(1))
+
+    return re.sub(CODE_REGEX, _backtick_to_code_tag, text)
 
 
 def _generate_assignee_description(assignee: Assignee) -> str:

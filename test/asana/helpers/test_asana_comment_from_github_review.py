@@ -60,7 +60,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
             .state(ReviewState.DEFAULT)
             .comment(
                 builder.comment().body(
-                    "**bold** __also bold__ *italics* _also italics_ and ~stricken~"
+                    "**bold** __also bold__ *italics* _also italics_ `some code block` and ~stricken~"
                 )
             )
         )
@@ -74,6 +74,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
                 "<strong>also bold</strong>",
                 "<em>italics</em>",
                 "<em>also italics</em>",
+                "<code>some code block</code>",
                 "<s>stricken</s>",
             ],
         )
