@@ -400,9 +400,13 @@ def _format_github_text_for_asana(text: str) -> str:
 
 
 def transform_github_markdown_for_asana(text: str) -> str:
-    return _transform_code_markdown_for_asana(_transform_strikethrough_markdown_for_asana(
-        _transform_italics_markdown_for_asana(_transform_bold_markdown_for_asana(text))
-    ))
+    return _transform_code_markdown_for_asana(
+        _transform_strikethrough_markdown_for_asana(
+            _transform_italics_markdown_for_asana(
+                _transform_bold_markdown_for_asana(text)
+            )
+        )
+    )
 
 
 def _transform_bold_markdown_for_asana(text: str) -> str:
