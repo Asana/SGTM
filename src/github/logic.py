@@ -17,6 +17,7 @@ AUTOMERGE_COMMENT_WARNING = "**:warning: Reviewer:** If you approve this PR, it 
 class AutomergeLabel(Enum):
     AFTER_TESTS_AND_APPROVAL = "merge after tests and approval"
     AFTER_TESTS = "merge after tests"
+    AFTER_APPROVAL = "merge after approval"
     IMMEDIATELY = "merge immediately"
 
 
@@ -225,6 +226,14 @@ def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
         return (
             pull_request.is_build_successful()
             and pull_request.is_mergeable()
+            and pull_request.is_approved()
+        )
+
+    if pull_request_has_label(
+        pull_request, AutomergeLabel.AFTER_APPROVAL.value
+    ):
+        return (
+            pull_request.is_mergeable()
             and pull_request.is_approved()
         )
 
