@@ -229,13 +229,8 @@ def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
             and pull_request.is_approved()
         )
 
-    if pull_request_has_label(
-        pull_request, AutomergeLabel.AFTER_APPROVAL.value
-    ):
-        return (
-            pull_request.is_mergeable()
-            and pull_request.is_approved()
-        )
+    if pull_request_has_label(pull_request, AutomergeLabel.AFTER_APPROVAL.value):
+        return pull_request.is_mergeable() and pull_request.is_approved()
 
     return False
 

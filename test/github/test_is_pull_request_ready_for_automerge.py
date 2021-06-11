@@ -33,7 +33,9 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
     def test_is_pull_request_ready_for_automerge_after_approval(self):
         pull_request = build(
             builder.pull_request()
-            .commit(builder.commit().status(Commit.BUILD_PENDING)) # build hasn't finished, but PR is approved
+            .commit(
+                builder.commit().status(Commit.BUILD_PENDING)
+            )  # build hasn't finished, but PR is approved
             .review(
                 builder.review()
                 .submitted_at("2020-01-13T14:59:58Z")
@@ -42,9 +44,7 @@ class TestIsPullRequestReadyForAutomerge(unittest.TestCase):
             .mergeable(MergeableState.MERGEABLE)
             .merged(False)
             .label(
-                builder.label().name(
-                    github_logic.AutomergeLabel.AFTER_APPROVAL.value
-                )
+                builder.label().name(github_logic.AutomergeLabel.AFTER_APPROVAL.value)
             )
         )
         self.assertTrue(github_logic._is_pull_request_ready_for_automerge(pull_request))
