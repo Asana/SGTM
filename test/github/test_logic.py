@@ -98,24 +98,24 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
     def test_adds_warnings_if_label_and_no_warning_in_comments(
         self, add_pr_comment_mock, edit_pr_title_mock
     ):
-        pull_request = build(
-            builder.pull_request()
-            .title(self.SAMPLE_PR_TITLE)
-            .label(
-                builder.label().name(
-                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
-                )
+        for label in [
+            github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value,
+            github_logic.AutomergeLabel.AFTER_APPROVAL.value,
+        ]:
+            pull_request = build(
+                builder.pull_request()
+                .title(self.SAMPLE_PR_TITLE)
+                .label(builder.label().name(label))
             )
-        )
 
-        github_logic.maybe_add_automerge_warning_comment(pull_request)
+            github_logic.maybe_add_automerge_warning_comment(pull_request)
 
-        add_pr_comment_mock.assert_called_with(
-            pull_request.repository_owner_handle(),
-            pull_request.repository_name(),
-            pull_request.number(),
-            github_logic.AUTOMERGE_COMMENT_WARNING,
-        )
+            add_pr_comment_mock.assert_called_with(
+                pull_request.repository_owner_handle(),
+                pull_request.repository_name(),
+                pull_request.number(),
+                github_logic.AUTOMERGE_COMMENT_WARNING,
+            )
 
     @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
     def test_does_not_add_warning_if_has_label_and_already_has_warning_in_comments(
