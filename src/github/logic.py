@@ -165,9 +165,13 @@ def maybe_add_automerge_warning_comment(pull_request: PullRequest):
         # only add warning comment if it's set to auto-merge after approval and hasn't yet been approved to limit noise
 
         if (
-            _pull_request_has_automerge_label(pull_request)
-            and pull_request_has_label(
-                pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+            (
+                pull_request_has_label(
+                    pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+                or pull_request_has_label(
+                    pull_request, AutomergeLabel.AFTER_APPROVAL.value
+                )
             )
             and not _pull_request_has_automerge_comment(pull_request)
             and not pull_request.is_approved()
@@ -233,15 +237,6 @@ def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
         return pull_request.is_mergeable() and pull_request.is_approved()
 
     return False
-
-
-def _pull_request_has_automerge_label(pull_request: PullRequest) -> bool:
-    return any(
-        map(
-            lambda label: pull_request_has_label(pull_request, label.value),
-            AutomergeLabel,
-        )
-    )
 
 
 def _pull_request_has_automerge_comment(pull_request: PullRequest) -> bool:
