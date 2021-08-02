@@ -34,7 +34,7 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
             github_comment
         )
         self.assertContainsStrings(
-            asana_comment, ['<A href="{}">{}</A>'.format(escape(url), url)]
+            asana_comment, ['<a href="{}">{}</a>'.format(escape(url), url)]
         )
 
     def test_includes_asana_comment_author(self):

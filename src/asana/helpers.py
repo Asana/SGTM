@@ -18,13 +18,10 @@ from src.logger import logger
 import collections
 import urllib.request
 import base64
+from src.markdown_parser import convert_github_markdown_to_asana_xml
 
 # https://gist.github.com/gruber/8891611
 URL_REGEX = r"""(?i)([^"\>\<\/\.]|^)\b((?:https?:(/{1,3}))(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))"""
-BOLD_REGEX = r"""(\*|_){2}(.*?)\1{2}(?!\w|\d)"""
-ITALICS_REGEX = r"""(\*|_)(.*?)\1(?!\w|\d)"""
-STRIKETHROUGH_REGEX = r"""~(.*?)~(?!\w|\d)"""
-CODE_REGEX = r"""`(.*?)`(?!\w|\d)"""
 
 AttachmentData = collections.namedtuple(
     "AttachmentData", "file_name file_url image_type"
@@ -294,20 +291,6 @@ _review_action_to_text_map: Dict[ReviewState, str] = {
 }
 
 
-def convert_urls_to_links(text: str) -> str:
-    """
-    Finds all raw URLs in the input text, and returns a string with those URLs
-    replaced with a wrapped URL in an <A> tag. Used for html_* fields in
-    Asana's API.
-    """
-
-    def urlreplace(matchobj: Match[str]) -> str:
-        url = unescape(matchobj.group(2))
-        return matchobj.group(1) + _link(url)
-
-    return re.sub(URL_REGEX, urlreplace, text)
-
-
 def get_linked_task_ids(pull_request: PullRequest) -> List[str]:
     """
     Extracts linked task ids from the body of the PR.
@@ -392,51 +375,9 @@ def asana_comment_from_github_review(review: Review) -> str:
 
 
 def _format_github_text_for_asana(text: str) -> str:
-    return convert_urls_to_links(
-        _transform_github_mentions_to_asana_mentions(
-            transform_github_markdown_for_asana(escape(text, quote=False))
-        )
+    return _transform_github_mentions_to_asana_mentions(
+        convert_github_markdown_to_asana_xml(text)
     )
-
-
-def transform_github_markdown_for_asana(text: str) -> str:
-    return _transform_code_markdown_for_asana(
-        _transform_strikethrough_markdown_for_asana(
-            _transform_italics_markdown_for_asana(
-                _transform_bold_markdown_for_asana(text)
-            )
-        )
-    )
-
-
-def _transform_bold_markdown_for_asana(text: str) -> str:
-    def _bold_to_strong_tag(match: Match[str]) -> str:
-        return _wrap_in_tag("strong")(match.group(2))
-
-    return re.sub(BOLD_REGEX, _bold_to_strong_tag, text)
-
-
-def _transform_italics_markdown_for_asana(text: str) -> str:
-    def _italics_to_em_tag(match: Match[str]) -> str:
-        return _wrap_in_tag("em")(match.group(2))
-
-    return re.sub(ITALICS_REGEX, _italics_to_em_tag, text)
-
-
-def _transform_strikethrough_markdown_for_asana(text: str) -> str:
-    def _strikethrough_to_s_tag(match: Match[str]) -> str:
-        return _wrap_in_tag("s")(match.group(1))
-
-    # I defined separate regexes for the asterisk and underscore cases because I'm not good at regex
-    # and I thought this would be less convoluted to work with later
-    return re.sub(STRIKETHROUGH_REGEX, _strikethrough_to_s_tag, text)
-
-
-def _transform_code_markdown_for_asana(text: str) -> str:
-    def _backtick_to_code_tag(match: Match[str]) -> str:
-        return _wrap_in_tag("code")(match.group(1))
-
-    return re.sub(CODE_REGEX, _backtick_to_code_tag, text)
 
 
 def _generate_assignee_description(assignee: Assignee) -> str:

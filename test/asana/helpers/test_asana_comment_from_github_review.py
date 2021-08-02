@@ -48,34 +48,8 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
         self.assertContainsStrings(
             asana_review_comment,
             [
-                '<A href="{}">{}</A>'.format(url, url)
+                '<a href="{}">{}</a>'.format(url, url)
                 for url in ["https://www.asana.com", "http://www.foo.com"]
-            ],
-        )
-
-    def test_transform_github_markdown_for_asana(self):
-        github_review = build(
-            builder.review()
-            .author(builder.user("github_unknown_user_login"))
-            .state(ReviewState.DEFAULT)
-            .comment(
-                builder.comment().body(
-                    "**bold** __also bold__ *italics* _also italics_ `some code block` and ~stricken~"
-                )
-            )
-        )
-        asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
-            github_review
-        )
-        self.assertContainsStrings(
-            asana_review_comment,
-            [
-                "<strong>bold</strong>",
-                "<strong>also bold</strong>",
-                "<em>italics</em>",
-                "<em>also italics</em>",
-                "<code>some code block</code>",
-                "<s>stricken</s>",
             ],
         )
 
@@ -135,8 +109,8 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
             .author(builder.user("github_unknown_user_login"))
             .state(ReviewState.DEFAULT)
         )
-        asana_review_comment_comment = src.asana.helpers.asana_comment_from_github_review(
-            github_review
+        asana_review_comment_comment = (
+            src.asana.helpers.asana_comment_from_github_review(github_review)
         )
         self.assertContainsStrings(
             asana_review_comment_comment, ["github_unknown_user_login"]
@@ -163,8 +137,8 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
                 .body(unsafe_character)
                 .comment(builder.comment().body(unsafe_character))
             )
-            asana_review_comment_comment = src.asana.helpers.asana_comment_from_github_review(
-                github_review
+            asana_review_comment_comment = (
+                src.asana.helpers.asana_comment_from_github_review(github_review)
             )
             unexpected = asana_placeholder_review.replace(placeholder, unsafe_character)
             self.assertNotEqual(
