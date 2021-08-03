@@ -33,8 +33,7 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
 
 def convert_github_markdown_to_asana_xml(text: str) -> str:
     markdown = mistune.create_markdown(
-        renderer=GithubToAsanaRenderer(escape=False),
-        plugins=["strikethrough"],
+        renderer=GithubToAsanaRenderer(escape=False), plugins=["strikethrough"],
     )
     return _strip_pre_tags(markdown(text))
 

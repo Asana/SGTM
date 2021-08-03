@@ -16,16 +16,14 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
         md = """* bullet one\n* bullet two"""
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(
-            xml,
-            """<ul>\n<li>bullet one</li>\n<li>bullet two</li>\n</ul>\n""",
+            xml, """<ul>\n<li>bullet one</li>\n<li>bullet two</li>\n</ul>\n""",
         )
 
     def test_ol_tag(self):
         md = """1. bullet one\n2. bullet two"""
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(
-            xml,
-            """<ol>\n<li>bullet one</li>\n<li>bullet two</li>\n</ol>\n""",
+            xml, """<ol>\n<li>bullet one</li>\n<li>bullet two</li>\n</ol>\n""",
         )
 
     def test_paragraph(self):
