@@ -9,13 +9,16 @@ URL_REGEX = r"""(?i)([^"\>\<\/\.]|^)\b((?:https?:(/{1,3}))(?:[^\s()<>{}\[\]]+|\(
 
 class GithubToAsanaRenderer(mistune.HTMLRenderer):
     def paragraph(self, text):
-        return text
+        return text + "\n"
 
     def block_quote(self, text):
-        return f"<em>> {escape(text, quote=False)}</em>\n"
+        return f"<em>> {escape(text, quote=False)}</em>"
 
     def strikethrough(self, text):
         return f"<s>{escape(text, quote=False)}</s>"
+
+    def heading(self, text, level):
+        return f"\n<b>{text}</b>\n"
 
     def text(self, text):
         text = escape(text, quote=False)

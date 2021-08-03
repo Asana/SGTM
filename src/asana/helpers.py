@@ -375,6 +375,7 @@ def asana_comment_from_github_review(review: Review) -> str:
 
 
 def _format_github_text_for_asana(text: str) -> str:
+    print(text)
     return _transform_github_mentions_to_asana_mentions(
         convert_github_markdown_to_asana_xml(text)
     )
@@ -411,7 +412,6 @@ def _task_description_from_pull_request(pull_request: PullRequest) -> str:
         + author
         + _generate_assignee_description(pull_request.assignee())
         + f"\n❗️Task is {status} because {status_reason.reason}"
-        + _wrap_in_tag("strong")("\n\nDescription:\n")
         + _format_github_text_for_asana(pull_request.body())
     )
 

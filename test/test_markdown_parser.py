@@ -46,6 +46,11 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
             '<a href="https://asana.com/">https://asana.com/</a> <a href="www.test.com">still works</a>',
         )
 
+    def test_converts_headings_to_bold(self):
+        md = "## heading"
+        xml = convert_github_markdown_to_asana_xml(md)
+        self.assertEqual(xml, "<b>heading</b>\n")
+
 
 if __name__ == "__main__":
     from unittest import main as run_tests
