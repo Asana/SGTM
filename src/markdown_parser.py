@@ -18,7 +18,7 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
         return f"<s>{escape(text, quote=False)}</s>"
 
     def heading(self, text, level):
-        return f"\n<b>{text}</b>\n"
+        return f"\n<b>{escape(text, quote=False)}</b>\n"
 
     def text(self, text):
         text = escape(text, quote=False)
