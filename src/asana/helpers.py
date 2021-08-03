@@ -375,7 +375,6 @@ def asana_comment_from_github_review(review: Review) -> str:
 
 
 def _format_github_text_for_asana(text: str) -> str:
-    print(text)
     return _transform_github_mentions_to_asana_mentions(
         convert_github_markdown_to_asana_xml(text)
     )
