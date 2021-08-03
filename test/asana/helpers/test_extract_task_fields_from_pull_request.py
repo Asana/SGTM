@@ -1,5 +1,5 @@
 import src.asana.helpers
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 from src.github.models import ReviewState
 from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 from test.impl.builders import builder, build
@@ -44,9 +44,6 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
             '<A href="https://foo.bar/baz">https://foo.bar/baz</A>',
             "✍",
             "TEST_USER_ASANA_DOMAIN_USER_ID",
-            "<strong>",
-            "Description:",
-            "</strong>",
             "BODY",
             "</body>",
         ]
@@ -73,9 +70,6 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
             "✍",
             "TEST_USER_ASANA_DOMAIN_USER_ID",
             "Assigned to self",
-            "<strong>",
-            "Description:",
-            "</strong>",
             "BODY",
             "</body>",
         ]
@@ -108,9 +102,6 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
             "✍",
             "TEST_USER_ASANA_DOMAIN_USER_ID",
             "first assignee alphabetically",
-            "<strong>",
-            "Description:",
-            "</strong>",
             "BODY",
             "</body>",
         ]
@@ -600,8 +591,8 @@ class TestExtractsFollowersFromPullRequest(BaseClass):
 
 class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
     """
-        This test case asserts that our behaviour is properly defined, even when some of our assumptions about GitHub
-        are proven to be broken.
+    This test case asserts that our behaviour is properly defined, even when some of our assumptions about GitHub
+    are proven to be broken.
     """
 
     def test_does_not_care_about_merged_at_even_if_it_is_illegal_if_merged_is_false(

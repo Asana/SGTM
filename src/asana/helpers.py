@@ -1,5 +1,5 @@
 import re
-from html import escape, unescape
+from html import escape
 from datetime import datetime, timedelta
 from typing import Callable, Match, Optional, List, Dict
 from src.dynamodb import client as dynamodb_client
@@ -17,7 +17,6 @@ from src.github import logic as github_logic
 from src.logger import logger
 import collections
 import urllib.request
-import base64
 from src.markdown_parser import convert_github_markdown_to_asana_xml
 
 AttachmentData = collections.namedtuple(
