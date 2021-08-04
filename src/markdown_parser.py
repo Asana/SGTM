@@ -13,7 +13,7 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
         return text + "\n"
 
     def block_quote(self, text):
-        return f"<em>> {escape(text, quote=False)}</em>"
+        return f"<em>{escape('> ' + text, quote=False)}</em>"
 
     def strikethrough(self, text):
         return f"<s>{escape(text, quote=False)}</s>"

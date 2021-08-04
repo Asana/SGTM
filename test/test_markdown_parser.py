@@ -34,7 +34,7 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
     def test_block_quote(self):
         md = "> block quote"
         xml = convert_github_markdown_to_asana_xml(md)
-        self.assertEqual(xml, "<em>> block quote\n</em>")
+        self.assertEqual(xml, "<em>&gt; block quote\n</em>")
 
     def test_auto_linking(self):
         md = "https://asana.com/ [still works](www.test.com)"
