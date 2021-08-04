@@ -54,6 +54,11 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(xml, "<code>test</code>\n")
 
+    def test_removes_html(self):
+        md = """<img href='link' />still here <h3>header</h3>"""
+        xml = convert_github_markdown_to_asana_xml(md)
+        self.assertEqual(xml, "still here header\n")
+
 
 if __name__ == "__main__":
     from unittest import main as run_tests

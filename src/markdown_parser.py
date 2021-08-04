@@ -30,11 +30,18 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
 
         return re.sub(URL_REGEX, urlreplace, text)
 
+    # Asana's API can't handle img tags
+    def image(self, src, alt="", title=None):
+        return None
+
 
 def convert_github_markdown_to_asana_xml(text: str) -> str:
     markdown = mistune.create_markdown(
         renderer=GithubToAsanaRenderer(escape=False), plugins=["strikethrough"],
     )
+
+    # remove html tags since we don't know if the Asana API can handle them
+    text = re.sub("<[^<]+?>", "", text)
     return _strip_pre_tags(markdown(text))
 
 
