@@ -32,7 +32,7 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
 
     # Asana's API can't handle img tags
     def image(self, src, alt="", title=None):
-        return None
+        return f'<a href="{src}">{alt}</a>'
 
 
 def convert_github_markdown_to_asana_xml(text: str) -> str:

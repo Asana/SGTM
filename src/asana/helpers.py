@@ -250,6 +250,7 @@ def _extract_attachments(body_text: str) -> List[AttachmentData]:
     """
     attachments = []
     matches = re.findall(github_logic.GITHUB_ATTACHMENT_REGEX, body_text)
+    print("matches", matches)
     for img_name, img_url, img_ext in matches:
         image_type = _image_extension_to_type.get(img_ext)
 
@@ -264,7 +265,10 @@ def _extract_attachments(body_text: str) -> List[AttachmentData]:
 
 
 def create_attachments(body_text: str, task_id: str) -> None:
+    print("here")
     attachments = _extract_attachments(body_text)
+    print("attachments")
+    print(attachments)
     for attachment in attachments:
         try:
             with urllib.request.urlopen(attachment.file_url) as f:
