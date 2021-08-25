@@ -36,6 +36,12 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(xml, "<em>&gt; block quote\n</em>")
 
+    def test_horizontal_rule(self):
+        # Asana doesn't support <hr /> tags, so we just ignore them
+        md = "hello\n\n---\nworld\n"
+        xml = convert_github_markdown_to_asana_xml(md)
+        self.assertEqual(xml, md)  # unchanged
+
     def test_auto_linking(self):
         md = "https://asana.com/ [still works](www.test.com)"
         xml = convert_github_markdown_to_asana_xml(md)
