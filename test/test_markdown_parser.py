@@ -40,7 +40,7 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
         # Asana doesn't support <hr /> tags, so we just ignore them
         md = "hello\n\n---\nworld\n"
         xml = convert_github_markdown_to_asana_xml(md)
-        self.assertEqual(xml, md) # unchanged
+        self.assertEqual(xml, md)  # unchanged
 
     def test_auto_linking(self):
         md = "https://asana.com/ [still works](www.test.com)"
