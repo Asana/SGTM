@@ -21,6 +21,10 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
     def heading(self, text, level):
         return f"\n<b>{escape(text, quote=False)}</b>\n"
 
+    def thematic_break(self):
+        # Asana API doesn't not support <hr />
+        return "\n---\n"
+
     def text(self, text):
         text = escape(text, quote=False)
 
