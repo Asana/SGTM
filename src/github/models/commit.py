@@ -14,6 +14,9 @@ class Commit(object):
     def status(self) -> Optional[str]:
         status = self._raw["commit"].get("status")
         if status is None:
+            status = self._raw["commit"].get("statusCheckRollup")
+
+        if status is None:
             return None
         else:
             return status.get("state", None)

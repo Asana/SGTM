@@ -70,6 +70,9 @@ fragment FullPullRequest on PullRequest {
         status {
           state
         }
+        statusCheckRollup {
+          state
+        }
       }
     }
   }
