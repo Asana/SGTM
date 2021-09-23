@@ -22,7 +22,7 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
         return f"\n<b>{text}</b>\n"
 
     def thematic_break(self) -> str:
-        # Asana API doesn't not support <hr />
+        # Asana API doesn't support <hr />
         return "\n---\n"
 
     def inline_html(self, html) -> str:
