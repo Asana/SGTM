@@ -9,29 +9,29 @@ URL_REGEX = r"""(?i)([^"\>\<\/\.]|^)\b((?:https?:(/{1,3}))(?:[^\s()<>{}\[\]]+|\(
 
 
 class GithubToAsanaRenderer(mistune.HTMLRenderer):
-    def paragraph(self, text):
+    def paragraph(self, text) -> str:
         return text + "\n"
 
-    def block_quote(self, text):
+    def block_quote(self, text) -> str:
         return f"<em>&gt; {text}</em>"
 
-    def strikethrough(self, text):
+    def strikethrough(self, text) -> str:
         return f"<s>{text}</s>"
 
-    def heading(self, text, level):
+    def heading(self, text, level) -> str:
         return f"\n<b>{text}</b>\n"
 
-    def thematic_break(self):
+    def thematic_break(self) -> str:
         # Asana API doesn't not support <hr />
         return "\n---\n"
 
-    def inline_html(self, html):
+    def inline_html(self, html) -> str:
         return escape(html)
 
-    def codespan(self, text):
-        return '<code>' + escape(text) + '</code>'
+    def codespan(self, text) -> str:
+        return "<code>" + escape(text) + "</code>"
 
-    def text(self, text):
+    def text(self, text) -> str:
         text = escape(text, quote=False)
 
         def urlreplace(matchobj: Match[str]) -> str:
@@ -41,7 +41,7 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
         return re.sub(URL_REGEX, urlreplace, text)
 
     # Asana's API can't handle img tags
-    def image(self, src, alt="", title=None):
+    def image(self, src, alt="", title=None) -> str:
         return f'<a href="{src}">{alt}</a>'
 
 

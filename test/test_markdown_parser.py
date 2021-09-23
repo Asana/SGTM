@@ -69,12 +69,22 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
     def test_escapes_raw_html_mixed_with_markdown(self):
         md = """## <img href="link" />still here <h3>header</h3>"""
         xml = convert_github_markdown_to_asana_xml(md)
-        self.assertEqual(xml, "\n<b>" + escape("<img href=\"link\" />")  + "still here " + escape("<h3>header</h3>") + "</b>\n")
+        self.assertEqual(
+            xml,
+            "\n<b>"
+            + escape('<img href="link" />')
+            + "still here "
+            + escape("<h3>header</h3>")
+            + "</b>\n",
+        )
 
     def test_escapes_raw_html(self):
         md = """<img href="link" />still here <h3>header</h3>"""
         xml = convert_github_markdown_to_asana_xml(md)
-        self.assertEqual(xml, escape("<img href=\"link\" />") + "still here " + escape("<h3>header</h3>\n"))
+        self.assertEqual(
+            xml,
+            escape('<img href="link" />') + "still here " + escape("<h3>header</h3>\n"),
+        )
 
     def test_removes_images(self):
         md = """![image](https://image.com)"""
