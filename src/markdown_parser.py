@@ -13,17 +13,23 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
         return text + "\n"
 
     def block_quote(self, text):
-        return f"<em>{escape('> ' + text, quote=False)}</em>"
+        return f"<em>&gt; {text}</em>"
 
     def strikethrough(self, text):
-        return f"<s>{escape(text, quote=False)}</s>"
+        return f"<s>{text}</s>"
 
     def heading(self, text, level):
-        return f"\n<b>{escape(text, quote=False)}</b>\n"
+        return f"\n<b>{text}</b>\n"
 
     def thematic_break(self):
         # Asana API doesn't not support <hr />
         return "\n---\n"
+
+    def inline_html(self, html):
+        return escape(html)
+
+    def codespan(self, text):
+        return '<code>' + escape(text) + '</code>'
 
     def text(self, text):
         text = escape(text, quote=False)
@@ -44,8 +50,6 @@ def convert_github_markdown_to_asana_xml(text: str) -> str:
         renderer=GithubToAsanaRenderer(escape=False), plugins=["strikethrough"],
     )
 
-    # remove html tags since we don't know if the Asana API can handle them
-    text = re.sub("<[^<]+?>", "", text)
     return _strip_pre_tags(markdown(text))
 
 
