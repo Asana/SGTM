@@ -1,6 +1,5 @@
 import unittest
 
-from html import escape
 from src.markdown_parser import convert_github_markdown_to_asana_xml
 
 
@@ -56,35 +55,15 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(xml, "\n<b>heading</b>\n")
 
-    def test_nested_code_within_block_quote(self):
-        md = "> abc `123`"
-        xml = convert_github_markdown_to_asana_xml(md)
-        self.assertEqual(xml, "<em>&gt; abc <code>123</code>\n</em>")
-
     def test_removes_pre_tags(self):
         md = """```test```"""
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(xml, "<code>test</code>\n")
 
-    def test_escapes_raw_html_mixed_with_markdown(self):
-        md = """## <img href="link" />still here <h3>header</h3>"""
+    def test_removes_html(self):
+        md = """<img href='link' />still here <h3>header</h3>"""
         xml = convert_github_markdown_to_asana_xml(md)
-        self.assertEqual(
-            xml,
-            "\n<b>"
-            + escape('<img href="link" />')
-            + "still here "
-            + escape("<h3>header</h3>")
-            + "</b>\n",
-        )
-
-    def test_escapes_raw_html(self):
-        md = """<img href="link" />still here <h3>header</h3>"""
-        xml = convert_github_markdown_to_asana_xml(md)
-        self.assertEqual(
-            xml,
-            escape('<img href="link" />') + "still here " + escape("<h3>header</h3>\n"),
-        )
+        self.assertEqual(xml, "still here header\n")
 
     def test_removes_images(self):
         md = """![image](https://image.com)"""
