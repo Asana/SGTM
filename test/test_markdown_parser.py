@@ -78,6 +78,19 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
             + "</b>\n",
         )
 
+    def test_escapes_raw_html_on_own_lines(self):
+        md = """## blah blah blah
+<img href="link">
+still here <h3>header</h3>"""
+        xml = convert_github_markdown_to_asana_xml(md)
+        self.assertEqual(
+            xml,
+            "\n<b>blah blah blah</b>\n"
+            + escape('<img href="link">\n')
+            + "still here "
+            + escape("<h3>header</h3>")
+        )
+
     def test_escapes_raw_html(self):
         md = """<img href="link" />still here <h3>header</h3>"""
         xml = convert_github_markdown_to_asana_xml(md)

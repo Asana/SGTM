@@ -28,6 +28,9 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
     def inline_html(self, html) -> str:
         return escape(html)
 
+    def block_html(self, html) -> str:
+        return escape(html)
+
     def codespan(self, text) -> str:
         return "<code>" + escape(text) + "</code>"
 
@@ -50,9 +53,4 @@ def convert_github_markdown_to_asana_xml(text: str) -> str:
         renderer=GithubToAsanaRenderer(escape=False), plugins=["strikethrough"],
     )
 
-    return _strip_pre_tags(markdown(text))
-
-
-# the Asana API doesn't accept pre tags so we strip them
-def _strip_pre_tags(text: str) -> str:
-    return text.replace("<pre>", "").replace("</pre>", "")
+    return markdown(text)
