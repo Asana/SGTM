@@ -88,7 +88,7 @@ still here <h3>header</h3>"""
             "\n<b>blah blah blah</b>\n"
             + escape('<img href="link">\n')
             + "still here "
-            + escape("<h3>header</h3>")
+            + escape("<h3>header</h3>"),
         )
 
     def test_escapes_raw_html(self):
