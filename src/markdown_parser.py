@@ -9,23 +9,32 @@ URL_REGEX = r"""(?i)([^"\>\<\/\.]|^)\b((?:https?:(/{1,3}))(?:[^\s()<>{}\[\]]+|\(
 
 
 class GithubToAsanaRenderer(mistune.HTMLRenderer):
-    def paragraph(self, text):
+    def paragraph(self, text) -> str:
         return text + "\n"
 
-    def block_quote(self, text):
-        return f"<em>{escape('> ' + text, quote=False)}</em>"
+    def block_quote(self, text) -> str:
+        return f"<em>&gt; {text}</em>"
 
-    def strikethrough(self, text):
-        return f"<s>{escape(text, quote=False)}</s>"
+    def strikethrough(self, text) -> str:
+        return f"<s>{text}</s>"
 
-    def heading(self, text, level):
-        return f"\n<b>{escape(text, quote=False)}</b>\n"
+    def heading(self, text, level) -> str:
+        return f"\n<b>{text}</b>\n"
 
-    def thematic_break(self):
-        # Asana API doesn't not support <hr />
+    def thematic_break(self) -> str:
+        # Asana API doesn't support <hr />
         return "\n---\n"
 
-    def text(self, text):
+    def inline_html(self, html) -> str:
+        return escape(html)
+
+    def block_html(self, html) -> str:
+        return escape(html)
+
+    def codespan(self, text) -> str:
+        return "<code>" + escape(text) + "</code>"
+
+    def text(self, text) -> str:
         text = escape(text, quote=False)
 
         def urlreplace(matchobj: Match[str]) -> str:
@@ -35,7 +44,7 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
         return re.sub(URL_REGEX, urlreplace, text)
 
     # Asana's API can't handle img tags
-    def image(self, src, alt="", title=None):
+    def image(self, src, alt="", title=None) -> str:
         return f'<a href="{src}">{alt}</a>'
 
 
@@ -44,11 +53,4 @@ def convert_github_markdown_to_asana_xml(text: str) -> str:
         renderer=GithubToAsanaRenderer(escape=False), plugins=["strikethrough"],
     )
 
-    # remove html tags since we don't know if the Asana API can handle them
-    text = re.sub("<[^<]+?>", "", text)
-    return _strip_pre_tags(markdown(text))
-
-
-# the Asana API doesn't accept pre tags so we strip them
-def _strip_pre_tags(text: str) -> str:
-    return text.replace("<pre>", "").replace("</pre>", "")
+    return markdown(text)
