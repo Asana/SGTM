@@ -34,6 +34,11 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
     def codespan(self, text) -> str:
         return "<code>" + escape(text) + "</code>"
 
+    def block_code(self, code, info=None):
+        html = super().block_code(code, info=info)
+        # the Asana API doesn't accept pre tags so we strip them
+        return html.replace("<pre>", "").replace("</pre>", "")
+
     def text(self, text) -> str:
         text = escape(text, quote=False)
 

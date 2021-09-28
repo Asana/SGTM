@@ -61,10 +61,19 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(xml, "<em>&gt; abc <code>123</code>\n</em>")
 
-    def test_removes_pre_tags(self):
+    def test_removes_pre_tags_inline(self):
         md = """```test```"""
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(xml, "<code>test</code>\n")
+
+    def test_removes_pre_tags_block(self):
+        md = """see:
+```
+function foo = () => null;
+```
+"""
+        xml = convert_github_markdown_to_asana_xml(md)
+        self.assertEqual(xml, "see:\n<code>function foo = () =&gt; null;\n</code>\n")
 
     def test_escapes_raw_html_mixed_with_markdown(self):
         md = """## <img href="link" />still here <h3>header</h3>"""
