@@ -50,21 +50,26 @@ class PullRequest(object):
         ]
         self._assignees = self._assignees_from_raw()
 
-    def requested_reviewers(self) -> List[str]:
-        reviewer_logins = set()
+    def requested_reviewers(self) -> List[User]:
+        users = set()
         for node in self._raw["reviewRequests"]["nodes"]:
             if (
                 node["requestedReviewer"] is not None
                 and "login" in node["requestedReviewer"]
             ):
-                reviewer_logins.add(node["requestedReviewer"]["login"])
+                users.add(User(node["requestedReviewer"]))
             elif (
                 node["requestedReviewer"] is not None
                 and "members" in node["requestedReviewer"]
             ):
                 for reviewer in node["requestedReviewer"]["members"].get("nodes", []):
-                    reviewer_logins.add(reviewer["login"])
-        return sorted(reviewer_logins)
+                    users.add(User(reviewer))
+
+        return sorted(users, key=lambda x: x.login())
+
+
+    def requested_reviewers_logins(self) -> List[str]:
+        return [user.login() for user in self.requested_reviewers()]
 
     def reviewers(self) -> List[str]:
         return [review.author_handle() for review in self.reviews()]

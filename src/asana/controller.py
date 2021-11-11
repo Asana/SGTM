@@ -38,6 +38,29 @@ def update_task(pull_request: PullRequest, task_id: str):
     maybe_complete_tasks_on_merge(pull_request)
 
 
+def create_review_subtask(pull_request: PullRequest, parent_task_id: str, reviewer_handle: str):
+    asana_id = asana_helpers.asana_user_id_from_github_handle(reviewer_handle)
+    task_name = asana_helpers.subtask_name_from_pull_request(pull_request)
+    task_description = asana_helpers.subtask_description_from_pull_request(
+        pull_request, reviewer_handle
+    )
+    due_date_str = asana_helpers.default_due_date_str()
+    return asana_client.create_subtask(
+        parent_task_id, asana_id, task_name, task_description, due_date_str=due_date_str
+    )
+
+
+def update_subtask(pull_request: PullRequest, subtask_id):
+    is_task_completed = asana_client.is_task_completed(subtask_id)
+    if is_task_completed:
+        # We must re-open the task
+        asana_client.update_task(subtask_id, {"completed": False})
+        asana_client.add_comment(
+            subtask_id,
+            f"<body>{pull_request.author_handle()} has asked you to re-review the PR.</body>"
+        )
+
+
 def maybe_complete_tasks_on_merge(pull_request: PullRequest):
     if asana_logic.should_autocomplete_tasks_on_merge(pull_request):
         task_ids_to_complete_on_merge = asana_helpers.get_linked_task_ids(pull_request)
@@ -94,6 +117,12 @@ def upsert_github_review_to_task(review: Review, task_id: str):
     dynamodb_client.bulk_insert_github_node_to_asana_id_mapping(
         [(c.id(), asana_comment_id) for c in review.comments()]
     )
+
+
+def update_subtask_after_review(pull_request: PullRequest, review: Review, subtask_id: str) -> None:
+    logger.info(f"Updating subtask {subtask_id} for pull request {pull_request.url()}")
+    if asana_logic.should_complete_subtask(pull_request, review):
+        asana_client.complete_task(subtask_id)
 
 
 def delete_comment(github_comment_id: str):

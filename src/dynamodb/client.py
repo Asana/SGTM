@@ -210,6 +210,33 @@ def get_asana_domain_user_id_from_github_handle(github_handle: str) -> Optional[
     )
 
 
+def get_asana_id_from_two_github_node_ids(gh_node_id_a: str, gh_node_id_b: str) -> Optional[str]:
+    """
+        Using the singleton instance of DynamoDbClient, creating it if necessary:
+
+        Retrieves the Asana object-id associated with the specified GitHub node-ids,
+        or None, if no such association exists. Object-table associations are created
+        by SGTM via the insert_github_node_to_asana_id_mapping method, below.
+    """
+    return DynamoDbClient.singleton().get_asana_id_from_github_node_id(
+        _get_dynamodb_key_from_two_github_nodes(gh_node_id_a, gh_node_id_b)
+    )
+
+
+def insert_two_github_node_to_asana_id_mapping(gh_node_id_a: str, gh_node_id_b: str, asana_id: str):
+    """
+        Using the singleton instance of DynamoDbClient, creating it if necessary:
+
+        Creates an association between two GitHub node-ids and an Asana object-id. The dynamoDb
+        key is formed by concatenating the two GitHub node ids using a "-" separator.
+    """
+    dynamo_db_key = _get_dynamodb_key_from_two_github_nodes(gh_node_id_a, gh_node_id_b)
+    print(f"Inserting key {dynamo_db_key} to DynamoDb.")
+    return DynamoDbClient.singleton().insert_github_node_to_asana_id_mapping(
+        _get_dynamodb_key_from_two_github_nodes(gh_node_id_a, gh_node_id_b), asana_id
+    )
+
+
 def get_all_user_items() -> List[dict]:
     return DynamoDbClient.singleton().get_all_user_items()
 
@@ -236,3 +263,6 @@ def bulk_insert_github_handle_to_asana_user_id_mapping(
     DynamoDbClient.singleton().bulk_insert_github_handle_to_asana_user_id_mapping(
         gh_and_asana_ids
     )
+
+def _get_dynamodb_key_from_two_github_nodes(gh_node_id_a: str, gh_node_id_b: str) -> str:
+    return f"{gh_node_id_a}-{gh_node_id_b}"

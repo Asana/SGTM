@@ -28,14 +28,18 @@ fragment FullPullRequest on PullRequest {
     nodes {
       requestedReviewer {
         ... on User {
+          name
           login
+          id
         }
         ... on Team {
           name
           members(last:20) {
             nodes {
               ... on User {
+                name
                 login
+                id
               }
             }
           }

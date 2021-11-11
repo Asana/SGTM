@@ -142,7 +142,7 @@ def all_pull_request_participants(pull_request: PullRequest) -> List[str]:
                 [pull_request.author_handle()]
                 + pull_request.assignees()
                 + pull_request.reviewers()
-                + pull_request.requested_reviewers()
+                + pull_request.requested_reviewers_logins()
                 + _pull_request_commenters(pull_request)
                 + _pull_request_comment_mentions(pull_request)
                 + _pull_request_review_mentions(pull_request)

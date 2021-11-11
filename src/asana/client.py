@@ -59,6 +59,31 @@ class AsanaClient(object):
         response = self.asana_api_client.tasks.create(create_task_params)
         return response["gid"]
 
+    def create_subtask(
+        self, parent_task_id: str, reviewer: str, task_name: str, task_description,
+        due_date_str: str = None
+    ) -> str:
+        """
+        Creates an Asana subtask for the given parent task, returning the task_id
+        """
+        validate_object_id(parent_task_id, "AsanaClient.create_subtask requires a task_id")
+
+        create_task_params = {
+            "name": task_name,
+            "html_notes": task_description,
+            "assignee": reviewer,
+            "parent": parent_task_id
+        }
+        if due_date_str:
+            create_task_params["due_on"] = due_date_str
+        response = self.asana_api_client.tasks.create(create_task_params)
+        return response["gid"]
+
+    def get_task_completed_status(self, task_id: str) -> bool:
+        """Returns bool value representing the task completed status."""
+        response = self.asana_api_client.tasks.find_by_id(task_id, opt_fields=["completed"])
+        return response["completed"]
+
     def update_task(self, task_id: str, fields: dict):
         """
         Updates the specified Asana task, setting the provided fields
@@ -146,11 +171,27 @@ def create_task(project_id: str, due_date_str: str = None) -> str:
     return AsanaClient.singleton().create_task(project_id, due_date_str=due_date_str)
 
 
+def create_subtask(
+    parent_task_id: str, reviewer_id: str, task_name: str, task_description,
+    due_date_str: str = None
+) -> str:
+    """
+    Creates an Asana task and makes is a subtask of the given task id
+    """
+    return AsanaClient.singleton().create_subtask(
+        parent_task_id, reviewer_id, task_name, task_description, due_date_str
+    )
+
+
 def update_task(task_id: str, fields: dict):
     """
     Updates the specified Asana task, setting the provided fields
     """
     return AsanaClient.singleton().update_task(task_id, fields)
+
+
+def is_task_completed(task_id) -> bool:
+    return AsanaClient.singleton().get_task_completed_status(task_id)
 
 
 def complete_task(task_id: str):
