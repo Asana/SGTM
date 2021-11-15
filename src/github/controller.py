@@ -1,3 +1,4 @@
+from typing import Optional, Set
 import src.dynamodb.client as dynamodb_client
 import src.asana.controller as asana_controller
 from . import logic as github_logic
@@ -5,6 +6,7 @@ from . import client as github_client
 import src.asana.helpers as asana_helpers
 from src.github.models import Comment, PullRequest, Review
 from src.logger import logger
+from src.asana.client import get_subtasks
 
 
 def upsert_pull_request(pull_request: PullRequest):
@@ -26,8 +28,7 @@ def upsert_pull_request(pull_request: PullRequest):
             f"Task found for pull request {pull_request_id}, updating task {task_id}"
         )
     asana_controller.update_task(pull_request, task_id)
-    upsert_subtasks(pull_request, task_id)
-    update_subtasks(pull_request, task_id)
+    upsert_and_update_subtasks(pull_request, task_id)
 
 
 def _add_asana_task_to_pull_request(pull_request: PullRequest, task_id: str):
@@ -45,7 +46,7 @@ def _add_asana_task_to_pull_request(pull_request: PullRequest, task_id: str):
     pull_request.set_body(new_body)
 
 
-def upsert_subtasks(pull_request: PullRequest, task_id: str) -> None:
+def upsert_and_update_subtasks(pull_request: PullRequest, task_id: str) -> None:
     """
     Create subtasks for the reviewers.
 
@@ -53,7 +54,14 @@ def upsert_subtasks(pull_request: PullRequest, task_id: str) -> None:
 
     We go through the list of requested reviewers and check if they have a subtask created already.
     If not, we create the subtask.
+
+    We also check if a subtask should be re-opened in case of re-requested reviews or if a subtask
+    should be closed out when a requested review is removed.
     """
+    # We use this for later when we want to determine if a task needs to be completed.
+    subtasks = get_subtasks(task_id)
+
+    seen_subtasks = set()
     for reviewer in pull_request.requested_reviewers():
         subtask_id = dynamodb_client.get_asana_id_from_two_github_node_ids(
             pull_request.id(), reviewer.id()
@@ -75,6 +83,55 @@ def upsert_subtasks(pull_request: PullRequest, task_id: str) -> None:
             dynamodb_client.insert_two_github_node_to_asana_id_mapping(
                 pull_request.id(), reviewer.id(), created_subtask_id
             )
+        else:
+            seen_subtasks.add(subtask_id)
+            # Update the description and name if necessary.
+            asana_controller.update_subtask(pull_request, subtask_id, reviewer.login())
+            # Check if we need to re-open it.
+            asana_controller.reopen_subtask_if_completed(pull_request, subtask_id)
+
+    # Now we have:
+    #     * Created a subtask for new review requests.
+    #     * Updated all subtasks that already existed with latest info from PR.
+    #     * Re-opened any subtask necessary because of a re-requested review.
+    #
+    # What we have not done is completed subtasks for those reviewers that review request might
+    # have been removed.
+
+    memoized_github_assignees_asana_ids: Optional[Set[str]] = None
+    print(seen_subtasks)
+
+    for subtask in subtasks:
+        if subtask.id() in seen_subtasks:
+            # This subtask already came up as we went through the requested reviewers. Carry on.
+            continue
+
+        # Now we need to get the github handle of the assignee.
+        if subtask.assignee_id() is None:
+            continue
+
+        if subtask.completed() is False:
+            # We are only interested in those subtasks that are still open.
+            # If a task is still open there are two scenarios:
+            # 1. The subtask assignee is an assignee on the Github PR and left a comment review.
+            #    In this scenario we do not want to do anything, as we still expect the assignee
+            #    to come back to this task and complete the review.
+            # 2. The subtask assignee was removed as a requested reviewer. In this scenario we
+            #    want to close out the task with a comment. By checking if the subtask assignee
+            #    is not in the list of Github assignees we can complete the task.
+            if memoized_github_assignees_asana_ids is None:
+                # Let's generate a mapping from github handle to asana user id for all assignees
+                # on the github PR.
+                memoized_github_assignees_asana_ids = set()
+                for assignee in pull_request.assignees():
+                    asana_id = dynamodb_client.get_asana_domain_user_id_from_github_handle(assignee)
+                    memoized_github_assignees_asana_ids.add(asana_id)
+
+            if subtask.assignee_id() not in memoized_github_assignees_asana_ids:
+                # We have scenario two. Let's complete the task.
+                asana_controller.complete_subtask_after_review_request_removal(
+                    pull_request, subtask.id()
+                )
 
 
 def update_subtasks(pull_request: PullRequest, task_id: str) -> None:
@@ -96,7 +153,7 @@ def update_subtasks(pull_request: PullRequest, task_id: str) -> None:
             logger.error(
                 f"No subtask id returned for requested reviewer. PR {pull_request.id()} Reviewer: {reviewer.id()}"
             )
-        asana_controller.update_subtask(pull_request, subtask_id)
+        asana_controller.reopen_subtask_if_completed(pull_request, subtask_id)
 
     # TODO: Find tasks to be closed with comment.
     # TODO: Update the subtask title and task description if applicable.
@@ -128,7 +185,7 @@ def upsert_review(pull_request: PullRequest, review: Review):
             f"Found task id {task_id} for pull_request {pull_request_id}. Adding review now."
         )
         asana_controller.upsert_github_review_to_task(review, task_id)
-        if review.is_approval_or_changes_requested():
+        if github_logic.should_reassign_to_author(pull_request, review):
             assign_pull_request_to_author(pull_request)
         asana_controller.update_task(pull_request, task_id)
         update_subtask_after_review(pull_request, review)

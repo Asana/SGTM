@@ -184,6 +184,18 @@ class PullRequest(object):
     def reviews(self) -> List[Review]:
         return [Review(review) for review in self._raw["reviews"]["nodes"]]
 
+    def get_last_review_of_user(self, user_handle: str) -> Optional[Review]:
+        last_review: Optional[Review] = None
+        for review in self.reviews():
+            if review.author_handle() == user_handle:
+                if last_review is None:
+                    last_review = review
+                else:
+                    if review.submitted_at() > last_review.submitted_at():
+                        last_review = review
+
+        return last_review
+
     def comments(self) -> List[IssueComment]:
         return [IssueComment(comment) for comment in self._raw["comments"]["nodes"]]
 

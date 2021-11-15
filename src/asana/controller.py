@@ -38,7 +38,7 @@ def update_task(pull_request: PullRequest, task_id: str):
     maybe_complete_tasks_on_merge(pull_request)
 
 
-def create_review_subtask(pull_request: PullRequest, parent_task_id: str, reviewer_handle: str):
+def create_review_subtask(pull_request: PullRequest, parent_id: str, reviewer_handle: str) -> str:
     asana_id = asana_helpers.asana_user_id_from_github_handle(reviewer_handle)
     task_name = asana_helpers.subtask_name_from_pull_request(pull_request)
     task_description = asana_helpers.subtask_description_from_pull_request(
@@ -46,12 +46,24 @@ def create_review_subtask(pull_request: PullRequest, parent_task_id: str, review
     )
     due_date_str = asana_helpers.default_due_date_str()
     return asana_client.create_subtask(
-        parent_task_id, asana_id, task_name, task_description, due_date_str=due_date_str
+        parent_id, asana_id, task_name, task_description, due_date_str=due_date_str
     )
 
 
-def update_subtask(pull_request: PullRequest, subtask_id):
-    is_task_completed = asana_client.is_task_completed(subtask_id)
+def update_subtask(pull_request: PullRequest, subtask_id: str, reviewer_handle: str):
+    # TODO: Consider updating the completed field here when a PR has been merged.
+    # Maybe close out tasks for non-assigned reviewers that have not completed their review.
+    fields = {
+        "name": asana_helpers.subtask_name_from_pull_request(pull_request),
+        "html_notes": asana_helpers.subtask_description_from_pull_request(
+            pull_request, reviewer_handle
+        )
+    }
+    asana_client.update_task(subtask_id, fields)
+
+
+def reopen_subtask_if_completed(pull_request: PullRequest, subtask_id: str):
+    is_task_completed = asana_client.get_task_completed_status(subtask_id)
     if is_task_completed:
         # We must re-open the task
         asana_client.update_task(subtask_id, {"completed": False})
@@ -59,6 +71,17 @@ def update_subtask(pull_request: PullRequest, subtask_id):
             subtask_id,
             f"<body>{pull_request.author_handle()} has asked you to re-review the PR.</body>"
         )
+
+
+def complete_subtask_after_review_request_removal(pull_request: PullRequest, subtask_id: str):
+    asana_client.update_task(subtask_id, {"completed": True})
+    # TODO: Should we delete the task if the removal of a reviewer happens very quickly
+    # after the task creation? Would that clear the item out of the inbox of the requested reviewer
+    # in case of accidental assigns.
+    asana_client.add_comment(
+        subtask_id,
+        f"<body>{pull_request.author_handle()} no longer requires your review.</body>"
+    )
 
 
 def maybe_complete_tasks_on_merge(pull_request: PullRequest):
@@ -121,8 +144,9 @@ def upsert_github_review_to_task(review: Review, task_id: str):
 
 def update_subtask_after_review(pull_request: PullRequest, review: Review, subtask_id: str) -> None:
     logger.info(f"Updating subtask {subtask_id} for pull request {pull_request.url()}")
-    if asana_logic.should_complete_subtask(pull_request, review):
-        asana_client.complete_task(subtask_id)
+    if asana_logic.should_complete_subtask_after_review(pull_request, review):
+        if asana_client.get_task_completed_status(subtask_id) is False:
+            asana_client.complete_task(subtask_id)
 
 
 def delete_comment(github_comment_id: str):

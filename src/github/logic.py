@@ -2,7 +2,7 @@ import re
 from typing import List
 from src.logger import logger
 from . import client as github_client
-from src.github.models import PullRequest, MergeableState
+from src.github.models import PullRequest, MergeableState, Review
 from enum import Enum, unique
 from src.github.helpers import pull_request_has_label
 from src.config import SGTM_FEATURE__AUTOMERGE_ENABLED
@@ -200,6 +200,35 @@ def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
         return False
 
 
+def should_reassign_to_author(pull_request: PullRequest, review: Review) -> bool:
+    """Check if we should reassign PR to author after a given review.
+
+    Return True if the PR was reassigned to the author.
+    """
+    assignees = pull_request.assignees()
+
+    if pull_request.author_handle() in assignees:
+        # The author handle is already in the assignees list. Nothing to do here.
+        return False
+
+    if review.is_changes_requested():
+        # This review has requested changes and the PR should be assigned to the author.
+        return True
+
+    if len(assignees) == 0:
+        # This deals with the case where there is no assignee. Here we only want to assign to the
+        # author if the review is approval.
+        return review.is_approval()
+    else:
+        # We have at least 1 assignee and the review is not request changes.
+        if review.author_handle() not in assignees:
+            # This reviewer is not one of the assignees. The PR should not be re-assigned.
+            return False
+
+        # We only reassign to the author if all of the assignees have approved the PR.
+        return all(_assignee_has_approved(assignee) for assignee in assignees)
+
+
 # ----------------------------------------------------------------------------------
 # Automerge helpers
 # ----------------------------------------------------------------------------------
@@ -244,3 +273,15 @@ def _pull_request_has_automerge_comment(pull_request: PullRequest) -> bool:
         comment.body() == AUTOMERGE_COMMENT_WARNING
         for comment in pull_request.comments()
     )
+
+
+# ----------------------------------------------------------------------------------
+# Should reassign to author helpers
+# ----------------------------------------------------------------------------------
+
+def _assignee_has_approved(pull_request: PullRequest, assignee: str):
+    assignee_last_review = pull_request.get_last_review_of_user(assignee)
+    if assignee_last_review is None:
+        return False
+    else:
+        return assignee_last_review.is_approval()

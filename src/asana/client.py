@@ -2,6 +2,7 @@ from typing import List, Iterator, Dict, Optional
 from typing_extensions import Literal
 import asana  # type: ignore
 from src.config import ASANA_API_KEY
+from src.asana.models import Subtask
 
 # See: https://developers.asana.com/docs/input-output-options
 # As we use more opt_fields, add to this list
@@ -60,7 +61,7 @@ class AsanaClient(object):
         return response["gid"]
 
     def create_subtask(
-        self, parent_task_id: str, reviewer: str, task_name: str, task_description,
+        self, parent_task_id: str, assignee: str, task_name: str, task_description,
         due_date_str: str = None
     ) -> str:
         """
@@ -71,7 +72,7 @@ class AsanaClient(object):
         create_task_params = {
             "name": task_name,
             "html_notes": task_description,
-            "assignee": reviewer,
+            "assignee": assignee,
             "parent": parent_task_id
         }
         if due_date_str:
@@ -83,6 +84,13 @@ class AsanaClient(object):
         """Returns bool value representing the task completed status."""
         response = self.asana_api_client.tasks.find_by_id(task_id, opt_fields=["completed"])
         return response["completed"]
+
+    def get_subtasks(self, parent_task_id: str) -> List[Subtask]:
+        response = self.asana_api_client.tasks.subtasks(
+            parent_task_id, opt_fields=["completed", "assignee"]
+        )
+        return [Subtask(raw_subtask) for raw_subtask in response]
+
 
     def update_task(self, task_id: str, fields: dict):
         """
@@ -172,15 +180,19 @@ def create_task(project_id: str, due_date_str: str = None) -> str:
 
 
 def create_subtask(
-    parent_task_id: str, reviewer_id: str, task_name: str, task_description,
+    parent_task_id: str, assignee: str, task_name: str, task_description,
     due_date_str: str = None
 ) -> str:
     """
     Creates an Asana task and makes is a subtask of the given task id
     """
     return AsanaClient.singleton().create_subtask(
-        parent_task_id, reviewer_id, task_name, task_description, due_date_str
+        parent_task_id, assignee, task_name, task_description, due_date_str
     )
+
+
+def get_subtasks(parent_task_id: str) -> List[Subtask]:
+    return AsanaClient.singleton().get_subtasks(parent_task_id)
 
 
 def update_task(task_id: str, fields: dict):
@@ -190,7 +202,7 @@ def update_task(task_id: str, fields: dict):
     return AsanaClient.singleton().update_task(task_id, fields)
 
 
-def is_task_completed(task_id) -> bool:
+def get_task_completed_status(task_id) -> bool:
     return AsanaClient.singleton().get_task_completed_status(task_id)
 
 
