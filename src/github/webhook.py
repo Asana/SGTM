@@ -138,7 +138,7 @@ def _handle_status_webhook(payload: dict) -> HttpResponse:
 def _handle_check_suite_webhook(payload: dict) -> HttpResponse:
     pull_requests = payload["check_suite"]["pull_requests"]
     if len(pull_requests) == 0:
-        return HttpResponse("400", error_text)
+        return HttpResponse("400", "No Pull Request Found")
 
     pull_request_id = pull_requests[0]["id"]
     repository_owner = payload["repository"]["owner"]["login"]
