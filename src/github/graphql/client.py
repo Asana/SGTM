@@ -33,8 +33,13 @@ def get_pull_request(pull_request_id: str) -> PullRequest:
     return PullRequest(data["pullRequest"])
 
 
-def get_pull_request_by_id_number(repository_owner: str, repository_name: str, pull_request_id: int) -> PullRequest:
-    data = _execute_graphql_query(GetPullRequestByIdNumber, {"owner": repository_owner, "name": repository_name, "number": pull_request_id})
+def get_pull_request_by_id_number(
+    repository_owner: str, repository_name: str, pull_request_id: int
+) -> PullRequest:
+    data = _execute_graphql_query(
+        GetPullRequestByIdNumber,
+        {"owner": repository_owner, "name": repository_name, "number": pull_request_id},
+    )
     return PullRequest(data["repository"]["pullRequest"])
 
 

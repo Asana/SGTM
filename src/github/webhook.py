@@ -144,7 +144,9 @@ def _handle_check_suite_webhook(payload: dict) -> HttpResponse:
     repository_owner = payload["repository"]["owner"]["login"]
     repository_name = payload["repository"]["name"]
 
-    pull_request = graphql_client.get_pull_request_by_id_number(repository_owner, repository_name, pull_request_id)
+    pull_request = graphql_client.get_pull_request_by_id_number(
+        repository_owner, repository_name, pull_request_id
+    )
 
     with dynamodb_lock(pull_request.id()):
         github_logic.maybe_automerge_pull_request(pull_request)
