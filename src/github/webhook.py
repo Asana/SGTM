@@ -141,12 +141,11 @@ def _handle_check_suite_webhook(payload: dict) -> HttpResponse:
         return HttpResponse("400", "No Pull Request Found")
 
     # TODO: How to handle multiple PRs?
-    pull_request_id = pull_requests[0]["id"]
-    repository_owner = payload["repository"]["owner"]["login"]
-    repository_name = payload["repository"]["name"]
+    pull_request_number = pull_requests[0]["number"]
+    repository_node_id = payload["repository"]["node_id"]
 
-    pull_request = graphql_client.get_pull_request_by_id_number(
-        repository_owner, repository_name, pull_request_id
+    pull_request = graphql_client.get_pull_request_by_repository_and_number(
+        repository_node_id, pull_request_number
     )
 
     with dynamodb_lock(pull_request.id()):
