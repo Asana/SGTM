@@ -2,7 +2,7 @@ from typing import FrozenSet
 from ..fragments import FullPullRequest, FullReview
 
 # @GraphqlInPython
-_get_pull_request_by_id_number = """
+_get_pull_request_by_repository_and_number = """
 query GetPullRequestByRepositoryAndNumber($repository: ID!, $number: Int!) {
   repository: node(id: $repository) {
     ... on Repository {
@@ -18,5 +18,5 @@ query GetPullRequestByRepositoryAndNumber($repository: ID!, $number: Int!) {
 """
 
 GetPullRequestByRepositoryAndNumber: FrozenSet[str] = frozenset(
-    [_get_pull_request_by_id_number]
+    [_get_pull_request_by_repository_and_number]
 ) | FullPullRequest | FullReview
