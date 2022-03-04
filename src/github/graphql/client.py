@@ -4,7 +4,7 @@ from src.config import GITHUB_API_KEY
 from src.github.models import comment_factory, PullRequest, Review, Comment
 from .queries import (
     GetPullRequest,
-    GetPullRequestByIdNumber,
+    GetPullRequestByRepositoryAndNumber,
     GetPullRequestAndComment,
     GetPullRequestAndReview,
     GetPullRequestForCommit,
@@ -33,12 +33,12 @@ def get_pull_request(pull_request_id: str) -> PullRequest:
     return PullRequest(data["pullRequest"])
 
 
-def get_pull_request_by_id_number(
-    repository_owner: str, repository_name: str, pull_request_id: int
+def get_pull_request_by_repository_and_number(
+    repository_node_id: str, pull_request_number: int
 ) -> PullRequest:
     data = _execute_graphql_query(
-        GetPullRequestByIdNumber,
-        {"owner": repository_owner, "name": repository_name, "number": pull_request_id},
+        GetPullRequestByRepositoryAndNumber,
+        {"repository": repository_node_id, "number": pull_request_number},
     )
     return PullRequest(data["repository"]["pullRequest"])
 
