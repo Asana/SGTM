@@ -11,7 +11,7 @@ from src.logger import logger
 from src.github.models import PullRequestReviewComment, Review
 
 
-# https://developer.github.com/v3/activity/events/types/#pullrequestevent
+# https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
 def _handle_pull_request_webhook(payload: dict) -> HttpResponse:
     pull_request_id = payload["pull_request"]["node_id"]
     with dynamodb_lock(pull_request_id):
@@ -23,7 +23,7 @@ def _handle_pull_request_webhook(payload: dict) -> HttpResponse:
         return HttpResponse("200")
 
 
-# https://developer.github.com/v3/activity/events/types/#issuecommentevent
+# https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#issue_comment
 def _handle_issue_comment_webhook(payload: dict) -> HttpResponse:
     action, issue, comment = itemgetter("action", "issue", "comment")(payload)
 
@@ -46,7 +46,7 @@ def _handle_issue_comment_webhook(payload: dict) -> HttpResponse:
             return HttpResponse("400", error_text)
 
 
-# https://developer.github.com/v3/activity/events/types/#pullrequestreviewevent
+# https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request_review
 def _handle_pull_request_review_webhook(payload: dict) -> HttpResponse:
     pull_request_id = payload["pull_request"]["node_id"]
     review_id = payload["review"]["node_id"]
@@ -60,7 +60,7 @@ def _handle_pull_request_review_webhook(payload: dict) -> HttpResponse:
     return HttpResponse("200")
 
 
-# https://developer.github.com/v3/activity/events/types/#pullrequestreviewcommentevent
+# https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request_review_comment
 def _handle_pull_request_review_comment(payload: dict):
     """Handle when a pull request review comment is edited or removed.
     When comments are added it either hits:
@@ -118,7 +118,7 @@ def _handle_pull_request_review_comment(payload: dict):
         return HttpResponse("200")
 
 
-# https://developer.github.com/v3/activity/events/types/#statusevent
+# https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#status
 def _handle_status_webhook(payload: dict) -> HttpResponse:
     commit_id = payload["commit"]["node_id"]
     pull_request = graphql_client.get_pull_request_for_commit(commit_id)
@@ -134,12 +134,34 @@ def _handle_status_webhook(payload: dict) -> HttpResponse:
         return HttpResponse("200")
 
 
+# https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#check_suite
+def _handle_check_suite_webhook(payload: dict) -> HttpResponse:
+    pull_requests = payload["check_suite"]["pull_requests"]
+    if len(pull_requests) == 0:
+        return HttpResponse("400", "No Pull Request Found")
+
+    # TODO: How to handle multiple PRs?
+    pull_request_id = pull_requests[0]["id"]
+    repository_owner = payload["repository"]["owner"]["login"]
+    repository_name = payload["repository"]["name"]
+
+    pull_request = graphql_client.get_pull_request_by_id_number(
+        repository_owner, repository_name, pull_request_id
+    )
+
+    with dynamodb_lock(pull_request.id()):
+        github_logic.maybe_automerge_pull_request(pull_request)
+        github_controller.upsert_pull_request(pull_request)
+        return HttpResponse("200")
+
+
 _events_map = {
     "pull_request": _handle_pull_request_webhook,
     "issue_comment": _handle_issue_comment_webhook,
     "pull_request_review": _handle_pull_request_review_webhook,
     "status": _handle_status_webhook,
     "pull_request_review_comment": _handle_pull_request_review_comment,
+    "check_suite": _handle_check_suite_webhook,
 }
 
 
