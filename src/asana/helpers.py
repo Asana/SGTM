@@ -355,7 +355,7 @@ def asana_comment_from_github_review(review: Review) -> str:
         for i, comment in enumerate(review.comments(), start=1)
     ]
     if inline_comments:
-        comments_html = "\n\n".join(inline_comments)
+        comments_html = "\n".join(inline_comments)
         if not review.is_just_comments():
             # If this was an inline reply, we already added "and left inline comments" above.
             comments_html = (
