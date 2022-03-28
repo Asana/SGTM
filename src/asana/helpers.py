@@ -350,14 +350,12 @@ def asana_comment_from_github_review(review: Review) -> str:
 
     # For each comment, prefix its text with a bracketed number that is a link to the Github comment.
     inline_comments = [
-        _wrap_in_tag("li")(
             _wrap_in_tag("A", attrs={"href": comment.url()})(f"[{i}] ")
             + _format_github_text_for_asana(comment.body())
-        )
         for i, comment in enumerate(review.comments(), start=1)
     ]
     if inline_comments:
-        comments_html = _wrap_in_tag("ul")("".join(inline_comments))
+        comments_html = "\n\n".join(inline_comments)
         if not review.is_just_comments():
             # If this was an inline reply, we already added "and left inline comments" above.
             comments_html = (
