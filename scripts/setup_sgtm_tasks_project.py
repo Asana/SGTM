@@ -20,12 +20,14 @@ class CustomField:
     enum_options: List[EnumOption]
 
 
+# If adding a new option, ensure that the color you're selecting is part of the list of colors in this [file](https://github.com/Asana/codez/blob/next-master/asana2/asana/web/ui/colors/color_helpers.ts)
+# Note, this list will only be visible if you're a member of Asana
 CUSTOM_FIELDS = [
     CustomField(
         name="PR Status",
         enum_options=[
             EnumOption(name="Open", color="green"),
-            EnumOption(name="Draft", color="grey"),
+            EnumOption(name="Draft", color="cool-gray"),
             EnumOption(name="Merged", color="purple"),
             EnumOption(name="Closed", color="red"),
         ],
