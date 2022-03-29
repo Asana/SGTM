@@ -422,7 +422,8 @@ def _task_completion_from_pull_request(pull_request: PullRequest) -> StatusReaso
     else:
         return StatusReason(
             False,
-            "the pull request hasn't yet been approved by a reviewer after merging.",
+            "the pull request hasn't yet been approved by a reviewer after merging. "
+            + 'The reviewer can close this task by commenting "LGTM" on the Pull Request.',
         )
 
 
