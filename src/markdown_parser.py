@@ -31,6 +31,9 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
     def block_html(self, html) -> str:
         return escape(html)
 
+    def linebreak(self) -> str:
+        return "\n"
+
     def codespan(self, text) -> str:
         return "<code>" + escape(text) + "</code>"
 

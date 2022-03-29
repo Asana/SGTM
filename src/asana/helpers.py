@@ -345,14 +345,12 @@ def asana_comment_from_github_review(review: Review) -> str:
 
     # For each comment, prefix its text with a bracketed number that is a link to the Github comment.
     inline_comments = [
-        _wrap_in_tag("li")(
-            _wrap_in_tag("A", attrs={"href": comment.url()})(f"[{i}] ")
-            + _format_github_text_for_asana(comment.body())
-        )
+        _wrap_in_tag("A", attrs={"href": comment.url()})(f"[{i}] ")
+        + _format_github_text_for_asana(comment.body())
         for i, comment in enumerate(review.comments(), start=1)
     ]
     if inline_comments:
-        comments_html = _wrap_in_tag("ul")("".join(inline_comments))
+        comments_html = "\n".join(inline_comments)
         if not review.is_just_comments():
             # If this was an inline reply, we already added "and left inline comments" above.
             comments_html = (
@@ -419,7 +417,8 @@ def _task_completion_from_pull_request(pull_request: PullRequest) -> StatusReaso
     else:
         return StatusReason(
             False,
-            "the pull request hasn't yet been approved by a reviewer after merging.",
+            "the pull request hasn't yet been approved by a reviewer after merging. "
+            + 'The reviewer can close this task by commenting "LGTM" on the Pull Request.',
         )
 
 
