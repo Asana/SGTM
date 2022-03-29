@@ -25,6 +25,7 @@ CUSTOM_FIELDS = [
         name="PR Status",
         enum_options=[
             EnumOption(name="Open", color="green"),
+            EnumOption(name="Draft", color="grey"),
             EnumOption(name="Merged", color="purple"),
             EnumOption(name="Closed", color="red"),
         ],
