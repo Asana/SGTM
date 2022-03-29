@@ -17,6 +17,8 @@ class EnumOptionSettingsForTests:
 
     def __getitem__(self, item):
         return getattr(self, item)
+
+
 @dataclass
 class CustomFieldSettingForTests:
     name: str
@@ -29,25 +31,52 @@ class CustomFieldSettingForTests:
 
 def get_custom_fields(fields_to_disable: List[str]):
     return [
-        { "custom_field": CustomFieldSettingForTests(
-            name="PR Status",
-            gid="pr_status",
-            enum_options=[
-                EnumOptionSettingsForTests(name="Open", gid="open", enabled="Open" not in fields_to_disable),
-                EnumOptionSettingsForTests(name="Draft", gid="draft", enabled="Draft" not in fields_to_disable),
-                EnumOptionSettingsForTests(name="Merged", gid="merged", enabled="Merged" not in fields_to_disable),
-                EnumOptionSettingsForTests(name="Closed", gid="closed", enabled="Closed" not in fields_to_disable),
-            ]
-        )},
-        { "custom_field": CustomFieldSettingForTests(
-            name="Build",
-            gid="build",
-            enum_options=[
-                EnumOptionSettingsForTests(name="Success", gid="success", enabled="Success" not in fields_to_disable),
-                EnumOptionSettingsForTests(name="Failure", gid="failure", enabled="Failure" not in fields_to_disable),
-            ]
-        )}
+        {
+            "custom_field": CustomFieldSettingForTests(
+                name="PR Status",
+                gid="pr_status",
+                enum_options=[
+                    EnumOptionSettingsForTests(
+                        name="Open", gid="open", enabled="Open" not in fields_to_disable
+                    ),
+                    EnumOptionSettingsForTests(
+                        name="Draft",
+                        gid="draft",
+                        enabled="Draft" not in fields_to_disable,
+                    ),
+                    EnumOptionSettingsForTests(
+                        name="Merged",
+                        gid="merged",
+                        enabled="Merged" not in fields_to_disable,
+                    ),
+                    EnumOptionSettingsForTests(
+                        name="Closed",
+                        gid="closed",
+                        enabled="Closed" not in fields_to_disable,
+                    ),
+                ],
+            )
+        },
+        {
+            "custom_field": CustomFieldSettingForTests(
+                name="Build",
+                gid="build",
+                enum_options=[
+                    EnumOptionSettingsForTests(
+                        name="Success",
+                        gid="success",
+                        enabled="Success" not in fields_to_disable,
+                    ),
+                    EnumOptionSettingsForTests(
+                        name="Failure",
+                        gid="failure",
+                        enabled="Failure" not in fields_to_disable,
+                    ),
+                ],
+            )
+        },
     ]
+
 
 class BaseClass(MockDynamoDbTestCase):
     @classmethod
@@ -742,11 +771,13 @@ class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
 
 @patch("src.dynamodb.client.get_asana_id_from_github_node_id", return_value="0")
 class TestExtractsCustomFieldsFromPullRequest(BaseClass):
-    @patch("src.asana.client.get_project_custom_fields", return_value=get_custom_fields([]))
-    def test_pr_is_open_and_not_a_draft(self, get_asana_id_from_github_node_id, get_project_custom_fields):
-        pull_request = build(
-            builder.pull_request().closed(False).isDraft(False)
-        )
+    @patch(
+        "src.asana.client.get_project_custom_fields", return_value=get_custom_fields([])
+    )
+    def test_pr_is_open_and_not_a_draft(
+        self, get_asana_id_from_github_node_id, get_project_custom_fields
+    ):
+        pull_request = build(builder.pull_request().closed(False).isDraft(False))
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
             pull_request
         )
@@ -757,12 +788,13 @@ class TestExtractsCustomFieldsFromPullRequest(BaseClass):
         self.assertNotIn("merged", task_fields["custom_fields"]["pr_status"])
         self.assertNotIn("closed", task_fields["custom_fields"]["pr_status"])
 
-
-    @patch("src.asana.client.get_project_custom_fields", return_value=get_custom_fields([]))
-    def test_pr_is_open_and_a_draft(self, get_asana_id_from_github_node_id, get_project_custom_fields):
-        pull_request = build(
-            builder.pull_request().closed(False).isDraft(True)
-        )
+    @patch(
+        "src.asana.client.get_project_custom_fields", return_value=get_custom_fields([])
+    )
+    def test_pr_is_open_and_a_draft(
+        self, get_asana_id_from_github_node_id, get_project_custom_fields
+    ):
+        pull_request = build(builder.pull_request().closed(False).isDraft(True))
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
             pull_request
         )
@@ -773,8 +805,12 @@ class TestExtractsCustomFieldsFromPullRequest(BaseClass):
         self.assertNotIn("merged", task_fields["custom_fields"]["pr_status"])
         self.assertNotIn("closed", task_fields["custom_fields"]["pr_status"])
 
-    @patch("src.asana.client.get_project_custom_fields", return_value=get_custom_fields([]))
-    def test_pr_is_closed_and_merged(self, get_asana_id_from_github_node_id, get_project_custom_fields):
+    @patch(
+        "src.asana.client.get_project_custom_fields", return_value=get_custom_fields([])
+    )
+    def test_pr_is_closed_and_merged(
+        self, get_asana_id_from_github_node_id, get_project_custom_fields
+    ):
         pull_request = build(
             builder.pull_request().closed(True).merged(True).isDraft(True)
         )
@@ -788,8 +824,12 @@ class TestExtractsCustomFieldsFromPullRequest(BaseClass):
         self.assertNotIn("draft", task_fields["custom_fields"]["pr_status"])
         self.assertNotIn("closed", task_fields["custom_fields"]["pr_status"])
 
-    @patch("src.asana.client.get_project_custom_fields", return_value=get_custom_fields([]))
-    def test_pr_is_closed_and_not_merged(self, get_asana_id_from_github_node_id, get_project_custom_fields):
+    @patch(
+        "src.asana.client.get_project_custom_fields", return_value=get_custom_fields([])
+    )
+    def test_pr_is_closed_and_not_merged(
+        self, get_asana_id_from_github_node_id, get_project_custom_fields
+    ):
         pull_request = build(
             builder.pull_request().closed(True).merged(False).isDraft(True)
         )
@@ -803,8 +843,13 @@ class TestExtractsCustomFieldsFromPullRequest(BaseClass):
         self.assertNotIn("merged", task_fields["custom_fields"]["pr_status"])
         self.assertNotIn("draft", task_fields["custom_fields"]["pr_status"])
 
-    @patch("src.asana.client.get_project_custom_fields", return_value=get_custom_fields(["Closed"]))
-    def test_pr_status_is_not_enabled(self, get_asana_id_from_github_node_id, get_project_custom_fields):
+    @patch(
+        "src.asana.client.get_project_custom_fields",
+        return_value=get_custom_fields(["Closed"]),
+    )
+    def test_pr_status_is_not_enabled(
+        self, get_asana_id_from_github_node_id, get_project_custom_fields
+    ):
         pull_request = build(
             builder.pull_request().closed(True).merged(False).isDraft(True)
         )
@@ -814,10 +859,16 @@ class TestExtractsCustomFieldsFromPullRequest(BaseClass):
 
         self.assertNotIn("pr_status", task_fields["custom_fields"])
 
-    @patch("src.asana.client.get_project_custom_fields", return_value=get_custom_fields([]))
-    def test_pr_build_was_success(self, get_asana_id_from_github_node_id, get_project_custom_fields):
+    @patch(
+        "src.asana.client.get_project_custom_fields", return_value=get_custom_fields([])
+    )
+    def test_pr_build_was_success(
+        self, get_asana_id_from_github_node_id, get_project_custom_fields
+    ):
         pull_request = build(
-            builder.pull_request().commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            builder.pull_request().commit(
+                builder.commit().status(Commit.BUILD_SUCCESSFUL)
+            )
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
             pull_request
@@ -827,8 +878,12 @@ class TestExtractsCustomFieldsFromPullRequest(BaseClass):
         self.assertIn("success", task_fields["custom_fields"]["build"])
         self.assertNotIn("failure", task_fields["custom_fields"]["build"])
 
-    @patch("src.asana.client.get_project_custom_fields", return_value=get_custom_fields([]))
-    def test_pr_build_was_failure(self, get_asana_id_from_github_node_id, get_project_custom_fields):
+    @patch(
+        "src.asana.client.get_project_custom_fields", return_value=get_custom_fields([])
+    )
+    def test_pr_build_was_failure(
+        self, get_asana_id_from_github_node_id, get_project_custom_fields
+    ):
         pull_request = build(
             builder.pull_request().commit(builder.commit().status(Commit.BUILD_FAILED))
         )
