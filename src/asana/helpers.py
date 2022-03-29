@@ -75,18 +75,10 @@ def default_due_date_str(reference_datetime: datetime = None) -> str:
 
 
 def _task_status_from_pull_request(pull_request: PullRequest) -> str:
-    if not pull_request.closed() and pull_request.is_draft():
-        return "Draft"
-    elif not pull_request.closed() and not pull_request.is_draft():
-        return "Open"
-    elif pull_request.closed() and pull_request.merged():
-        return "Merged"
-    elif pull_request.closed() and not pull_request.merged():
-        return "Closed"
+    if not pull_request.closed():
+        return "Draft" if pull_request.is_draft() else "Open"
     else:
-        logger.error("Pull request is in an invalid state")
-        return ""
-
+        return "Merged" if pull_request.merged() else "Closed"
 
 def _build_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
     build_status = pull_request.build_status()
