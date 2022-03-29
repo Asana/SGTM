@@ -83,7 +83,8 @@ class PullRequest(object):
         else:
             assignee = maybe_multi_assignees[0]
             logger.info(
-                "GitHub PR has multiple assignees: {} Choosing first one in alphabetical order as as assignee: {}".format(
+                "GitHub PR has multiple assignees: {} Choosing first one in"
+                " alphabetical order as as assignee: {}".format(
                     maybe_multi_assignees, assignee
                 )
             )

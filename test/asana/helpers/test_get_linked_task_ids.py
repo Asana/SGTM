@@ -14,8 +14,7 @@ class TestGetLinkedTaskIds(BaseClass):
         url_string = reduce(lambda url_str, url: url_str + url, url_list)
         pull_request = build(
             builder.pull_request().body(
-                f"Blah blah blah\nblah\n\
-                Asana tasks:\n{url_string}"
+                f"Blah blah blah\nblah\n                Asana tasks:\n{url_string}"
             )
         )
 

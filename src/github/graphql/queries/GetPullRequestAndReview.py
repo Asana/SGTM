@@ -21,6 +21,6 @@ query GetPullRequestAndReview($pullRequestId: ID!, $reviewId: ID!) {
 }
 """
 
-GetPullRequestAndReview: FrozenSet[str] = frozenset(
-    [_get_pull_request_and_review]
-) | FullPullRequest | FullReview
+GetPullRequestAndReview: FrozenSet[str] = (
+    frozenset([_get_pull_request_and_review]) | FullPullRequest | FullReview
+)

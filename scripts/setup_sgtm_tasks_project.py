@@ -106,7 +106,8 @@ def setup_new_project(args) -> None:
     project_id = client.create_project(args.new_project_name, args.team_id)
     client.setup_custom_fields(project_id)
     print(
-        f"The ID of your newly created project '{args.new_project_name}' is {project_id}"
+        f"The ID of your newly created project '{args.new_project_name}' is"
+        f" {project_id}"
     )
 
 
@@ -140,8 +141,9 @@ class AsanaClient(object):
 
             index = int(
                 input(
-                    f"Please select the workspace you want to create the SGTM project/the SGTM project exists in."
-                    f" - Enter a number between 1 and {len(workspace_list)}: "
+                    "Please select the workspace you want to create the SGTM"
+                    " project/the SGTM project exists in. - Enter a number between 1"
+                    f" and {len(workspace_list)}: "
                 )
             )
 
@@ -192,13 +194,16 @@ class AsanaClient(object):
 
             try:
                 self.client.projects.add_custom_field_setting(
-                    project_id, {"custom_field": custom_field_data},
+                    project_id,
+                    {"custom_field": custom_field_data},
                 )
             except asana.error.PremiumOnlyError:
                 print(
-                    "Custom Fields are not available for free users or guests. If you're using Asana"
-                    " Basic, you can continue setting up SGTM without setting up the custom fields. If you're on"
-                    " Asana Premium, please verify that the PAT you passed in does not correspond to a guest and try again."
+                    "Custom Fields are not available for free users or guests. If"
+                    " you're using Asana Basic, you can continue setting up SGTM"
+                    " without setting up the custom fields. If you're on Asana Premium,"
+                    " please verify that the PAT you passed in does not correspond to a"
+                    " guest and try again."
                 )
                 return
 

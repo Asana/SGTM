@@ -92,7 +92,8 @@ def setup_state(args):
 
     s3_client = boto3.client("s3", region_name=REGION)
     s3_client.create_bucket(
-        ACL="private", Bucket=bucket_name,
+        ACL="private",
+        Bucket=bucket_name,
     )
 
     s3_client.put_bucket_versioning(

@@ -21,7 +21,10 @@ class TestHandler(unittest.TestCase):
         gh_handle = "torvalds"
         asana_user_id = "12345"
         get_all_user_items_mock.return_value = [
-            {GITHUB_HANDLE_KEY: {"S": gh_handle}, USER_ID_KEY: {"S": asana_user_id},}
+            {
+                GITHUB_HANDLE_KEY: {"S": gh_handle},
+                USER_ID_KEY: {"S": asana_user_id},
+            }
         ]
 
         find_tasks_mock.return_value = [
@@ -142,7 +145,10 @@ class TestHandler(unittest.TestCase):
     ):
         # user1 already exists in the DynamoDb mapping table
         get_all_user_items_mock.return_value = [
-            {GITHUB_HANDLE_KEY: {"S": "user1"}, USER_ID_KEY: {"S": "123"},}
+            {
+                GITHUB_HANDLE_KEY: {"S": "user1"},
+                USER_ID_KEY: {"S": "123"},
+            }
         ]
 
         find_tasks_mock.return_value = [

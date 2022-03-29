@@ -380,9 +380,15 @@ def _generate_assignee_description(assignee: Assignee) -> str:
         assignee_asana_user = f"GitHub user '{assignee.login}'"
 
     if assignee.reason == AssigneeReason.NO_ASSIGNEE:
-        return f"\nAssigned to self, {assignee_asana_user}, because no assignees were selected."
+        return (
+            f"\nAssigned to self, {assignee_asana_user}, because no assignees were"
+            " selected."
+        )
     elif assignee.reason == AssigneeReason.MULTIPLE_ASSIGNEES:
-        return f"\nAssigned to {assignee_asana_user}, first assignee alphabetically from assignees provided."
+        return (
+            f"\nAssigned to {assignee_asana_user}, first assignee alphabetically from"
+            " assignees provided."
+        )
     else:
         # Single assignee, no changes from Pull Request
         return ""
@@ -398,7 +404,8 @@ def _task_description_from_pull_request(pull_request: PullRequest) -> str:
     status = "complete" if status_reason.is_complete else "incomplete"
     return _wrap_in_tag("body")(
         _wrap_in_tag("em")(
-            "This is a one-way sync from GitHub to Asana. Do not edit this task or comment on it!"
+            "This is a one-way sync from GitHub to Asana. Do not edit this task or"
+            " comment on it!"
         )
         + f"\n\n\uD83D\uDD17 {link_to_pr}"
         + "\n✍️ "
@@ -423,7 +430,8 @@ def _task_completion_from_pull_request(pull_request: PullRequest) -> StatusReaso
         return StatusReason(
             False,
             "the pull request hasn't yet been approved by a reviewer after merging. "
-            + 'The reviewer can close this task by commenting "LGTM" on the Pull Request.',
+            + 'The reviewer can close this task by commenting "LGTM" on the Pull'
+            " Request.",
         )
 
 

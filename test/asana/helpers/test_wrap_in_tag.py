@@ -35,7 +35,8 @@ class TestWrapInTag(BaseClass):
         )
         self.assertEqual(
             actual,
-            '<p by="leia" with="snark">Why you stuck-up, half-witted, scruffy-looking nerf herder.</p>',
+            '<p by="leia" with="snark">Why you stuck-up, half-witted, scruffy-looking'
+            " nerf herder.</p>",
         )
 
     def test_attr_value_that_contains_special_characters(self):
@@ -48,7 +49,8 @@ class TestWrapInTag(BaseClass):
         )
         self.assertEqual(
             actual,
-            "<li>...the ship that made the Kessel Run in less than twelve parsecs...🚀</li>",
+            "<li>...the ship that made the Kessel Run in less than twelve"
+            " parsecs...🚀</li>",
         )
 
     def test_attribute_value_contains_emoji(self):

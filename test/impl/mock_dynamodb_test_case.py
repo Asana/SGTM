@@ -13,7 +13,7 @@ from .mock_dynamodb_test_data_helper import MockDynamoDbTestDataHelper
 class MockDynamoDbTestCase(BaseClass):
 
     """
-        The boto3.client instance, mocked by moto, that should be used in the tests.
+    The boto3.client instance, mocked by moto, that should be used in the tests.
     """
 
     client = None
@@ -38,29 +38,57 @@ class MockDynamoDbTestCase(BaseClass):
         # our DynamoDb Schema #DynamoDbSchema
         client.create_table(
             AttributeDefinitions=[
-                {"AttributeName": "github-node", "AttributeType": "S",}
+                {
+                    "AttributeName": "github-node",
+                    "AttributeType": "S",
+                }
             ],
             TableName=OBJECTS_TABLE,
-            KeySchema=[{"AttributeName": "github-node", "KeyType": "HASH",}],
+            KeySchema=[
+                {
+                    "AttributeName": "github-node",
+                    "KeyType": "HASH",
+                }
+            ],
         )
 
         client.create_table(
             AttributeDefinitions=[
-                {"AttributeName": "github/handle", "AttributeType": "S",},
+                {
+                    "AttributeName": "github/handle",
+                    "AttributeType": "S",
+                },
             ],
             TableName=USERS_TABLE,
-            KeySchema=[{"AttributeName": "github/handle", "KeyType": "HASH",}],
+            KeySchema=[
+                {
+                    "AttributeName": "github/handle",
+                    "KeyType": "HASH",
+                }
+            ],
         )
 
         client.create_table(
             AttributeDefinitions=[
-                {"AttributeName": "lock_key", "AttributeType": "S",},
-                {"AttributeName": "sort_key", "AttributeType": "S",},
+                {
+                    "AttributeName": "lock_key",
+                    "AttributeType": "S",
+                },
+                {
+                    "AttributeName": "sort_key",
+                    "AttributeType": "S",
+                },
             ],
             TableName=LOCK_TABLE,
             KeySchema=[
-                {"AttributeName": "lock_key", "KeyType": "HASH",},
-                {"AttributeName": "sort_key", "KeyType": "RANGE",},
+                {
+                    "AttributeName": "lock_key",
+                    "KeyType": "HASH",
+                },
+                {
+                    "AttributeName": "sort_key",
+                    "KeyType": "RANGE",
+                },
             ],
         )
         cls.client = client

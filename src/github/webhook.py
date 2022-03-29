@@ -96,7 +96,8 @@ def _handle_pull_request_review_comment(payload: dict):
             )
             if not isinstance(comment, PullRequestReviewComment):
                 raise Exception(
-                    f"Unexpected comment type {type(PullRequestReviewComment)} for pull request review"
+                    f"Unexpected comment type {type(PullRequestReviewComment)} for pull"
+                    " request review"
                 )
             review: Optional[Review] = Review.from_comment(comment)
         elif action == "deleted":

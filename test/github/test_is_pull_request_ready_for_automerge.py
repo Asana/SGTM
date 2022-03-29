@@ -389,7 +389,8 @@ class GithubLogicTest(unittest.TestCase):
             github_logic.inject_asana_task_into_pull_request_body(
                 "this is the original body", task_url
             ),
-            f"this is the original body\n\n\nPull Request synchronized with [Asana task]({task_url})",
+            "this is the original body\n\n\nPull Request synchronized with [Asana"
+            f" task]({task_url})",
         )
 
     def test_extract_mentions(self):
