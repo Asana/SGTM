@@ -13,6 +13,7 @@ fragment FullPullRequest on PullRequest {
   }
   closed
   merged
+  isDraft
   mergedAt
   mergeable
   url
