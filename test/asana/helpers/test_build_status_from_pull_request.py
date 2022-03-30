@@ -17,9 +17,7 @@ class TestBuildStatusFromPullRequest(BaseClass):
 
     def test_failure(self):
         pull_request = build(
-            builder.pull_request().commit(
-                builder.commit().status(Commit.BUILD_FAILED)
-            )
+            builder.pull_request().commit(builder.commit().status(Commit.BUILD_FAILED))
         )
         build_status = asana_helpers._build_status_from_pull_request(pull_request)
         self.assertEqual("Failure", build_status)

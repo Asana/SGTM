@@ -6,23 +6,17 @@ from test.impl.base_test_case_class import BaseClass
 
 class TestTaskStatusFromPullRequest(BaseClass):
     def test_closed(self):
-        pull_request = build(
-            builder.pull_request().closed(True).merged(False)
-        )
+        pull_request = build(builder.pull_request().closed(True).merged(False))
         task_status = asana_helpers._task_status_from_pull_request(pull_request)
         self.assertEqual("Closed", task_status)
 
     def test_merged(self):
-        pull_request = build(
-            builder.pull_request().closed(True).merged(True)
-        )
+        pull_request = build(builder.pull_request().closed(True).merged(True))
         task_status = asana_helpers._task_status_from_pull_request(pull_request)
         self.assertEqual("Merged", task_status)
 
     def test_open(self):
-        pull_request = build(
-            builder.pull_request().closed(False).merged(False)
-        )
+        pull_request = build(builder.pull_request().closed(False).merged(False))
         task_status = asana_helpers._task_status_from_pull_request(pull_request)
         self.assertEqual("Open", task_status)
 
