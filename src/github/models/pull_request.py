@@ -145,6 +145,9 @@ class PullRequest(object):
     def is_mergeable(self) -> bool:
         return self.mergeable() == MergeableState.MERGEABLE
 
+    def is_draft(self) -> bool:
+        return self._raw["isDraft"]
+
     # A PR is considered approved if it has at least one approval and every time changes were requested by a reviewer
     # that same reviewer later approved.
     def is_approved(self) -> bool:

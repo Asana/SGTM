@@ -19,7 +19,7 @@ Field mapping, GitHub to Asana:
 | PR comment                                        | comment in Asana task. Comes from bot, but `@-mentions` comment author in Asana |
 | PR review                                         | comment in Asana task. Comes from bot, but `@-mentions` review author in Asana |
 | PR participants (author + reviewers + commenters) | followers in Asana task                                      |
-| PR status (open/closed/merged)                    | "PR Status" custom field in Asana task
+| PR status (open/draft/closed/merged)              | "PR Status" custom field in Asana task
 | PR build status (pending/success/failure)         | "Build" custom field in Asana task
 
 #### How a GitHub Pull Request looks like

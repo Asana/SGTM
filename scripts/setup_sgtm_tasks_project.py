@@ -20,11 +20,16 @@ class CustomField:
     enum_options: List[EnumOption]
 
 
+# If adding a new option, ensure that the color you're selecting is part of this list of colors:
+# "none" | "red" | "orange" | "yellow-orange" | "yellow" | "yellow-green" | "green" | "blue-green" |
+# "aqua" | "blue" | "indigo" | "purple" | "magenta" | "hot-pink" | "pink" | "cool-gray"
+# TODO: Replace this list with a link to public documentation once available
 CUSTOM_FIELDS = [
     CustomField(
         name="PR Status",
         enum_options=[
             EnumOption(name="Open", color="green"),
+            EnumOption(name="Draft", color="cool-gray"),
             EnumOption(name="Merged", color="purple"),
             EnumOption(name="Closed", color="red"),
         ],

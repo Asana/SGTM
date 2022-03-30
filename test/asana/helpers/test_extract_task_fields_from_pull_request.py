@@ -1,8 +1,76 @@
+from typing import List
 import src.asana.helpers
-from unittest.mock import patch, Mock
+import src.asana.client
+from unittest.mock import patch
 from src.github.models import ReviewState
 from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 from test.impl.builders import builder, build
+from dataclasses import dataclass
+from src.github.models import Commit
+
+
+@dataclass
+class EnumOptionSettingsForTests:
+    name: str
+    gid: str
+    enabled: bool
+
+    def __getitem__(self, item):
+        return getattr(self, item)
+
+
+@dataclass
+class CustomFieldSettingForTests:
+    name: str
+    gid: str
+    enum_options: List[EnumOptionSettingsForTests]
+
+    def __getitem__(self, item):
+        return getattr(self, item)
+
+
+def get_custom_fields(fields_to_disable: List[str]):
+    return [
+        {
+            "custom_field": CustomFieldSettingForTests(
+                name="PR Status",
+                gid="pr_status",
+                enum_options=[
+                    EnumOptionSettingsForTests(
+                        name="Open", gid="open", enabled="Open" not in fields_to_disable
+                    ),
+                    EnumOptionSettingsForTests(
+                        name="Merged",
+                        gid="merged",
+                        enabled="Merged" not in fields_to_disable,
+                    ),
+                    EnumOptionSettingsForTests(
+                        name="Closed",
+                        gid="closed",
+                        enabled="Closed" not in fields_to_disable,
+                    ),
+                ],
+            )
+        },
+        {
+            "custom_field": CustomFieldSettingForTests(
+                name="Build",
+                gid="build",
+                enum_options=[
+                    EnumOptionSettingsForTests(
+                        name="Success",
+                        gid="success",
+                        enabled="Success" not in fields_to_disable,
+                    ),
+                    EnumOptionSettingsForTests(
+                        name="Failure",
+                        gid="failure",
+                        enabled="Failure" not in fields_to_disable,
+                    ),
+                ],
+            )
+        },
+    ]
 
 
 class BaseClass(MockDynamoDbTestCase):
@@ -694,6 +762,56 @@ class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
             pull_request
         )
         self.assertEqual(True, task_fields["completed"])
+
+
+@patch("src.dynamodb.client.get_asana_id_from_github_node_id", return_value="0")
+class TestExtractsCustomFieldsFromPullRequest(BaseClass):
+    @patch(
+        "src.asana.client.get_project_custom_fields", return_value=get_custom_fields([])
+    )
+    def test_pr_status_field_set_if_valid_option_and_enabled(
+        self, get_asana_id_from_github_node_id, get_project_custom_fields
+    ):
+        pull_request = build(builder.pull_request().closed(False).isDraft(False))
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+
+        self.assertIn("pr_status", task_fields["custom_fields"])
+        self.assertIn("open", task_fields["custom_fields"]["pr_status"])
+        self.assertNotIn("draft", task_fields["custom_fields"]["pr_status"])
+        self.assertNotIn("merged", task_fields["custom_fields"]["pr_status"])
+        self.assertNotIn("closed", task_fields["custom_fields"]["pr_status"])
+
+    @patch(
+        "src.asana.client.get_project_custom_fields",
+        return_value=get_custom_fields(["Closed"]),
+    )
+    def test_pr_status_field_not_set_if_option_is_not_enabled(
+        self, get_asana_id_from_github_node_id, get_project_custom_fields
+    ):
+        pull_request = build(
+            builder.pull_request().closed(True).merged(False).isDraft(True)
+        )
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+
+        self.assertNotIn("pr_status", task_fields["custom_fields"])
+
+    @patch(
+        "src.asana.client.get_project_custom_fields", return_value=get_custom_fields([])
+    )
+    # In our mocked project custom field settings, "Draft" is not an option for the purpose of this test
+    def test_pr_status_field_not_set_if_not_valid_option(
+        self, get_asana_id_from_github_node_id, get_project_custom_fields
+    ):
+        pull_request = build(builder.pull_request().closed(False).isDraft(True))
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+
+        self.assertNotIn("pr_status", task_fields["custom_fields"])
 
 
 if __name__ == "__main__":
