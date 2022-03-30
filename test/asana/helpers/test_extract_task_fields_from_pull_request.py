@@ -40,11 +40,6 @@ def get_custom_fields(fields_to_disable: List[str]):
                         name="Open", gid="open", enabled="Open" not in fields_to_disable
                     ),
                     EnumOptionSettingsForTests(
-                        name="Draft",
-                        gid="draft",
-                        enabled="Draft" not in fields_to_disable,
-                    ),
-                    EnumOptionSettingsForTests(
                         name="Merged",
                         gid="merged",
                         enabled="Merged" not in fields_to_disable,
@@ -798,6 +793,20 @@ class TestExtractsCustomFieldsFromPullRequest(BaseClass):
         pull_request = build(
             builder.pull_request().closed(True).merged(False).isDraft(True)
         )
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+
+        self.assertNotIn("pr_status", task_fields["custom_fields"])
+
+    @patch(
+        "src.asana.client.get_project_custom_fields", return_value=get_custom_fields([])
+    )
+    # In our mocked project custom field settings, "Draft" is not an option for the purpose of this test
+    def test_pr_status_field_not_set_if_not_valid_option(
+        self, get_asana_id_from_github_node_id, get_project_custom_fields
+    ):
+        pull_request = build(builder.pull_request().closed(False).isDraft(True))
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
             pull_request
         )
