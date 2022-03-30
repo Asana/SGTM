@@ -20,8 +20,10 @@ class CustomField:
     enum_options: List[EnumOption]
 
 
-# If adding a new option, ensure that the color you're selecting is part of the list of colors in this [file](https://github.com/Asana/codez/blob/next-master/asana2/asana/web/ui/colors/color_helpers.ts)
-# Note, this list will only be visible if you're a member of Asana
+# If adding a new option, ensure that the color you're selecting is part of this list of colors:
+# "none" | "red" | "orange" | "yellow-orange" | "yellow" | "yellow-green" | "green" | "blue-green" |
+# "aqua" | "blue" | "indigo" | "purple" | "magenta" | "hot-pink" | "pink" | "cool-gray"
+# TODO: Replace this list with a link to public documentation once available
 CUSTOM_FIELDS = [
     CustomField(
         name="PR Status",
