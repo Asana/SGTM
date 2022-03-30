@@ -774,7 +774,7 @@ class TestExtractsCustomFieldsFromPullRequest(BaseClass):
     @patch(
         "src.asana.client.get_project_custom_fields", return_value=get_custom_fields([])
     )
-    def test_pr_is_open_and_not_a_draft(
+    def test_pr_status_field_set_if_valid_option_and_enabled(
         self, get_asana_id_from_github_node_id, get_project_custom_fields
     ):
         pull_request = build(builder.pull_request().closed(False).isDraft(False))
@@ -789,65 +789,10 @@ class TestExtractsCustomFieldsFromPullRequest(BaseClass):
         self.assertNotIn("closed", task_fields["custom_fields"]["pr_status"])
 
     @patch(
-        "src.asana.client.get_project_custom_fields", return_value=get_custom_fields([])
-    )
-    def test_pr_is_open_and_a_draft(
-        self, get_asana_id_from_github_node_id, get_project_custom_fields
-    ):
-        pull_request = build(builder.pull_request().closed(False).isDraft(True))
-        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
-            pull_request
-        )
-
-        self.assertIn("pr_status", task_fields["custom_fields"])
-        self.assertIn("draft", task_fields["custom_fields"]["pr_status"])
-        self.assertNotIn("open", task_fields["custom_fields"]["pr_status"])
-        self.assertNotIn("merged", task_fields["custom_fields"]["pr_status"])
-        self.assertNotIn("closed", task_fields["custom_fields"]["pr_status"])
-
-    @patch(
-        "src.asana.client.get_project_custom_fields", return_value=get_custom_fields([])
-    )
-    def test_pr_is_closed_and_merged(
-        self, get_asana_id_from_github_node_id, get_project_custom_fields
-    ):
-        pull_request = build(
-            builder.pull_request().closed(True).merged(True).isDraft(True)
-        )
-        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
-            pull_request
-        )
-
-        self.assertIn("pr_status", task_fields["custom_fields"])
-        self.assertIn("merged", task_fields["custom_fields"]["pr_status"])
-        self.assertNotIn("open", task_fields["custom_fields"]["pr_status"])
-        self.assertNotIn("draft", task_fields["custom_fields"]["pr_status"])
-        self.assertNotIn("closed", task_fields["custom_fields"]["pr_status"])
-
-    @patch(
-        "src.asana.client.get_project_custom_fields", return_value=get_custom_fields([])
-    )
-    def test_pr_is_closed_and_not_merged(
-        self, get_asana_id_from_github_node_id, get_project_custom_fields
-    ):
-        pull_request = build(
-            builder.pull_request().closed(True).merged(False).isDraft(True)
-        )
-        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
-            pull_request
-        )
-
-        self.assertIn("pr_status", task_fields["custom_fields"])
-        self.assertIn("closed", task_fields["custom_fields"]["pr_status"])
-        self.assertNotIn("open", task_fields["custom_fields"]["pr_status"])
-        self.assertNotIn("merged", task_fields["custom_fields"]["pr_status"])
-        self.assertNotIn("draft", task_fields["custom_fields"]["pr_status"])
-
-    @patch(
         "src.asana.client.get_project_custom_fields",
         return_value=get_custom_fields(["Closed"]),
     )
-    def test_pr_status_is_not_enabled(
+    def test_pr_status_field_not_set_if_option_is_not_enabled(
         self, get_asana_id_from_github_node_id, get_project_custom_fields
     ):
         pull_request = build(
@@ -858,42 +803,6 @@ class TestExtractsCustomFieldsFromPullRequest(BaseClass):
         )
 
         self.assertNotIn("pr_status", task_fields["custom_fields"])
-
-    @patch(
-        "src.asana.client.get_project_custom_fields", return_value=get_custom_fields([])
-    )
-    def test_pr_build_was_success(
-        self, get_asana_id_from_github_node_id, get_project_custom_fields
-    ):
-        pull_request = build(
-            builder.pull_request().commit(
-                builder.commit().status(Commit.BUILD_SUCCESSFUL)
-            )
-        )
-        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
-            pull_request
-        )
-
-        self.assertIn("build", task_fields["custom_fields"])
-        self.assertIn("success", task_fields["custom_fields"]["build"])
-        self.assertNotIn("failure", task_fields["custom_fields"]["build"])
-
-    @patch(
-        "src.asana.client.get_project_custom_fields", return_value=get_custom_fields([])
-    )
-    def test_pr_build_was_failure(
-        self, get_asana_id_from_github_node_id, get_project_custom_fields
-    ):
-        pull_request = build(
-            builder.pull_request().commit(builder.commit().status(Commit.BUILD_FAILED))
-        )
-        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
-            pull_request
-        )
-
-        self.assertIn("build", task_fields["custom_fields"])
-        self.assertIn("failure", task_fields["custom_fields"]["build"])
-        self.assertNotIn("success", task_fields["custom_fields"]["build"])
 
 
 if __name__ == "__main__":

@@ -75,10 +75,10 @@ def default_due_date_str(reference_datetime: datetime = None) -> str:
 
 
 def _task_status_from_pull_request(pull_request: PullRequest) -> str:
-    if not pull_request.closed():
-        return "Draft" if pull_request.is_draft() else "Open"
-    else:
+    if pull_request.closed():
         return "Merged" if pull_request.merged() else "Closed"
+    else:
+        return "Draft" if pull_request.is_draft() else "Open"
 
 
 def _build_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
