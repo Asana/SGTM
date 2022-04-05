@@ -7,14 +7,14 @@ from src.sync_users.sgtm_user import SgtmUser
 
 def handler(event: dict, context: dict) -> None:
     """
-        Entrypoint for Lambda function that syncs the mapping of Github handles
-        to Asana user ids with the dynamodb table USERS_TABLE. This happens
-        through an Asana project with custom fields - one task per user with
-        custom fields defined in SgtmUser (GITHUB_HANDLE_CUSTOM_FIELD_NAME,
-        USER_ID_CUSTOM_FIELD_NAME)
+    Entrypoint for Lambda function that syncs the mapping of Github handles
+    to Asana user ids with the dynamodb table USERS_TABLE. This happens
+    through an Asana project with custom fields - one task per user with
+    custom fields defined in SgtmUser (GITHUB_HANDLE_CUSTOM_FIELD_NAME,
+    USER_ID_CUSTOM_FIELD_NAME)
 
-        `event` and `context` are passed into the Lambda function, but we don't
-        really care what they are for this function, and they are ignored
+    `event` and `context` are passed into the Lambda function, but we don't
+    really care what they are for this function, and they are ignored
     """
     logger.info(
         "Starting sync from Asana project to Dynamodb {} table".format(USERS_TABLE)

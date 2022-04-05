@@ -17,6 +17,8 @@ query GetPullRequestByRepositoryAndNumber($repository: ID!, $number: Int!) {
 }
 """
 
-GetPullRequestByRepositoryAndNumber: FrozenSet[str] = frozenset(
-    [_get_pull_request_by_repository_and_number]
-) | FullPullRequest | FullReview
+GetPullRequestByRepositoryAndNumber: FrozenSet[str] = (
+    frozenset([_get_pull_request_by_repository_and_number])
+    | FullPullRequest
+    | FullReview
+)

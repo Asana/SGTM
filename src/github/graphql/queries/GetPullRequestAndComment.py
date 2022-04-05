@@ -28,6 +28,9 @@ query GetPullRequestAndComment($pullRequestId: ID!, $commentId: ID!) {
 }
 """
 
-GetPullRequestAndComment: FrozenSet[str] = frozenset(
-    [_get_pull_request_and_comment]
-) | FullPullRequest | FullComment | FullReview
+GetPullRequestAndComment: FrozenSet[str] = (
+    frozenset([_get_pull_request_and_comment])
+    | FullPullRequest
+    | FullComment
+    | FullReview
+)

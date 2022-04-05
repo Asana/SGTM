@@ -17,7 +17,10 @@ class TestExtractAttachments(BaseClass):
         self.assertEqual(len(attachments), 0)
 
     def test_extract_attachments_with_extensions(self):
-        github_comment = "Ok here's the first: ![photo.png](www.photopng.com/this.png) and the second!! ![giferino.gif](giphy.com/example.gif)"
+        github_comment = (
+            "Ok here's the first: ![photo.png](www.photopng.com/this.png) and the"
+            " second!! ![giferino.gif](giphy.com/example.gif)"
+        )
         attachments = asana_helpers._extract_attachments(github_comment)
         self.assertListEqual(
             attachments,

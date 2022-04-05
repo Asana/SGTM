@@ -30,9 +30,9 @@ class ConfigurationError(Exception):
 
 class DynamoDbClient(object):
     """
-        Encapsulates DynamoDb client interface, as exposed to the world. There is a single (singleton) instance of
-        DynamoDbClient in the process, which is lazily created upon the first request. This pattern supports test code
-        that does not require DynamoDb.
+    Encapsulates DynamoDb client interface, as exposed to the world. There is a single (singleton) instance of
+    DynamoDbClient in the process, which is lazily created upon the first request. This pattern supports test code
+    that does not require DynamoDb.
     """
 
     GITHUB_HANDLE_KEY = "github/handle"
@@ -79,9 +79,9 @@ class DynamoDbClient(object):
 
     def get_asana_id_from_github_node_id(self, gh_node_id: str) -> Optional[str]:
         """
-            Retrieves the Asana object-id associated with the specified GitHub node-id,
-            or None, if no such association exists. Object-table associations are created
-            by SGTM via the insert_github_node_to_asana_id_mapping method, below.
+        Retrieves the Asana object-id associated with the specified GitHub node-id,
+        or None, if no such association exists. Object-table associations are created
+        by SGTM via the insert_github_node_to_asana_id_mapping method, below.
         """
         response = self.client.get_item(
             TableName=OBJECTS_TABLE, Key={"github-node": {"S": gh_node_id}}
@@ -93,7 +93,7 @@ class DynamoDbClient(object):
 
     def insert_github_node_to_asana_id_mapping(self, gh_node_id: str, asana_id: str):
         """
-            Creates an association between a GitHub node-id and an Asana object-id
+        Creates an association between a GitHub node-id and an Asana object-id
         """
         self.client.put_item(
             TableName=OBJECTS_TABLE,
@@ -118,8 +118,7 @@ class DynamoDbClient(object):
     def bulk_insert_github_handle_to_asana_user_id_mapping(
         self, gh_and_asana_ids: List[Tuple[str, str]]
     ):
-        """Insert multiple mappings from github handle to Asana user ids.
-        """
+        """Insert multiple mappings from github handle to Asana user ids."""
         items = [
             {
                 self.GITHUB_HANDLE_KEY: {"S": gh_handle},
@@ -134,9 +133,9 @@ class DynamoDbClient(object):
         self, github_handle: str
     ) -> Optional[str]:
         """
-            Retrieves the Asana domain user-id associated with a specific GitHub user login, or None,
-            if no such association exists. User-id associations are created manually via an external process.
-            TODO: document this process, and create scripts to encapsulate it
+        Retrieves the Asana domain user-id associated with a specific GitHub user login, or None,
+        if no such association exists. User-id associations are created manually via an external process.
+        TODO: document this process, and create scripts to encapsulate it
         """
         response = self.client.get_item(
             TableName=USERS_TABLE,
@@ -149,7 +148,7 @@ class DynamoDbClient(object):
 
     def get_all_user_items(self) -> Iterator[DynamoDbUserItem]:
         """
-            Get all DynamoDb items from the USERS_TABLE
+        Get all DynamoDb items from the USERS_TABLE
         """
         response = self.client.scan(TableName=USERS_TABLE)
         yield from response["Items"]
@@ -172,26 +171,27 @@ class DynamoDbClient(object):
         # by raising the new error outside of the except clause, the ConfigurationError does not automatically contain
         # the stack trace of the NoRegionError, which provides no extra value and clutters the console.
         raise ConfigurationError(
-            "Configuration error: Please select a region, e.g. via `AWS_DEFAULT_REGION=us-east-1`"
+            "Configuration error: Please select a region, e.g. via"
+            " `AWS_DEFAULT_REGION=us-east-1`"
         )
 
 
 def get_asana_id_from_github_node_id(gh_node_id: str) -> Optional[str]:
     """
-        Using the singleton instance of DynamoDbClient, creating it if necessary:
+    Using the singleton instance of DynamoDbClient, creating it if necessary:
 
-        Retrieves the Asana object-id associated with the specified GitHub node-id,
-        or None, if no such association exists. Object-table associations are created
-        by SGTM via the insert_github_node_to_asana_id_mapping method, below.
+    Retrieves the Asana object-id associated with the specified GitHub node-id,
+    or None, if no such association exists. Object-table associations are created
+    by SGTM via the insert_github_node_to_asana_id_mapping method, below.
     """
     return DynamoDbClient.singleton().get_asana_id_from_github_node_id(gh_node_id)
 
 
 def insert_github_node_to_asana_id_mapping(gh_node_id: str, asana_id: str):
     """
-        Using the singleton instance of DynamoDbClient, creating it if necessary:
+    Using the singleton instance of DynamoDbClient, creating it if necessary:
 
-        Creates an association between a GitHub node-id and an Asana object-id
+    Creates an association between a GitHub node-id and an Asana object-id
     """
     return DynamoDbClient.singleton().insert_github_node_to_asana_id_mapping(
         gh_node_id, asana_id
@@ -200,10 +200,10 @@ def insert_github_node_to_asana_id_mapping(gh_node_id: str, asana_id: str):
 
 def get_asana_domain_user_id_from_github_handle(github_handle: str) -> Optional[str]:
     """
-        Using the singleton instance of DynamoDbClient, creating it if necessary:
+    Using the singleton instance of DynamoDbClient, creating it if necessary:
 
-        Retrieves the Asana domain user-id associated with a specific GitHub user login, or None,
-        if no such association exists. User-id associations are created manually via an external process.
+    Retrieves the Asana domain user-id associated with a specific GitHub user login, or None,
+    if no such association exists. User-id associations are created manually via an external process.
     """
     return DynamoDbClient.singleton().get_asana_domain_user_id_from_github_handle(
         github_handle
@@ -218,9 +218,9 @@ def bulk_insert_github_node_to_asana_id_mapping(
     gh_and_asana_ids: List[Tuple[str, str]]
 ):
     """
-        Insert multiple mappings from github node ids to Asana object ids.
-        Equivalent to calling insert_github_node_to_asana_id_mapping
-        repeatedly, but in a single request.
+    Insert multiple mappings from github node ids to Asana object ids.
+    Equivalent to calling insert_github_node_to_asana_id_mapping
+    repeatedly, but in a single request.
     """
     DynamoDbClient.singleton().bulk_insert_github_node_to_asana_id_mapping(
         gh_and_asana_ids
@@ -231,7 +231,7 @@ def bulk_insert_github_handle_to_asana_user_id_mapping(
     gh_and_asana_ids: List[Tuple[str, str]]
 ):
     """
-        Insert multiple mappings from github handle to Asana user ids.
+    Insert multiple mappings from github handle to Asana user ids.
     """
     DynamoDbClient.singleton().bulk_insert_github_handle_to_asana_user_id_mapping(
         gh_and_asana_ids

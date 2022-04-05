@@ -21,8 +21,12 @@ class HandleIssueCommentWebhook(BaseClass):
     def setUp(self):
         self.payload = {
             "action": "edited",
-            "comment": {"node_id": self.COMMENT_NODE_ID,},
-            "issue": {"node_id": self.ISSUE_NODE_ID,},
+            "comment": {
+                "node_id": self.COMMENT_NODE_ID,
+            },
+            "issue": {
+                "node_id": self.ISSUE_NODE_ID,
+            },
         }
 
     def test_handle_unknown_action_for_issue_comment(self, lock):

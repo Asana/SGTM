@@ -10,7 +10,11 @@ from src.config import SGTM_FEATURE__AUTOMERGE_ENABLED
 GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
 GITHUB_ATTACHMENT_REGEX = "!\[(.*?)\]\((.+?(\.png|\.jpg|\.jpeg|\.gif))"
 
-AUTOMERGE_COMMENT_WARNING = "**:warning: Reviewer:** If you approve this PR, it will be auto-merged as soon as tests pass. If you don't want this to be auto-merged, either Request Changes or remove the auto-merge label before accepting."
+AUTOMERGE_COMMENT_WARNING = (
+    "**:warning: Reviewer:** If you approve this PR, it will be auto-merged as soon as"
+    " tests pass. If you don't want this to be auto-merged, either Request Changes or"
+    " remove the auto-merge label before accepting."
+)
 
 
 @unique
@@ -81,7 +85,8 @@ def pull_request_approved_before_merging(pull_request: PullRequest) -> bool:
 def _is_approval_comment_body(body: str) -> bool:
     return (
         re.search(
-            "sgtm|lgtm|sounds good|sound good|looks good|look good|looks great|look great|\+1|ship\s?it|👍|🚢",
+            "sgtm|lgtm|sounds good|sound good|looks good|look good|looks great|look"
+            " great|\+1|ship\s?it|👍|🚢",
             body.lower(),
         )
         is not None
@@ -186,7 +191,8 @@ def maybe_add_automerge_warning_comment(pull_request: PullRequest):
 def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
     if _is_pull_request_ready_for_automerge(pull_request):
         logger.info(
-            f"Pull request {pull_request.id()} is able to be automerged, automerging now"
+            f"Pull request {pull_request.id()} is able to be automerged,"
+            " automerging now"
         )
         github_client.merge_pull_request(
             pull_request.repository_owner_handle(),

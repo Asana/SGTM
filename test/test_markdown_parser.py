@@ -10,21 +10,24 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(
             xml,
-            '<s>strike</s> <strong>bold</strong> <em>italic</em> <code>code</code> <a href="asana.com">link</a>\n',
+            "<s>strike</s> <strong>bold</strong> <em>italic</em> <code>code</code> <a"
+            ' href="asana.com">link</a>\n',
         )
 
     def test_ul_tag(self):
         md = """* bullet one\n* bullet two"""
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(
-            xml, """<ul>\n<li>bullet one</li>\n<li>bullet two</li>\n</ul>\n""",
+            xml,
+            """<ul>\n<li>bullet one</li>\n<li>bullet two</li>\n</ul>\n""",
         )
 
     def test_ol_tag(self):
         md = """1. bullet one\n2. bullet two"""
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(
-            xml, """<ol>\n<li>bullet one</li>\n<li>bullet two</li>\n</ol>\n""",
+            xml,
+            """<ol>\n<li>bullet one</li>\n<li>bullet two</li>\n</ol>\n""",
         )
 
     def test_paragraph(self):
@@ -48,7 +51,8 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(
             xml,
-            '<a href="https://asana.com/">https://asana.com/</a> <a href="www.test.com">still works</a>\n',
+            '<a href="https://asana.com/">https://asana.com/</a> <a'
+            ' href="www.test.com">still works</a>\n',
         )
 
     def test_converts_headings_to_bold(self):

@@ -65,7 +65,8 @@ def upsert_review(pull_request: PullRequest, review: Review):
         # TODO: Full sync
     else:
         logger.info(
-            f"Found task id {task_id} for pull_request {pull_request_id}. Adding review now."
+            f"Found task id {task_id} for pull_request {pull_request_id}. Adding review"
+            " now."
         )
         asana_controller.upsert_github_review_to_task(review, task_id)
         if review.is_approval_or_changes_requested():
