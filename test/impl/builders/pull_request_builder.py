@@ -45,6 +45,7 @@ class PullRequestBuilder(BuilderBaseClass):
             "reviewRequests": {"nodes": []},
             "closed": False,
             "merged": False,
+            "isDraft": False,
             "mergeable": MergeableState.MERGEABLE,
             "author": {"login": "somebody", "name": ""},
             "repository": {
@@ -60,6 +61,10 @@ class PullRequestBuilder(BuilderBaseClass):
 
     def merged(self, merged: bool):
         self.raw_pr["merged"] = merged
+        return self
+
+    def isDraft(self, isDraft: bool):
+        self.raw_pr["isDraft"] = isDraft
         return self
 
     def mergeable(self, mergeable: MergeableState):
