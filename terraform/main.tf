@@ -332,6 +332,15 @@ resource "aws_kms_key" "api_encryption_key" {
   deletion_window_in_days = 10
 }
 
+# This is a temporary fix for the breaking changes made to the "aws_s3_bucket" resource in v4.0 of the Terraform AWS Provider
+# This fix is from one of the issues raised regarding the breaking change. https://github.com/hashicorp/terraform-provider-aws/issues/23125#issuecomment-1036412659
+# Ongoing discussion regarding the breaking change has been moved to this issue. https://github.com/hashicorp/terraform-provider-aws/issues/23106
+terraform {
+  required_providers {
+    aws = "~> 3.27"
+  }
+}
+
 resource "aws_s3_bucket" "api_key_bucket" {
   bucket = var.api_key_s3_bucket_name
   server_side_encryption_configuration {
