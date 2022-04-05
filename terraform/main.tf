@@ -332,6 +332,12 @@ resource "aws_kms_key" "api_encryption_key" {
   deletion_window_in_days = 10
 }
 
+terraform {
+  required_providers {
+    aws = "~> 3.27"
+  }
+}
+
 resource "aws_s3_bucket" "api_key_bucket" {
   bucket = var.api_key_s3_bucket_name
   server_side_encryption_configuration {
