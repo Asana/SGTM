@@ -82,7 +82,9 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
         md = 'hi [there](https://www.test.com "foo")'
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(
-            xml, 'hi <a href="https://www.test.com" title="foo">there</a>\n'
+            # title should get ignored
+            xml,
+            'hi <a href="https://www.test.com">there</a>\n',
         )
 
     def test_converts_headings_to_bold(self):
