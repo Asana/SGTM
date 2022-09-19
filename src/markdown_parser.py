@@ -57,9 +57,6 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
         # https://developers.asana.com/docs/rich-text
 
         is_asana_vanity_link = link.startswith("https://app.asana.com") and text
-        if text is None:
-            text = link
-
         asana_tags = 'data-asana-dynamic="false" ' if is_asana_vanity_link else ""
         s = "<a " + asana_tags + 'href="' + self._safe_url(link) + '"'
         return s + ">" + (text or link) + "</a>"
