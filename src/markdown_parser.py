@@ -51,9 +51,21 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
 
         return re.sub(URL_REGEX, urlreplace, text)
 
+    def link(self, link, text=None, title=None):
+        is_asana_vanity_link = link.startswith("https://app.asana.com") and text is not None
+        if text is None:
+            text = link
+
+        asana_tags = 'data-asana-dynamic="false" ' if is_asana_vanity_link else ""
+        s = '<a ' + asana_tags + 'href="' + self._safe_url(link) + '"'
+        if title:
+            s += ' title="' + mistune.escape_html(title) + '"'
+        return s + '>' + (text or link) + '</a>'
+
     # Asana's API can't handle img tags
     def image(self, src, alt="", title=None) -> str:
-        return f'<a href="{src}">{alt}</a>'
+        return self.link(src, text=alt, title=title)
+
 
 
 def convert_github_markdown_to_asana_xml(text: str) -> str:

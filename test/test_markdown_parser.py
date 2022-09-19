@@ -55,6 +55,38 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
             ' href="www.test.com">still works</a>\n',
         )
 
+    def test_link_to_non_asana_url(self):
+        md = "hi [there](https://www.test.com)"
+        xml = convert_github_markdown_to_asana_xml(md)
+        self.assertEqual(
+            xml,
+            'hi <a href="https://www.test.com">there</a>\n'
+        )
+
+    def test_link_to_asana_url_adds_data_asana_dynamic_false(self):
+        md = "hi [there](https://app.asana.com/0/1)"
+        xml = convert_github_markdown_to_asana_xml(md)
+        self.assertEqual(
+            xml,
+            'hi <a data-asana-dynamic="false" href="https://app.asana.com/0/1">there</a>\n'
+        )
+
+    def test_link_to_asana_url_with_no_vanity_text_does_not_add_data_asana_dynamic(self):
+        md = "hi https://app.asana.com/0/1"
+        xml = convert_github_markdown_to_asana_xml(md)
+        self.assertEqual(
+            xml,
+            'hi <a href="https://app.asana.com/0/1">https://app.asana.com/0/1</a>\n'
+        )
+
+    def test_link_with_title(self):
+        md = 'hi [there](https://www.test.com "foo")'
+        xml = convert_github_markdown_to_asana_xml(md)
+        self.assertEqual(
+            xml,
+            'hi <a href="https://www.test.com" title="foo">there</a>\n'
+        )
+
     def test_converts_headings_to_bold(self):
         md = "## heading"
         xml = convert_github_markdown_to_asana_xml(md)
