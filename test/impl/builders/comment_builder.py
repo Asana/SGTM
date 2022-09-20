@@ -11,7 +11,7 @@ class CommentBuilder(BuilderBaseClass):
         self.raw_comment = {
             "id": create_uuid(),
             "body": body,
-            "author": {"login": "somebody", "name": ""},
+            "author": {"login": UserBuilder.next_login(), "name": ""},
             "url": url,
         }
 
