@@ -514,7 +514,12 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
                 ]
             )
             .comments(
-                [builder.comment().author(author).published_at("2020-02-02T12:12:12Z").body("LGTM!")]
+                [
+                    builder.comment()
+                    .author(author)
+                    .published_at("2020-02-02T12:12:12Z")
+                    .body("LGTM!")
+                ]
             )
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
