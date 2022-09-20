@@ -114,7 +114,8 @@ def pull_request_approved_after_merging(pull_request: PullRequest) -> bool:
         postmerge_comments = [
             comment
             for comment in pull_request.comments()
-            if comment.published_at() >= merged_at and comment.author_handle() != pull_request.author_handle()
+            if comment.published_at() >= merged_at
+            and comment.author_handle() != pull_request.author_handle()
             # TODO: consider using the lastEditedAt timestamp. A reviewer might comment: "noice!" prior to the PR being
             #       merged, then update their comment to "noice! LGTM!!!" after it had been merged.  This would however not
             #       suffice to cause the PR to be considered approved after merging.
