@@ -18,7 +18,6 @@ class UserBuilder(BuilderBaseClass):
         UserBuilder.LOGIN_COUNTER += 1
         return login
 
-
     def login(self, login: str):
         self.raw_user["login"] = login
         return self
