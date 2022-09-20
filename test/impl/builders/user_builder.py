@@ -9,7 +9,7 @@ class UserBuilder(BuilderBaseClass):
 
     def __init__(self, login: str = None, name: str = ""):
         if login is None:
-            login = "somebody_" + self.LOGIN_COUNTER
+            login = f"somebody_{self.LOGIN_COUNTER}"
             self.LOGIN_COUNTER += 1
         self.raw_user = {"id": create_uuid(), "login": login, "name": name}
 
