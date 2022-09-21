@@ -496,6 +496,37 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
         )
         self.assertEqual(True, task_fields["completed"])
 
+    def test_completed_is_false_if_pr_was_merged_and_changes_requested_and_commented_lgtm_on_the_pr_after_merge_by_author(
+        self,
+    ):
+        author = builder.user().build()
+        pull_request = build(
+            builder.pull_request()
+            .author(author)
+            .closed(True)
+            .merged(True)
+            .merged_at("2020-01-13T14:59:59Z")
+            .reviews(
+                [
+                    builder.review()
+                    .submitted_at("2020-01-13T14:59:57Z")
+                    .state(ReviewState.CHANGES_REQUESTED)
+                ]
+            )
+            .comments(
+                [
+                    builder.comment()
+                    .author(author)
+                    .published_at("2020-02-02T12:12:12Z")
+                    .body("LGTM!")
+                ]
+            )
+        )
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+        self.assertEqual(False, task_fields["completed"])
+
     def test_completed_is_false_if_pr_was_merged_and_changes_requested_and_commented_lgtm_on_the_pr_before_merge(
         self,
     ):

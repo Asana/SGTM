@@ -47,7 +47,7 @@ class PullRequestBuilder(BuilderBaseClass):
             "merged": False,
             "isDraft": False,
             "mergeable": MergeableState.MERGEABLE,
-            "author": {"login": "somebody", "name": ""},
+            "author": {"login": UserBuilder.next_login(), "name": ""},
             "repository": {
                 "id": create_uuid(),
                 "name": create_uuid(),
