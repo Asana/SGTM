@@ -160,7 +160,6 @@ python3 ./test/<python-test-file-name>.py> <TestClassName.test_function_name>
 ```
 
 ## "Building"
-
 Please perform the following checks prior to pushing code
 
 * run `black .` to autoformat your code
