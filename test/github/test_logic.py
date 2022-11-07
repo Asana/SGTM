@@ -99,8 +99,14 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
         self, add_pr_comment_mock, edit_pr_title_mock
     ):
         for (label, automerge_comment) in [
-            (github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value, github_logic.AUTOMERGE_COMMENT_WARNING_AFTER_TESTS_AND_APPROVAL),
-            (github_logic.AutomergeLabel.AFTER_APPROVAL.value, github_logic.AUTOMERGE_COMMENT_WARNING_AFTER_APPROVAL),
+            (
+                github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value,
+                github_logic.AUTOMERGE_COMMENT_WARNING_AFTER_TESTS_AND_APPROVAL,
+            ),
+            (
+                github_logic.AutomergeLabel.AFTER_APPROVAL.value,
+                github_logic.AUTOMERGE_COMMENT_WARNING_AFTER_APPROVAL,
+            ),
         ]:
             pull_request = build(
                 builder.pull_request()
@@ -127,7 +133,9 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
                 [
                     builder.comment()
                     .author(builder.user("github_unknown_user_login"))
-                    .body(github_logic.AUTOMERGE_COMMENT_WARNING_AFTER_TESTS_AND_APPROVAL)
+                    .body(
+                        github_logic.AUTOMERGE_COMMENT_WARNING_AFTER_TESTS_AND_APPROVAL
+                    )
                 ]
             )
             .label(
