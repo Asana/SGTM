@@ -10,9 +10,15 @@ from src.config import SGTM_FEATURE__AUTOMERGE_ENABLED
 GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
 GITHUB_ATTACHMENT_REGEX = "!\[(.*?)\]\((.+?(\.png|\.jpg|\.jpeg|\.gif))"
 
-AUTOMERGE_COMMENT_WARNING = (
+AUTOMERGE_COMMENT_WARNING_AFTER_TESTS_AND_APPROVAL = (
     "**:warning: Reviewer:** If you approve this PR, it will be auto-merged as soon as"
     " tests pass. If you don't want this to be auto-merged, either Request Changes or"
+    " remove the auto-merge label before accepting."
+)
+
+AUTOMERGE_COMMENT_WARNING_AFTER_APPROVAL = (
+    "**:warning: Reviewer:** If you approve this PR, it will be auto-merged immediately."
+    " If you don't want this to be auto-merged, either Request Changes or"
     " remove the auto-merge label before accepting."
 )
 
@@ -166,24 +172,24 @@ def maybe_add_automerge_warning_comment(pull_request: PullRequest):
         repo_name = pull_request.repository_name()
         pr_number = pull_request.number()
 
+        has_automerge_after_tests_and_approval = pull_request_has_label(pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value)
+        has_automerge_after_approval = pull_request_has_label(pull_request, AutomergeLabel.AFTER_APPROVAL.value)
+
+
         # if a PR has an automerge label and doesn't contain a comment warning, we want to maybe add a warning comment
         # only add warning comment if it's set to auto-merge after approval and hasn't yet been approved to limit noise
 
         if (
             (
-                pull_request_has_label(
-                    pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
-                )
-                or pull_request_has_label(
-                    pull_request, AutomergeLabel.AFTER_APPROVAL.value
-                )
+                has_automerge_after_tests_and_approval or has_automerge_after_approval
             )
             and not _pull_request_has_automerge_comment(pull_request)
             and not pull_request.is_approved()
         ):
 
+            automerge_comment = AUTOMERGE_COMMENT_WARNING_AFTER_TESTS_AND_APPROVAL if has_automerge_after_tests_and_approval else AUTOMERGE_COMMENT_WARNING_AFTER_APPROVAL
             github_client.add_pr_comment(
-                owner, repo_name, pr_number, AUTOMERGE_COMMENT_WARNING
+                owner, repo_name, pr_number, automerge_comment
             )
 
 
@@ -247,6 +253,6 @@ def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
 
 def _pull_request_has_automerge_comment(pull_request: PullRequest) -> bool:
     return any(
-        comment.body() == AUTOMERGE_COMMENT_WARNING
+        (comment.body() == AUTOMERGE_COMMENT_WARNING_AFTER_TESTS_AND_APPROVAL or comment.body() == AUTOMERGE_COMMENT_WARNING_AFTER_APPROVAL)
         for comment in pull_request.comments()
     )
