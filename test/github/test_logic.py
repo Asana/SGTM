@@ -98,9 +98,15 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
     def test_adds_warnings_if_label_and_no_warning_in_comments(
         self, add_pr_comment_mock, edit_pr_title_mock
     ):
-        for label in [
-            github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value,
-            github_logic.AutomergeLabel.AFTER_APPROVAL.value,
+        for (label, automerge_comment) in [
+            (
+                github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value,
+                github_logic.AUTOMERGE_COMMENT_WARNING_AFTER_TESTS_AND_APPROVAL,
+            ),
+            (
+                github_logic.AutomergeLabel.AFTER_APPROVAL.value,
+                github_logic.AUTOMERGE_COMMENT_WARNING_AFTER_APPROVAL,
+            ),
         ]:
             pull_request = build(
                 builder.pull_request()
@@ -114,7 +120,7 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
                 pull_request.repository_owner_handle(),
                 pull_request.repository_name(),
                 pull_request.number(),
-                github_logic.AUTOMERGE_COMMENT_WARNING,
+                automerge_comment,
             )
 
     @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
@@ -127,7 +133,9 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
                 [
                     builder.comment()
                     .author(builder.user("github_unknown_user_login"))
-                    .body(github_logic.AUTOMERGE_COMMENT_WARNING)
+                    .body(
+                        github_logic.AUTOMERGE_COMMENT_WARNING_AFTER_TESTS_AND_APPROVAL
+                    )
                 ]
             )
             .label(
