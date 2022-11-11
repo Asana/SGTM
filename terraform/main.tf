@@ -343,12 +343,21 @@ terraform {
 
 resource "aws_s3_bucket" "api_key_bucket" {
   bucket = var.api_key_s3_bucket_name
-  server_side_encryption_configuration {
+
+  # See: https://github.com/hashicorp/terraform-provider-aws/issues/23106#issuecomment-1099401600
+  lifecycle {
+    ignore_changes = [
+      server_side_encryption_configuration
+    ]
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "api_key_bucket_server_side_encryption_configuration" {
+    bucket = aws_s3_bucket.api_key_bucket.bucket
     rule {
       apply_server_side_encryption_by_default {
         kms_master_key_id = aws_kms_key.api_encryption_key.arn
         sse_algorithm     = "aws:kms"
       }
     }
-  }
 }
