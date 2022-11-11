@@ -6,7 +6,7 @@ provider "aws" {
 
 # Gives the Lambda function permissions to read/write from the DynamoDb tables
 resource "aws_iam_policy" "lambda-function-dynamodb-policy" {
-  policy     = <<EOF
+  policy = <<EOF
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -41,7 +41,7 @@ EOF
 
 # Gives the Lambda function permissions to create cloudwatch logs
 resource "aws_iam_policy" "lambda-function-cloudwatch-policy" {
-  policy     = <<EOF
+  policy = <<EOF
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -97,7 +97,7 @@ resource "aws_iam_role_policy_attachment" "lambda-function-api-keys" {
 }
 
 resource "aws_iam_policy" "LambdaFunctionApiKeysBucketAccess" {
-  policy     = <<EOF
+  policy = <<EOF
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -134,15 +134,15 @@ resource "aws_s3_bucket_object" "lambda_code_bundle" {
   bucket = aws_s3_bucket.lambda_code_s3_bucket.bucket
   key    = "sgtm_bundle.zip"
   source = "../build/function.zip"
-  etag = filemd5("../build/function.zip")
+  etag   = filemd5("../build/function.zip")
 }
 
 resource "aws_lambda_function" "sgtm" {
-  s3_bucket     = aws_s3_bucket.lambda_code_s3_bucket.bucket
-  s3_key        = aws_s3_bucket_object.lambda_code_bundle.key
-  function_name = "sgtm"
-  role          = aws_iam_role.iam_for_lambda_function.arn
-  handler       = "src.handler.handler"
+  s3_bucket        = aws_s3_bucket.lambda_code_s3_bucket.bucket
+  s3_key           = aws_s3_bucket_object.lambda_code_bundle.key
+  function_name    = "sgtm"
+  role             = aws_iam_role.iam_for_lambda_function.arn
+  handler          = "src.handler.handler"
   source_code_hash = filebase64sha256("../build/function.zip")
 
   runtime = "python3.7"
@@ -150,20 +150,20 @@ resource "aws_lambda_function" "sgtm" {
   timeout = var.lambda_function_timeout
   environment {
     variables = {
-      API_KEYS_S3_BUCKET  = var.api_key_s3_bucket_name,
-      API_KEYS_S3_KEY     = var.api_key_s3_object,
-      SGTM_FEATURE__AUTOMERGE_ENABLED = var.sgtm_feature__automerge_enabled,
-      SGTM_FEATURE__AUTOCOMPLETE_ENABLED = var.sgtm_feature__autocomplete_enabled, 
+      API_KEYS_S3_BUCKET                 = var.api_key_s3_bucket_name,
+      API_KEYS_S3_KEY                    = var.api_key_s3_object,
+      SGTM_FEATURE__AUTOMERGE_ENABLED    = var.sgtm_feature__automerge_enabled,
+      SGTM_FEATURE__AUTOCOMPLETE_ENABLED = var.sgtm_feature__autocomplete_enabled,
     }
   }
 }
 
 resource "aws_lambda_function" "sgtm_sync_users" {
-  s3_bucket     = aws_s3_bucket.lambda_code_s3_bucket.bucket
-  s3_key        = aws_s3_bucket_object.lambda_code_bundle.key
-  function_name = "sgtm_sync_users"
-  role          = aws_iam_role.iam_for_lambda_function.arn
-  handler       = "src.sync_users.handler.handler"
+  s3_bucket        = aws_s3_bucket.lambda_code_s3_bucket.bucket
+  s3_key           = aws_s3_bucket_object.lambda_code_bundle.key
+  function_name    = "sgtm_sync_users"
+  role             = aws_iam_role.iam_for_lambda_function.arn
+  handler          = "src.sync_users.handler.handler"
   source_code_hash = filebase64sha256("../build/function.zip")
 
   runtime = "python3.7"
@@ -179,8 +179,8 @@ resource "aws_lambda_function" "sgtm_sync_users" {
 }
 
 resource "aws_cloudwatch_event_rule" "execute_sgtm_sync_users_event_rule" {
-  name        = "execute_sgtm_sync_users"
-  description = "Execute Lambda function sgtm_sync_users on a cron-style schedule"
+  name                = "execute_sgtm_sync_users"
+  description         = "Execute Lambda function sgtm_sync_users on a cron-style schedule"
   schedule_expression = "rate(1 hour)"
 }
 
@@ -244,7 +244,7 @@ resource "aws_api_gateway_integration" "sgtm_lambda_integration" {
 }
 
 resource "aws_api_gateway_integration_response" "sgtm_proxy_response" {
-  depends_on = [aws_api_gateway_integration.sgtm_lambda_integration]
+  depends_on  = [aws_api_gateway_integration.sgtm_lambda_integration]
   rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api.id
   resource_id = aws_api_gateway_resource.sgtm_resource.id
   http_method = aws_api_gateway_method.sgtm_post.http_method
@@ -353,11 +353,11 @@ resource "aws_s3_bucket" "api_key_bucket" {
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "api_key_bucket_server_side_encryption_configuration" {
-    bucket = aws_s3_bucket.api_key_bucket.bucket
-    rule {
-      apply_server_side_encryption_by_default {
-        kms_master_key_id = aws_kms_key.api_encryption_key.arn
-        sse_algorithm     = "aws:kms"
-      }
+  bucket = aws_s3_bucket.api_key_bucket.bucket
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = aws_kms_key.api_encryption_key.arn
+      sse_algorithm     = "aws:kms"
     }
+  }
 }
