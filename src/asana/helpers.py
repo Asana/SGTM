@@ -85,10 +85,15 @@ def _build_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
     build_status = pull_request.build_status()
     return build_status.capitalize() if build_status is not None else None
 
+def _author_asana_user_id_from_pull_request(pull_request: PullRequest) -> Optional[str]:
+    asana_user_id = _asana_user_id_from_github_handle(pull_request.author_handle())
+    return asana_user_id
+
 
 _custom_fields_to_extract_map = {
     "PR Status": _task_status_from_pull_request,
     "Build": _build_status_from_pull_request,
+    "Author": _author_asana_user_id_from_pull_request,
 }
 
 
@@ -111,17 +116,17 @@ def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
         custom_field_settings = list(asana_client.get_project_custom_fields(project_id))
         data = {}
         for custom_field_name, action in _custom_fields_to_extract_map.items():
-            enum_option_name = action(pull_request)
+            value_name = action(pull_request)
 
-            if enum_option_name:
+            if value_name:
                 custom_field_id = _get_custom_field_id(
                     custom_field_name, custom_field_settings
                 )
-                enum_option_id = _get_custom_field_enum_option_id(
-                    custom_field_name, enum_option_name, custom_field_settings
+                custom_field_value = _get_custom_field_value(
+                    custom_field_name, value_name, custom_field_settings
                 )
-                if custom_field_id and enum_option_id:
-                    data[custom_field_id] = enum_option_id
+                if custom_field_id and custom_field_value:
+                    data[custom_field_id] = custom_field_value
 
         return data
 
@@ -137,25 +142,25 @@ def _get_custom_field_id(
     return filtered_gid[0] if filtered_gid else None
 
 
-def _get_custom_field_enum_option_id(
-    custom_field_name: str, enum_option_name: str, custom_field_settings: List[dict]
+def _get_custom_field_value(
+    custom_field_name: str, value_name: str, custom_field_settings: List[dict]
 ) -> Optional[str]:
-    filtered_enum_options = [
-        custom_field_setting["custom_field"]["enum_options"]
-        for custom_field_setting in custom_field_settings
-        if custom_field_setting["custom_field"]["name"] == custom_field_name
-    ]
 
-    if not filtered_enum_options:
+    custom_field_setting = next((cfs for cfs in custom_field_settings if cfs["custom_field"]["name"] == custom_field_name), None)
+
+    if custom_field_setting is None:
         return None
-    else:
+
+    if custom_field_setting["custom_field"]["resource_subtype"] == "enum":
+        enum_options = custom_field_setting["custom_field"]["enum_options"]
         filtered_gid = [
             enum_option["gid"]
-            for enum_option in filtered_enum_options[0]
-            if enum_option["name"] == enum_option_name and enum_option["enabled"]
+            for enum_option in enum_options
+            if enum_option["name"] == value_name and enum_option["enabled"]
         ]
         return filtered_gid[0] if filtered_gid else None
-
+    else:
+        return value_name
 
 def _task_assignee_from_pull_request(pull_request: PullRequest) -> Optional[str]:
     assignee = pull_request.assignee()
