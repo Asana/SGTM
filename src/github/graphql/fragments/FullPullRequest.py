@@ -68,9 +68,6 @@ fragment FullPullRequest on PullRequest {
   commits(last: 1) {
     nodes {
       commit {
-        status {
-          state
-        }
         statusCheckRollup {
           state
         }

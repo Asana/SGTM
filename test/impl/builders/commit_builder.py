@@ -8,13 +8,13 @@ class CommitBuilder(BuilderBaseClass):
     def __init__(self, status=Commit.BUILD_PENDING):
         self.raw_commit = {
             "commit": {
-                "status": {"state": status},
+                "statusCheckRollup": {"state": status},
                 "node_id": create_uuid(),
             }
         }
 
     def status(self, status: str) -> Union["CommitBuilder", Commit]:
-        self.raw_commit["commit"]["status"]["state"] = status
+        self.raw_commit["commit"]["statusCheckRollup"]["state"] = status
         return self
 
     def build(self) -> Commit:

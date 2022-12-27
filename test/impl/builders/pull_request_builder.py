@@ -33,7 +33,7 @@ class PullRequestBuilder(BuilderBaseClass):
                 "nodes": [
                     {
                         "commit": {
-                            "status": {"state": Commit.BUILD_PENDING},
+                            "statusCheckRollup": {"state": Commit.BUILD_PENDING},
                             "node_id": create_uuid(),
                         }
                     }
