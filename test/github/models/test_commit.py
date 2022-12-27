@@ -5,7 +5,9 @@ from src.github.models import Commit
 
 class TestCommit(BaseClass):
     def test_status_check_rollup_success(self):
-        raw_commit = {"commit": {"statusCheckRollup": {"state": Commit.BUILD_SUCCESSFUL}}}
+        raw_commit = {
+            "commit": {"statusCheckRollup": {"state": Commit.BUILD_SUCCESSFUL}}
+        }
         commit = Commit(raw_commit)
         self.assertEqual(commit.status(), Commit.BUILD_SUCCESSFUL)
 
