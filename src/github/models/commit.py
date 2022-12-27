@@ -12,9 +12,7 @@ class Commit(object):
 
     # A commit's status can be None while the logic to start tests runs right after committing.
     def status(self) -> Optional[str]:
-        status = self._raw["commit"].get("status")
-        if status is None:
-            status = self._raw["commit"].get("statusCheckRollup")
+        status = self._raw["commit"].get("statusCheckRollup")
 
         if status is None:
             return None
