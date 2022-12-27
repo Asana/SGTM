@@ -4,7 +4,7 @@ from test.impl.base_test_case_class import BaseClass
 from test.impl.builders.custom_field_builder import get_custom_field_settings_for_test
 
 
-class TestGetCustomFieldEnumOptionId(BaseClass):
+class TestGetCustomFieldValue(BaseClass):
     @classmethod
     def setUpClass(cls):
         cls.custom_field_gid = "11111"
@@ -23,7 +23,7 @@ class TestGetCustomFieldEnumOptionId(BaseClass):
         )
 
     def test_get_valid_custom_field_enum_option_id(self):
-        enum_option_id = asana_helpers._get_custom_field_enum_option_id(
+        enum_option_id = asana_helpers._get_custom_field_value(
             self.custom_field_name,
             self.enabled_enum_option_name,
             self.custom_field_data,
@@ -31,19 +31,19 @@ class TestGetCustomFieldEnumOptionId(BaseClass):
         self.assertEqual(enum_option_id, self.enabled_enum_option_gid)
 
     def test_invalid_custom_field(self):
-        enum_option_id = asana_helpers._get_custom_field_enum_option_id(
+        enum_option_id = asana_helpers._get_custom_field_value(
             "RandomField", self.enabled_enum_option_name, self.custom_field_data
         )
         self.assertIsNone(enum_option_id)
 
     def test_invalid_enum_option(self):
-        enum_option_id = asana_helpers._get_custom_field_enum_option_id(
+        enum_option_id = asana_helpers._get_custom_field_value(
             self.custom_field_name, "RandomEnumOption", self.custom_field_data
         )
         self.assertIsNone(enum_option_id)
 
     def test_get_enum_option_id_for_disabled_option(self):
-        enum_option_id = asana_helpers._get_custom_field_enum_option_id(
+        enum_option_id = asana_helpers._get_custom_field_value(
             self.custom_field_name,
             self.disabled_enum_option_name,
             self.custom_field_data,
