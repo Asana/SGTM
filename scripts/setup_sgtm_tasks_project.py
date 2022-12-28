@@ -20,7 +20,7 @@ class CustomField:
 
     def resource_subtype(self):
         raise NotImplementedError(
-            "resource_subtype not implemented in " + self.__class.__name
+            "resource_subtype not implemented in " + self.__class__.__name__
         )
 
     def additional_custom_field_data(self):
