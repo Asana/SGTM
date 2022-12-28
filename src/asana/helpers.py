@@ -85,6 +85,7 @@ def _build_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
     build_status = pull_request.build_status()
     return build_status.capitalize() if build_status is not None else None
 
+
 def _author_asana_user_id_from_pull_request(pull_request: PullRequest) -> Optional[str]:
     asana_user_id = _asana_user_id_from_github_handle(pull_request.author_handle())
     return asana_user_id
@@ -146,7 +147,14 @@ def _get_custom_field_value(
     custom_field_name: str, value_name: str, custom_field_settings: List[dict]
 ) -> Optional[str]:
 
-    custom_field_setting = next((cfs for cfs in custom_field_settings if cfs["custom_field"]["name"] == custom_field_name), None)
+    custom_field_setting = next(
+        (
+            cfs
+            for cfs in custom_field_settings
+            if cfs["custom_field"]["name"] == custom_field_name
+        ),
+        None,
+    )
 
     if custom_field_setting is None:
         return None
@@ -161,6 +169,7 @@ def _get_custom_field_value(
         return filtered_gid[0] if filtered_gid else None
     else:
         return value_name
+
 
 def _task_assignee_from_pull_request(pull_request: PullRequest) -> Optional[str]:
     assignee = pull_request.assignee()

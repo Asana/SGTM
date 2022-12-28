@@ -25,22 +25,23 @@ class TestGetCustomFieldValue(BaseClass):
     def test_get_valid_people_custom_field_value(self):
         cf_name = "Author"
         expected_cf_value = "9999999999"
-        custom_field_data = [{
-            "gid": "1243324",
-            "custom_field": {
-                "name": cf_name,
-                "resource_type": "custom_field",
-                "resource_subtype": "people",
-            },
-            "resource_type": "custom_field_setting",
-        }]
+        custom_field_data = [
+            {
+                "gid": "1243324",
+                "custom_field": {
+                    "name": cf_name,
+                    "resource_type": "custom_field",
+                    "resource_subtype": "people",
+                },
+                "resource_type": "custom_field_setting",
+            }
+        ]
         cf_value = asana_helpers._get_custom_field_value(
             cf_name,
             expected_cf_value,
             custom_field_data,
         )
         self.assertEqual(cf_value, expected_cf_value)
-
 
     def test_get_valid_custom_field_enum_option_id(self):
         enum_option_id = asana_helpers._get_custom_field_value(
