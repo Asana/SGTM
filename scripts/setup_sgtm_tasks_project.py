@@ -17,7 +17,39 @@ class EnumOption:
 @dataclass
 class CustomField:
     name: str
+
+    def resource_subtype(self):
+        raise NotImplementedError(
+            "resource_subtype not implemented in " + self.__class__.__name__
+        )
+
+    def additional_custom_field_data(self):
+        return {}
+
+
+@dataclass
+class EnumCustomField(CustomField):
     enum_options: List[EnumOption]
+
+    def resource_subtype(self):
+        return "enum"
+
+    def additional_custom_field_data(self):
+        enum_options = [
+            {
+                "name": enum_option.name,
+                "color": enum_option.color,
+                "enabled": True,
+            }
+            for enum_option in self.enum_options
+        ]
+        return {"enum_options": enum_options}
+
+
+@dataclass
+class PeopleCustomField(CustomField):
+    def resource_subtype(self):
+        return "people"
 
 
 # If adding a new option, ensure that the color you're selecting is part of this list of colors:
@@ -25,7 +57,7 @@ class CustomField:
 # "aqua" | "blue" | "indigo" | "purple" | "magenta" | "hot-pink" | "pink" | "cool-gray"
 # TODO: Replace this list with a link to public documentation once available
 CUSTOM_FIELDS = [
-    CustomField(
+    EnumCustomField(
         name="PR Status",
         enum_options=[
             EnumOption(name="Open", color="green"),
@@ -34,13 +66,14 @@ CUSTOM_FIELDS = [
             EnumOption(name="Closed", color="red"),
         ],
     ),
-    CustomField(
+    EnumCustomField(
         name="Build",
         enum_options=[
             EnumOption(name="Success", color="green"),
             EnumOption(name="Failure", color="red"),
         ],
     ),
+    PeopleCustomField(name="Author"),
 ]
 
 
@@ -183,18 +216,13 @@ class AsanaClient(object):
         Create the custom fields that SGTM requires and add them to the given project
         """
         for custom_field in CUSTOM_FIELDS:
-            enum_options = [
-                {"name": enum_option.name, "color": enum_option.color, "enabled": True}
-                for enum_option in custom_field.enum_options
-            ]
-
             custom_field_data = {
                 "name": custom_field.name,
                 "enabled": True,
                 "workspace": self.workspace_id,
-                "resource_subtype": "enum",
-                "enum_options": enum_options,
+                "resource_subtype": custom_field.resource_subtype(),
                 "is_global_to_workspace": False,
+                **custom_field.additional_custom_field_data(),
             }
 
             try:

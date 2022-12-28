@@ -24,6 +24,7 @@ class CustomFieldSettingForTests:
     name: str
     gid: str
     enum_options: List[EnumOptionSettingsForTests]
+    resource_subtype: str = "enum"
 
     def __getitem__(self, item):
         return getattr(self, item)
