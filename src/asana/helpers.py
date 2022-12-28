@@ -134,9 +134,7 @@ def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
         return data
 
 
-def _get_custom_field_value(
-    custom_field: dict, value_name: str
-) -> Optional[str]:
+def _get_custom_field_value(custom_field: dict, value_name: str) -> Optional[str]:
     if custom_field["resource_subtype"] == "enum":
         enum_options = custom_field["enum_options"]
         filtered_gid = [
