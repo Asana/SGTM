@@ -36,7 +36,11 @@ class EnumCustomField(CustomField):
 
     def additional_custom_field_data(self):
         enum_options = [
-            {"name": enum_option.name, "color": enum_option.color, "enabled": True}
+            {
+                "name": enum_option.name,
+                "color": enum_option.color,
+                "enabled": True,
+            }
             for enum_option in self.enum_options
         ]
         return {"enum_options": enum_options}

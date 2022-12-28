@@ -87,8 +87,7 @@ def _build_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
 
 
 def _author_asana_user_id_from_pull_request(pull_request: PullRequest) -> Optional[str]:
-    asana_user_id = _asana_user_id_from_github_handle(pull_request.author_handle())
-    return asana_user_id
+    return _asana_user_id_from_github_handle(pull_request.author_handle())
 
 
 _custom_fields_to_extract_map = {
