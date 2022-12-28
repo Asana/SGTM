@@ -113,53 +113,32 @@ def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
         # TODO: Full sync
         return {}
     else:
-        custom_field_settings = list(asana_client.get_project_custom_fields(project_id))
+        custom_field_map = {
+            cf["custom_field"]["name"]: cf["custom_field"]
+            for cf in asana_client.get_project_custom_fields(project_id)
+        }
         data = {}
         for custom_field_name, action in _custom_fields_to_extract_map.items():
+            if custom_field_name not in custom_field_map:
+                continue
+
+            custom_field = custom_field_map[custom_field_name]
             value_name = action(pull_request)
 
             if value_name:
-                custom_field_id = _get_custom_field_id(
-                    custom_field_name, custom_field_settings
-                )
-                custom_field_value = _get_custom_field_value(
-                    custom_field_name, value_name, custom_field_settings
-                )
-                if custom_field_id and custom_field_value:
+                custom_field_id = custom_field["gid"]
+                custom_field_value = _get_custom_field_value(custom_field, value_name)
+                if custom_field_value:
                     data[custom_field_id] = custom_field_value
 
         return data
 
 
-def _get_custom_field_id(
-    custom_field_name: str, custom_field_settings: List[dict]
-) -> Optional[str]:
-    filtered_gid = [
-        custom_field_setting["custom_field"]["gid"]
-        for custom_field_setting in custom_field_settings
-        if custom_field_setting["custom_field"]["name"] == custom_field_name
-    ]
-    return filtered_gid[0] if filtered_gid else None
-
-
 def _get_custom_field_value(
-    custom_field_name: str, value_name: str, custom_field_settings: List[dict]
+    custom_field: dict, value_name: str
 ) -> Optional[str]:
-
-    custom_field_setting = next(
-        (
-            cfs
-            for cfs in custom_field_settings
-            if cfs["custom_field"]["name"] == custom_field_name
-        ),
-        None,
-    )
-
-    if custom_field_setting is None:
-        return None
-
-    if custom_field_setting["custom_field"]["resource_subtype"] == "enum":
-        enum_options = custom_field_setting["custom_field"]["enum_options"]
+    if custom_field["resource_subtype"] == "enum":
+        enum_options = custom_field["enum_options"]
         filtered_gid = [
             enum_option["gid"]
             for enum_option in enum_options
