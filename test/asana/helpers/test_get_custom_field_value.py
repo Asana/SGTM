@@ -1,7 +1,9 @@
 from src.asana import helpers as asana_helpers
 
 from test.impl.base_test_case_class import BaseClass
-from test.impl.builders.custom_field_builder import get_enum_custom_field_setting_for_test
+from test.impl.builders.custom_field_builder import (
+    get_enum_custom_field_setting_for_test,
+)
 
 
 class TestGetCustomFieldValue(BaseClass):
@@ -26,10 +28,10 @@ class TestGetCustomFieldValue(BaseClass):
         cf_name = "Author"
         expected_cf_value = "9999999999"
         custom_field_data = {
-                    "name": cf_name,
-                    "resource_type": "custom_field",
-                    "resource_subtype": "people",
-            }
+            "name": cf_name,
+            "resource_type": "custom_field",
+            "resource_subtype": "people",
+        }
         cf_value = asana_helpers._get_custom_field_value(
             custom_field_data,
             expected_cf_value,
