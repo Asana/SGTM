@@ -19,7 +19,9 @@ class CustomField:
     name: str
 
     def resource_subtype(self):
-        raise NotImplementedError("resource_subtype not implemented in " + self.__class.__name)
+        raise NotImplementedError(
+            "resource_subtype not implemented in " + self.__class.__name
+        )
 
     def additional_custom_field_data(self):
         return {}
@@ -38,6 +40,7 @@ class EnumCustomField(CustomField):
             for enum_option in self.enum_options
         ]
         return {"enum_options": enum_options}
+
 
 @dataclass
 class PeopleCustomField(CustomField):
@@ -66,9 +69,7 @@ CUSTOM_FIELDS = [
             EnumOption(name="Failure", color="red"),
         ],
     ),
-    PeopleCustomField(
-        name="Author"
-    ),
+    PeopleCustomField(name="Author"),
 ]
 
 
