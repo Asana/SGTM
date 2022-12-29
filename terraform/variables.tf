@@ -26,6 +26,12 @@ variable "lambda_function_timeout" {
   default     = 120
 }
 
+variable "lambda_runtime" {
+  type        = string
+  description = "Runtime of AWS Lambda function"
+  default     = "python3.7"
+}
+
 
 variable "terraform_backend_s3_bucket_name" {
   type        = string
