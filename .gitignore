@@ -120,3 +120,4 @@ v-env/
 
 # VSCode
 .vscode
+.git/
