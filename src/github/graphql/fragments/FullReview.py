@@ -9,6 +9,7 @@ fragment FullReview on PullRequestReview {
     login
     ... on User {
       name
+      id
     }
   }
   body

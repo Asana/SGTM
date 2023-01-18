@@ -12,7 +12,9 @@ class TestPullRequest(BaseClass):
             .requested_reviewers([user])
             .requested_reviewer_team("some_team", ["user1", "user2"])
         )
-        self.assertEqual(["user1", "user2"], pull_request.requested_reviewers())
+        reviewers = pull_request.requested_reviewers()
+        reviewer_logins = [reviewer.login for reviewer in reviewers]
+        self.assertEqual(["user1", "user2"], reviewer_logins)
 
 
 if __name__ == "__main__":
