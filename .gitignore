@@ -114,6 +114,7 @@ terraform/terraform.backup
 terraform/terraform.tfstate.backup
 terraform/.terraform.lock.hcl
 terraform/backend.tf
+terraform/lambda_dist_pkg/
 
 # virtualenv
 v-env/

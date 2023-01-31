@@ -125,16 +125,38 @@ resource "aws_iam_policy" "LambdaFunctionApiKeysBucketAccess" {
 EOF
 }
 
+resource "null_resource" "install_python_dependencies" {
+  provisioner "local-exec" {
+    command = "bash ${path.module}/../scripts/create_pkg.sh"
+
+    environment = {
+      source_code_path = "../src"
+      function_name    = "sgtm"
+      runtime          = var.lambda_runtime
+      path_cwd         = path.cwd
+    }
+  }
+}
+
+
+data "archive_file" "create_dist_pkg" {
+  depends_on  = [null_resource.install_python_dependencies]
+  source_dir  = "${path.cwd}/lambda_dist_pkg/"
+  output_path = "build/function.zip"
+  type        = "zip"
+}
+
 
 resource "aws_s3_bucket" "lambda_code_s3_bucket" {
   bucket = var.lambda_code_s3_bucket_name
 }
 
 resource "aws_s3_bucket_object" "lambda_code_bundle" {
-  bucket = aws_s3_bucket.lambda_code_s3_bucket.bucket
-  key    = "sgtm_bundle.zip"
-  source = "../build/function.zip"
-  etag   = filemd5("../build/function.zip")
+  depends_on = [null_resource.install_python_dependencies]
+  bucket     = aws_s3_bucket.lambda_code_s3_bucket.bucket
+  key        = "sgtm_bundle.zip"
+  source     = data.archive_file.create_dist_pkg.output_path
+  etag       = filemd5(data.archive_file.create_dist_pkg.output_path)
 }
 
 resource "aws_lambda_function" "sgtm" {
@@ -143,9 +165,9 @@ resource "aws_lambda_function" "sgtm" {
   function_name    = "sgtm"
   role             = aws_iam_role.iam_for_lambda_function.arn
   handler          = "src.handler.handler"
-  source_code_hash = filebase64sha256("../build/function.zip")
+  source_code_hash = filebase64sha256(data.archive_file.create_dist_pkg.output_path)
 
-  runtime = "python3.7"
+  runtime = var.lambda_runtime
 
   timeout = var.lambda_function_timeout
   environment {
@@ -164,9 +186,9 @@ resource "aws_lambda_function" "sgtm_sync_users" {
   function_name    = "sgtm_sync_users"
   role             = aws_iam_role.iam_for_lambda_function.arn
   handler          = "src.sync_users.handler.handler"
-  source_code_hash = filebase64sha256("../build/function.zip")
+  source_code_hash = filebase64sha256(data.archive_file.create_dist_pkg.output_path)
 
-  runtime = "python3.7"
+  runtime = var.lambda_runtime
 
   timeout = 900
   environment {
