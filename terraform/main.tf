@@ -131,20 +131,20 @@ resource "null_resource" "install_python_dependencies" {
 
     environment = {
       source_code_path = "../src"
-      function_name = "sgtm"
-      path_module = path.module
-      runtime = var.lambda_runtime
-      path_cwd = path.cwd
+      function_name    = "sgtm"
+      path_module      = path.module
+      runtime          = var.lambda_runtime
+      path_cwd         = path.cwd
     }
   }
 }
 
 
 data "archive_file" "create_dist_pkg" {
-  depends_on = [null_resource.install_python_dependencies]
-  source_dir = "${path.cwd}/lambda_dist_pkg/"
+  depends_on  = [null_resource.install_python_dependencies]
+  source_dir  = "${path.cwd}/lambda_dist_pkg/"
   output_path = "build/function.zip"
-  type = "zip"
+  type        = "zip"
 }
 
 
@@ -154,10 +154,10 @@ resource "aws_s3_bucket" "lambda_code_s3_bucket" {
 
 resource "aws_s3_bucket_object" "lambda_code_bundle" {
   depends_on = [null_resource.install_python_dependencies]
-  bucket = aws_s3_bucket.lambda_code_s3_bucket.bucket
-  key    = "sgtm_bundle.zip"
-  source = data.archive_file.create_dist_pkg.output_path
-  etag   = filemd5("${data.archive_file.create_dist_pkg.output_path}")
+  bucket     = aws_s3_bucket.lambda_code_s3_bucket.bucket
+  key        = "sgtm_bundle.zip"
+  source     = data.archive_file.create_dist_pkg.output_path
+  etag       = filemd5(data.archive_file.create_dist_pkg.output_path)
 }
 
 resource "aws_lambda_function" "sgtm" {
@@ -166,7 +166,7 @@ resource "aws_lambda_function" "sgtm" {
   function_name    = "sgtm"
   role             = aws_iam_role.iam_for_lambda_function.arn
   handler          = "src.handler.handler"
-  source_code_hash = filebase64sha256("${data.archive_file.create_dist_pkg.output_path}")
+  source_code_hash = filebase64sha256(data.archive_file.create_dist_pkg.output_path)
 
   runtime = var.lambda_runtime
 
@@ -187,7 +187,7 @@ resource "aws_lambda_function" "sgtm_sync_users" {
   function_name    = "sgtm_sync_users"
   role             = aws_iam_role.iam_for_lambda_function.arn
   handler          = "src.sync_users.handler.handler"
-  source_code_hash = filebase64sha256("${data.archive_file.create_dist_pkg.output_path}")
+  source_code_hash = filebase64sha256(data.archive_file.create_dist_pkg.output_path)
 
   runtime = var.lambda_runtime
 
