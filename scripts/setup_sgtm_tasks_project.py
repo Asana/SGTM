@@ -73,7 +73,7 @@ CUSTOM_FIELDS = [
             EnumOption(name="Failure", color="red"),
         ],
     ),
-    PeopleCustomField(name="Author"),
+    PeopleCustomField(name="Author (SGTM)"),
 ]
 
 

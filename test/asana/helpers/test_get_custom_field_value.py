@@ -25,7 +25,7 @@ class TestGetCustomFieldValue(BaseClass):
         )
 
     def test_get_valid_people_custom_field_value(self):
-        cf_name = "Author"
+        cf_name = "Author (SGTM)"
         expected_cf_value = "9999999999"
         custom_field_data = {
             "name": cf_name,
