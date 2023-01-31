@@ -19,11 +19,11 @@ FILE=$path_cwd/../requirements.txt
 
 if [ -f "$FILE" ]; then
   echo "Installing dependencies..."
-  echo "From: requirement.txt file exists..."
+  echo "From: requirements.txt file exists..."
   pip3 install -r "$FILE"
 
 else
-  echo "Error: requirement.txt does not exist!"
+  echo "Error: requirements.txt does not exist!"
 fi
 
 # Deactivate virtual environment...
