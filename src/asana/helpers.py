@@ -93,7 +93,7 @@ def _author_asana_user_id_from_pull_request(pull_request: PullRequest) -> Option
 _custom_fields_to_extract_map = {
     "PR Status": _task_status_from_pull_request,
     "Build": _build_status_from_pull_request,
-    "Author": _author_asana_user_id_from_pull_request,
+    "Author (SGTM)": _author_asana_user_id_from_pull_request,
 }
 
 
