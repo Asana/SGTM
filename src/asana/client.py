@@ -146,12 +146,12 @@ class AsanaClient(object):
         )
 
 
-
 def get_task(task_id: str) -> dict:
     """
     Gets an Asana Task given a task id
     """
     return AsanaClient.singleton().get_task(task_id)
+
 
 def create_task(project_id: str, due_date_str: str = None) -> str:
     """
