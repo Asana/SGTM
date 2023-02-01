@@ -51,6 +51,11 @@ def extract_task_fields_from_pull_request(pull_request: PullRequest) -> dict:
     }
 
 
+def today_str() -> str:
+    today = datetime.now()
+    return today.strftime("%Y-%m-%d")
+
+
 def default_due_date_str(reference_datetime: datetime = None) -> str:
     if reference_datetime is None:
         reference_datetime = datetime.now()

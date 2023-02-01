@@ -47,6 +47,13 @@ class AsanaClient(object):
             cls._singleton = AsanaClient()
         return cls._singleton
 
+    def get_task(self, task_id: str) -> dict:
+        """
+        Gets an Asana Task given a task id
+        """
+        validate_object_id(task_id, "AsanaClient.get_task requires a task_id")
+        return self.asana_api_client.tasks.find_by_id(task_id)
+
     def create_task(self, project_id: str, due_date_str: str = None) -> str:
         """
         Creates an Asana task in the specified project, returning the task_id
@@ -137,6 +144,13 @@ class AsanaClient(object):
         self.asana_api_client.attachments.create_on_task(
             task_id, attachment_content, attachment_name, attachment_type
         )
+
+
+def get_task(task_id: str) -> dict:
+    """
+    Gets an Asana Task given a task id
+    """
+    return AsanaClient.singleton().get_task(task_id)
 
 
 def create_task(project_id: str, due_date_str: str = None) -> str:
