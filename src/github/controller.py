@@ -69,9 +69,13 @@ def upsert_review(pull_request: PullRequest, review: Review):
             " now."
         )
         asana_controller.upsert_github_review_to_task(review, task_id)
+        force_update_due_today = False
         if review.is_approval_or_changes_requested():
             assign_pull_request_to_author(pull_request)
-        asana_controller.update_task(pull_request, task_id)
+            force_update_due_today = True
+        asana_controller.update_task(
+            pull_request, task_id, force_update_due_today=force_update_due_today
+        )
 
 
 def assign_pull_request_to_author(pull_request: PullRequest):

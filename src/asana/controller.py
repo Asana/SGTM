@@ -1,5 +1,4 @@
 from typing import Optional
-from datetime import datetime
 from . import client as asana_client
 from . import helpers as asana_helpers
 from . import logic as asana_logic
@@ -20,7 +19,9 @@ def create_task(repository_id: str) -> Optional[str]:
         return asana_client.create_task(project_id, due_date_str=due_date_str)
 
 
-def update_task(pull_request: PullRequest, task_id: str):
+def update_task(
+    pull_request: PullRequest, task_id: str, force_update_due_today: bool = False
+):
     task_url = asana_helpers.task_url_from_task_id(task_id)
     pr_url = pull_request.url()
     logger.info(f"Updating task {task_url} for pull request {pr_url}")
@@ -35,7 +36,11 @@ def update_task(pull_request: PullRequest, task_id: str):
         if k in ("assignee", "name", "html_notes", "completed", "custom_fields")
     }
     task = asana_client.get_task(task_id)
-    new_due_on = _new_due_on_or_none(task, update_task_fields)
+    new_due_on = (
+        asana_helpers.today_str()
+        if force_update_due_today
+        else _new_due_on_or_none(task, update_task_fields)
+    )
     if new_due_on is not None:
         update_task_fields["due_on"] = new_due_on
     asana_client.update_task(task_id, update_task_fields)
@@ -45,14 +50,14 @@ def update_task(pull_request: PullRequest, task_id: str):
 
 def _new_due_on_or_none(task: dict, update_task_fields: dict) -> Optional[str]:
     due_on = None
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = asana_helpers.today_str()
 
     if task["due_on"] >= today:
         # don't update due dates that aren't stale
         return None
     elif (task.get("assignee") or {}).get("gid") != update_task_fields.get("assignee"):
         # if the task is switching assignees, update the due date to today
-        return datetime.now().strftime("%Y-%m-%d")
+        return today
     return None
 
 
