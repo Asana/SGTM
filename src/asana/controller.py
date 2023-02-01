@@ -45,10 +45,10 @@ def update_task(pull_request: PullRequest, task_id: str):
 
 def _new_due_on_or_none(task: dict, update_task_fields: dict) -> Optional[str]:
     due_on = None
-    default_due_on = asana_helpers.default_due_date_str()
+    today = datetime.now().strftime("%Y-%m-%d")
 
-    if task["due_on"] > default_due_on:
-        # don't update due dates that were potentially manually updated past the default
+    if task["due_on"] >= today:
+        # don't update due dates that aren't stale
         return None
     elif (task.get("assignee") or {}).get("gid") != update_task_fields.get("assignee"):
         # if the task is switching assignees, update the due date to today

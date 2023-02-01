@@ -121,6 +121,12 @@ class TestNewDueOnOrNone(BaseClass):
             datetime.now().strftime("%Y-%m-%d"),
         )
 
+    def test_new_assignee_due_on_today(self):
+        due_on = datetime.now().strftime("%Y-%m-%d")
+        task = {"assignee": {"gid": "123"}, "due_on": due_on}
+        update_task_fields = {"assignee": "321"}
+        self.assertEqual(controller._new_due_on_or_none(task, update_task_fields), None)
+
     def test_new_assignee_due_on_in_the_future(self):
         future_due_on = "3000-01-01"
         task = {"assignee": {"gid": "123"}, "due_on": future_due_on}
