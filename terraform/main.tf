@@ -126,6 +126,10 @@ EOF
 }
 
 resource "null_resource" "install_python_dependencies" {
+  triggers = {
+    src_sha1 = sha1(join("", [for f in fileset(path.root, "../src/**") : filesha1(f)]))
+  }
+
   provisioner "local-exec" {
     command = "bash ${path.module}/../scripts/create_pkg.sh"
 
@@ -152,11 +156,11 @@ resource "aws_s3_bucket" "lambda_code_s3_bucket" {
 }
 
 resource "aws_s3_bucket_object" "lambda_code_bundle" {
-  depends_on = [null_resource.install_python_dependencies]
-  bucket     = aws_s3_bucket.lambda_code_s3_bucket.bucket
-  key        = "sgtm_bundle.zip"
-  source     = data.archive_file.create_dist_pkg.output_path
-  etag       = filemd5(data.archive_file.create_dist_pkg.output_path)
+  depends_on  = [null_resource.install_python_dependencies]
+  bucket      = aws_s3_bucket.lambda_code_s3_bucket.bucket
+  key         = "sgtm_bundle.zip"
+  source      = data.archive_file.create_dist_pkg.output_path
+  source_hash = data.archive_file.create_dist_pkg.output_base64sha256
 }
 
 resource "aws_lambda_function" "sgtm" {
@@ -165,7 +169,7 @@ resource "aws_lambda_function" "sgtm" {
   function_name    = "sgtm"
   role             = aws_iam_role.iam_for_lambda_function.arn
   handler          = "src.handler.handler"
-  source_code_hash = filebase64sha256(data.archive_file.create_dist_pkg.output_path)
+  source_code_hash = data.archive_file.create_dist_pkg.output_base64sha256
 
   runtime = var.lambda_runtime
 
@@ -186,7 +190,7 @@ resource "aws_lambda_function" "sgtm_sync_users" {
   function_name    = "sgtm_sync_users"
   role             = aws_iam_role.iam_for_lambda_function.arn
   handler          = "src.sync_users.handler.handler"
-  source_code_hash = filebase64sha256(data.archive_file.create_dist_pkg.output_path)
+  source_code_hash = data.archive_file.create_dist_pkg.output_base64sha256
 
   runtime = var.lambda_runtime
 
