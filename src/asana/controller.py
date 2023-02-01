@@ -1,4 +1,5 @@
 from typing import Optional
+from datetime import datetime
 from . import client as asana_client
 from . import helpers as asana_helpers
 from . import logic as asana_logic
@@ -33,9 +34,26 @@ def update_task(pull_request: PullRequest, task_id: str):
         for k, v in fields.items()
         if k in ("assignee", "name", "html_notes", "completed", "custom_fields")
     }
+    task = asana_client.get_task(task_id)
+    new_due_on = _new_due_on_or_none(task, update_task_fields)
+    if new_due_on is not None:
+        update_task_fields["due_on"] = new_due_on
     asana_client.update_task(task_id, update_task_fields)
     asana_client.add_followers(task_id, fields["followers"])
     maybe_complete_tasks_on_merge(pull_request)
+
+
+def _new_due_on_or_none(task: dict, update_task_fields: dict) -> Optional[str]:
+    due_on = None
+    default_due_on = asana_helpers.default_due_date_str()
+
+    if task["due_on"] > default_due_on:
+        # don't update due dates that were potentially manually updated past the default
+        return None
+    elif (task.get("assignee") or {}).get("gid") != update_task_fields.get("assignee"):
+        # if the task is switching assignees, update the due date to today
+        return datetime.now().strftime("%Y-%m-%d")
+    return None
 
 
 def maybe_complete_tasks_on_merge(pull_request: PullRequest):
