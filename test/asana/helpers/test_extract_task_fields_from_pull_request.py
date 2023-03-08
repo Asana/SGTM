@@ -7,6 +7,7 @@ from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 from test.impl.builders import builder, build
 from dataclasses import dataclass
 from src.github.models import Commit
+from src.github.logic import ApprovedBeforeMergeStatus
 
 
 @dataclass
@@ -233,7 +234,7 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
 
     @patch("src.github.logic.pull_request_approved_before_merging")
     def test_html_body_status_closed_approved_before(self, approved_before_merging):
-        approved_before_merging.return_value = True
+        approved_before_merging.return_value = ApprovedBeforeMergeStatus.APPROVED
         pull_request = build(
             builder.pull_request()
             .author(builder.user("github_test_user_login"))
@@ -258,9 +259,9 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
     @patch("src.github.logic.pull_request_approved_before_merging")
     @patch("src.github.logic.pull_request_approved_after_merging")
     def test_html_body_status_closed_approved_after(
-        self, approved_before_merging, approved_after_merging
+        self, approved_after_merging, approved_before_merging
     ):
-        approved_before_merging.return_value = False
+        approved_before_merging.return_value = ApprovedBeforeMergeStatus.NO
         approved_after_merging.return_value = True
         pull_request = build(
             builder.pull_request()
@@ -277,7 +278,7 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
         expected_strings = [
             "<body>",
             "complete",
-            "the pull request was approved before merging.",
+            "the pull request was approved after merging.",
             "BODY",
             "</body>",
         ]
@@ -286,9 +287,9 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
     @patch("src.github.logic.pull_request_approved_before_merging")
     @patch("src.github.logic.pull_request_approved_after_merging")
     def test_html_body_status_merged_not_approved(
-        self, approved_before_merging, approved_after_merging
+        self, approved_after_merging, approved_before_merging
     ):
-        approved_before_merging.return_value = False
+        approved_before_merging.return_value = ApprovedBeforeMergeStatus.NO
         approved_after_merging.return_value = False
         pull_request = build(
             builder.pull_request()
@@ -410,11 +411,13 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
                         builder.review()
                         .submitted_at("2020-01-13T14:59:57Z")
                         .state(ReviewState.APPROVED)
+                        .author(builder.user("human"))
                     ),
                     (
                         builder.review()
                         .submitted_at("2020-01-13T14:59:58Z")
                         .state(ReviewState.CHANGES_REQUESTED)
+                        .author(builder.user("human"))
                     ),
                 ]
             )
@@ -437,6 +440,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
                     builder.review()
                     .submitted_at("2020-01-13T14:59:59Z")
                     .state(ReviewState.APPROVED)
+                    .author(builder.user("human"))
                 ]
             )
         )
@@ -459,11 +463,13 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
                         builder.review()
                         .submitted_at("2020-01-13T14:59:57Z")
                         .state(ReviewState.CHANGES_REQUESTED)
+                        .author(builder.user("human"))
                     ),
                     (
                         builder.review()
                         .submitted_at("2020-01-13T14:59:58Z")
                         .state(ReviewState.APPROVED)
+                        .author(builder.user("human"))
                     ),
                 ]
             )
@@ -486,10 +492,16 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
                     builder.review()
                     .submitted_at("2020-01-13T14:59:57Z")
                     .state(ReviewState.CHANGES_REQUESTED)
+                    .author(builder.user("human"))
                 ]
             )
             .comments(
-                [builder.comment().published_at("2020-02-02T12:12:12Z").body("LGTM!")]
+                [
+                    builder.comment()
+                    .published_at("2020-02-02T12:12:12Z")
+                    .body("LGTM!")
+                    .author(builder.user("human"))
+                ]
             )
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
@@ -512,6 +524,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
                     builder.review()
                     .submitted_at("2020-01-13T14:59:57Z")
                     .state(ReviewState.CHANGES_REQUESTED)
+                    .author(builder.user("human"))
                 ]
             )
             .comments(
@@ -568,6 +581,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
                     builder.review()
                     .submitted_at("2020-02-13T14:59:57Z")
                     .state(ReviewState.CHANGES_REQUESTED)
+                    .author(builder.user("human"))
                     .body("LGTM!")
                 ]
             )
@@ -764,11 +778,13 @@ class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
                         builder.review()
                         .submitted_at("2020-01-13T14:59:58Z")
                         .state(ReviewState.CHANGES_REQUESTED)
+                        .author(builder.user("human"))
                     ),
                     (
                         builder.review()
                         .submitted_at("2020-01-13T14:59:57Z")
                         .state(ReviewState.APPROVED)
+                        .author(builder.user("human"))
                     ),
                 ]
             )
@@ -788,11 +804,13 @@ class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
                         builder.review()
                         .submitted_at("2020-01-13T14:59:58Z")
                         .state(ReviewState.APPROVED)
+                        .author(builder.user("human"))
                     ),
                     (
                         builder.review()
                         .submitted_at("2020-01-13T14:59:57Z")
                         .state(ReviewState.CHANGES_REQUESTED)
+                        .author(builder.user("human"))
                     ),
                 ]
             )

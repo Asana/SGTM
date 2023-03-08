@@ -38,4 +38,5 @@ SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS = {
     for github_id in os.getenv("SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS", "").split(
         ","
     )
+    if github_id
 }
