@@ -33,3 +33,7 @@ SGTM_FEATURE__AUTOCOMPLETE_ENABLED = is_feature_flag_enabled(
 SGTM_FEATURE__AUTOMERGE_ENABLED = is_feature_flag_enabled(
     "SGTM_FEATURE__AUTOMERGE_ENABLED"
 )
+SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS = {
+    int(github_id)
+    for github_id in os.getenv("SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS").split(",")
+}

@@ -412,8 +412,19 @@ def _task_completion_from_pull_request(pull_request: PullRequest) -> StatusReaso
         return StatusReason(False, "the pull request is open.")
     elif not pull_request.merged():
         return StatusReason(True, "the pull request was closed without merging code.")
-    elif github_logic.pull_request_approved_before_merging(pull_request):
+
+    approved_before_merge = github_logic.pull_request_approved_before_merging(
+        pull_request
+    )
+    if approved_before_merge == github_logic.ApprovedBeforeMergeStatus.APPROVED:
         return StatusReason(True, "the pull request was approved before merging.")
+    elif approved_before_merge == github_logic.ApprovedBeforeMergeStatus.NEEDS_FOLLOWUP:
+        return StatusReason(
+            False,
+            "the pull request was approved before merging by a Github user that "
+            + "requires follow-up review.  The Reviewer can close this task by "
+            + 'commenting "LGTM" on the Pull Request.',
+        )
     elif github_logic.pull_request_approved_after_merging(pull_request):
         return StatusReason(True, "the pull request was approved after merging.")
     else:
