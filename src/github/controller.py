@@ -5,6 +5,9 @@ from . import client as github_client
 import src.asana.helpers as asana_helpers
 from src.github.models import Comment, PullRequest, Review
 from src.logger import logger
+from src.config import (
+    SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS,
+)
 
 
 def upsert_pull_request(pull_request: PullRequest):
@@ -71,8 +74,13 @@ def upsert_review(pull_request: PullRequest, review: Review):
         asana_controller.upsert_github_review_to_task(review, task_id)
         force_update_due_today = False
         if review.is_approval_or_changes_requested():
-            assign_pull_request_to_author(pull_request)
-            force_update_due_today = True
+            # If this action was taken by a user that's marked for follow-up
+            # review, we should leave the PR assignee as is so they can do the
+            # follow-up.  Otherwise, reassign to the author so they can take
+            # action on the PR.
+            if review.author().id() not in SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS:
+                assign_pull_request_to_author(pull_request)
+                force_update_due_today = True
         asana_controller.update_task(
             pull_request, task_id, force_update_due_today=force_update_due_today
         )

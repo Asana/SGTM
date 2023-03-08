@@ -48,7 +48,7 @@ You'll need to create two Asana projects: one that will store the mapping of Git
      ```
       >>> To setup a new project
       python3 scripts/setup_sgtm_tasks_project.py  -p "<PAT>" create -n "<PROJECT NAME>" -t "<TEAM ID>"
-           
+
       >>> To update an existing project with the suggested custom fields
       python3 scripts/setup_sgtm_tasks_project.py  -p "<PAT>" update -e "<EXISTING PROJECT ID>"
       ```
@@ -124,6 +124,13 @@ Asana tasks:
 * Create a label of `complete tasks on merge` in your repository
 
 *Note*: If the SGTM user in your Asana domain doesn't have access to a linked task, it won't be able to merge it. You can add the SGTM user as a collaborator on a task to give it the ability to auto-complete the task.
+
+### Select users for follow-up review
+SGTM can avoid closing tasks if the approvals come from certain Github users.  This can be useful if you have specific Github users that you would like to be able to approve PRs in order to unblock merging, but that you want a second set of eyes on.
+For example, you may have a bot that automatically approves certain auto-generated PRs to speed up some workflow, but you still want a human to review those changes afterwards.
+
+**How to configure**:
+* Set an env variable of `TF_VAR_sgtm_feature__followup_review_github_users` to contain a comma-separated list of Github user ids that should have follow-up review
 
 ## Installing a Virtual Environment for Python
 
