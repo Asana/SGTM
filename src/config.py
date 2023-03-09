@@ -35,8 +35,8 @@ SGTM_FEATURE__AUTOMERGE_ENABLED = is_feature_flag_enabled(
 )
 SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS = {
     github_username
-    for github_username in os.getenv("SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS", "").split(
-        ","
-    )
+    for github_username in os.getenv(
+        "SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS", ""
+    ).split(",")
     if github_username
 }
