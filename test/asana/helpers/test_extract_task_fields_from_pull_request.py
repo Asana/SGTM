@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from src.github.models import Commit
 from src.github.logic import ApprovedBeforeMergeStatus
 
+followup_bot = builder.user("follow_up")
+
 
 @dataclass
 class EnumOptionSettingsForTests:
@@ -257,6 +259,30 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
         self.assertContainsStrings(actual, expected_strings)
 
     @patch("src.github.logic.pull_request_approved_before_merging")
+    def test_html_body_status_followup_review(self, approved_before_merging):
+        approved_before_merging.return_value = ApprovedBeforeMergeStatus.NEEDS_FOLLOWUP
+        pull_request = build(
+            builder.pull_request()
+            .author(builder.user("github_test_user_login"))
+            .url("https://foo.bar/baz")
+            .body("BODY")
+            .closed(True)
+            .merged(True)
+        )
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+        actual = task_fields["html_notes"]
+        expected_strings = [
+            "<body>",
+            "incomplete",
+            "approved before merging by a Github user that requires follow-up",
+            "BODY",
+            "</body>",
+        ]
+        self.assertContainsStrings(actual, expected_strings)
+
+    @patch("src.github.logic.pull_request_approved_before_merging")
     @patch("src.github.logic.pull_request_approved_after_merging")
     def test_html_body_status_closed_approved_after(
         self, approved_after_merging, approved_before_merging
@@ -426,6 +452,64 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
             pull_request
         )
         self.assertEqual(False, task_fields["completed"])
+
+    @patch(
+        "src.github.logic.SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS", [followup_bot]
+    )
+    def test_completed_is_false_if_pr_is_closed_and_was_approved_by_followup_user(self):
+        pull_request = build(
+            builder.pull_request()
+            .closed(True)
+            .merged(True)
+            .merged("2020-01-13T14:59:59Z")
+            .reviews(
+                [
+                    (
+                        builder.review()
+                        .submitted_at("2020-01-13T14:59:57Z")
+                        .state(ReviewState.APPROVED)
+                        .author(followup_bot)
+                    )
+                ]
+            )
+        )
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+        self.assertEqual(False, task_fields["completed"])
+
+    @patch(
+        "src.github.logic.SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS", [followup_bot]
+    )
+    def test_completed_is_true_if_pr_is_closed_and_was_approved_by_human_and_followup_user(
+        self,
+    ):
+        pull_request = build(
+            builder.pull_request()
+            .closed(True)
+            .merged(True)
+            .merged_at("2020-01-13T14:59:59Z")
+            .reviews(
+                [
+                    (
+                        builder.review()
+                        .submitted_at("2020-01-13T14:59:57Z")
+                        .state(ReviewState.APPROVED)
+                        .author(builder.user("human"))
+                    ),
+                    (
+                        builder.review()
+                        .submitted_at("2020-01-13T14:59:58Z")
+                        .state(ReviewState.APPROVED)
+                        .author(followup_bot)
+                    ),
+                ]
+            )
+        )
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+        self.assertEqual(True, task_fields["completed"])
 
     def test_completed_handles_gracefully_if_pr_is_closed_and_pr_was_approved_before_merging_with_merged_glitch(
         self,
