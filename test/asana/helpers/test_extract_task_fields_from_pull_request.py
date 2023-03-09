@@ -430,7 +430,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
             builder.pull_request()
             .closed(True)
             .merged(True)
-            .merged("2020-01-13T14:59:59Z")
+            .merged_at("2020-01-13T14:59:59Z")
             .reviews(
                 [
                     (
