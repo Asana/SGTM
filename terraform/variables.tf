@@ -62,6 +62,6 @@ variable "sgtm_feature__autocomplete_enabled" {
 
 variable "sgtm_feature__followup_review_github_users" {
   type        = string
-  description = "A comma-separated list of Github user ids that require follow-up review after merge"
+  description = "A comma-separated list of Github usernames that require follow-up review after merge"
   default     = ""
 }

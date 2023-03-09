@@ -130,7 +130,7 @@ SGTM can avoid closing tasks if the approvals come from certain Github users.  T
 For example, you may have a bot that automatically approves certain auto-generated PRs to speed up some workflow, but you still want a human to review those changes afterwards.
 
 **How to configure**:
-* Set an env variable of `TF_VAR_sgtm_feature__followup_review_github_users` to contain a comma-separated list of Github user ids that should have follow-up review
+* Set an env variable of `TF_VAR_sgtm_feature__followup_review_github_users` to contain a comma-separated list of Github usernames that should have follow-up review
 
 ## Installing a Virtual Environment for Python
 

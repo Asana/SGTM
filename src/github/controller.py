@@ -78,7 +78,7 @@ def upsert_review(pull_request: PullRequest, review: Review):
             # review, we should leave the PR assignee as is so they can do the
             # follow-up.  Otherwise, reassign to the author so they can take
             # action on the PR.
-            if review.author().id() not in SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS:
+            if review.author().login() not in SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS:
                 assign_pull_request_to_author(pull_request)
                 force_update_due_today = True
         asana_controller.update_task(

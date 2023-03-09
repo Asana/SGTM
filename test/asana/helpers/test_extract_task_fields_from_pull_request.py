@@ -455,7 +455,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
 
     @patch(
         "src.github.logic.SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS",
-        {followup_bot.id()},
+        {followup_bot.login()},
     )
     def test_completed_is_false_if_pr_is_closed_and_was_approved_by_followup_user(self):
         pull_request = build(
@@ -481,7 +481,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
 
     @patch(
         "src.github.logic.SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS",
-        {followup_bot.id()},
+        {followup_bot.login()},
     )
     def test_completed_is_true_if_pr_is_closed_and_was_approved_by_human_and_followup_user(
         self,
