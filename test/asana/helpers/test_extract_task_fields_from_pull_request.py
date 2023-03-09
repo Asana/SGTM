@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from src.github.models import Commit
 from src.github.logic import ApprovedBeforeMergeStatus
 
-followup_bot = builder.user("follow_up")
+followup_bot = builder.user("follow_up").build()
 
 
 @dataclass
@@ -454,14 +454,14 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
         self.assertEqual(False, task_fields["completed"])
 
     @patch(
-        "src.github.logic.SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS", [followup_bot]
+        "src.github.logic.SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS", [followup_bot.id()]
     )
     def test_completed_is_false_if_pr_is_closed_and_was_approved_by_followup_user(self):
         pull_request = build(
             builder.pull_request()
             .closed(True)
             .merged(True)
-            .merged("2020-01-13T14:59:59Z")
+            .merged_at("2020-01-13T14:59:59Z")
             .reviews(
                 [
                     (
@@ -479,7 +479,7 @@ class TestExtractsCompletedStatusFromPullRequest(BaseClass):
         self.assertEqual(False, task_fields["completed"])
 
     @patch(
-        "src.github.logic.SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS", [followup_bot]
+        "src.github.logic.SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS", [followup_bot.id()]
     )
     def test_completed_is_true_if_pr_is_closed_and_was_approved_by_human_and_followup_user(
         self,
