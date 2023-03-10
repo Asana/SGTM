@@ -1,11 +1,15 @@
 import re
 from typing import List
 from src.logger import logger
+
 from . import client as github_client
-from src.github.models import PullRequest, MergeableState
+from src.github.models import PullRequest, MergeableState, Review
 from enum import Enum, unique
 from src.github.helpers import pull_request_has_label
-from src.config import SGTM_FEATURE__AUTOMERGE_ENABLED
+from src.config import (
+    SGTM_FEATURE__AUTOMERGE_ENABLED,
+    SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS,
+)
 
 GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
 GITHUB_ATTACHMENT_REGEX = "!\[(.*?)\]\((.+?(\.png|\.jpg|\.jpeg|\.gif))"
@@ -29,6 +33,13 @@ class AutomergeLabel(Enum):
     AFTER_TESTS = "merge after tests"
     AFTER_APPROVAL = "merge after approval"
     IMMEDIATELY = "merge immediately"
+
+
+@unique
+class ApprovedBeforeMergeStatus(Enum):
+    NO = 0
+    NEEDS_FOLLOWUP = 1
+    APPROVED = 2
 
 
 def inject_asana_task_into_pull_request_body(body: str, task_url: str) -> str:
@@ -69,23 +80,53 @@ def _pull_request_commenters(pull_request: PullRequest) -> List[str]:
     return sorted(comment.author_handle() for comment in pull_request.comments())
 
 
-def pull_request_approved_before_merging(pull_request: PullRequest) -> bool:
+def pull_request_approved_before_merging(
+    pull_request: PullRequest,
+) -> ApprovedBeforeMergeStatus:
     """
     The pull request has been approved if the last review (approval/changes
-    requested) before merging was an approval
+    requested) before merging was an approval, ignoring reviews from users that
+    are marked as needing follow-up review.
     """
+    assert pull_request.merged(), "Checked for pre-merge approval on a non-merged PR"
     merged_at = pull_request.merged_at()
-    if merged_at is not None:
-        premerge_reviews = [
+    if merged_at is None:
+        # The PR was merged but we don't know when.  Assume it was approved after.
+        return ApprovedBeforeMergeStatus.NO
+
+    premerge_reviews = sorted(
+        (
             review
             for review in pull_request.reviews()
             if review.is_approval_or_changes_requested()
             and review.submitted_at() < merged_at
+        ),
+        key=lambda r: r.submitted_at(),
+    )
+
+    if len(premerge_reviews) == 0:
+        # We didn't find any reviews
+        return ApprovedBeforeMergeStatus.NO
+
+    latest_review = premerge_reviews[-1]
+    if not latest_review.is_approval():
+        return ApprovedBeforeMergeStatus.NO
+
+    # We know the last review was an approval, but we want to figure out
+    # whether it still needs follow-up review.
+    if latest_review.author().login() in SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS:
+        # The last review needs follow-up - check if there was a review just
+        # before that which doesn't need follow-up.
+        no_followup_reviews = [
+            r
+            for r in premerge_reviews
+            if r.author().login() not in SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS
         ]
-        if premerge_reviews:
-            latest_review = sorted(premerge_reviews, key=lambda r: r.submitted_at())[-1]
-            return latest_review.is_approval()
-    return False
+        if len(no_followup_reviews) == 0 or not no_followup_reviews[-1].is_approval():
+            # There were no approvals before this that didn't need follow-up review.
+            return ApprovedBeforeMergeStatus.NEEDS_FOLLOWUP
+
+    return ApprovedBeforeMergeStatus.APPROVED
 
 
 def _is_approval_comment_body(body: str) -> bool:
@@ -110,6 +151,9 @@ def pull_request_approved_after_merging(pull_request: PullRequest) -> bool:
     a marker text, such as "LGTM" or "looks good to me".
 
     This method handles this part of the logic.
+
+    NOTE: We ignore actions from users who are marked as needing follow-up
+    review, since their input isn't useful after a PR has been merged.
     """
     merged_at = pull_request.merged_at()
     if merged_at is not None:
@@ -122,6 +166,8 @@ def pull_request_approved_after_merging(pull_request: PullRequest) -> bool:
             for comment in pull_request.comments()
             if comment.published_at() >= merged_at
             and comment.author_handle() != pull_request.author_handle()
+            and comment.author().login()
+            not in SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS
             # TODO: consider using the lastEditedAt timestamp. A reviewer might comment: "noice!" prior to the PR being
             #       merged, then update their comment to "noice! LGTM!!!" after it had been merged.  This would however not
             #       suffice to cause the PR to be considered approved after merging.
@@ -131,6 +177,8 @@ def pull_request_approved_after_merging(pull_request: PullRequest) -> bool:
             review
             for review in pull_request.reviews()
             if review.submitted_at() >= merged_at
+            and review.author().login()
+            not in SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS
         ]
         body_texts = [c.body() for c in postmerge_comments] + [
             r.body() for r in postmerge_reviews

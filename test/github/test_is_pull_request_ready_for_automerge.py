@@ -467,12 +467,15 @@ class GithubLogicTest(unittest.TestCase):
                     builder.review()
                     .submitted_at(submitted_at)
                     .state(ReviewState.APPROVED)
+                    .author(builder.user("human"))
                 ]
             )
             .merged_at(merged_at)
+            .merged(True)
         )
-        self.assertFalse(
-            github_logic.pull_request_approved_before_merging(pull_request)
+        self.assertEqual(
+            github_logic.pull_request_approved_before_merging(pull_request),
+            github_logic.ApprovedBeforeMergeStatus.NO,
         )
 
     def test_pull_request_approved_before_merging_review_approved_before_merge(self):
@@ -486,11 +489,16 @@ class GithubLogicTest(unittest.TestCase):
                     builder.review()
                     .submitted_at(submitted_at)
                     .state(ReviewState.APPROVED)
+                    .author(builder.user("human"))
                 ]
             )
             .merged_at(merged_at)
+            .merged(True)
         )
-        self.assertTrue(github_logic.pull_request_approved_before_merging(pull_request))
+        self.assertEqual(
+            github_logic.pull_request_approved_before_merging(pull_request),
+            github_logic.ApprovedBeforeMergeStatus.APPROVED,
+        )
 
     def test_pull_request_approved_before_merging_review_requested_changes_before_merge(
         self,
@@ -505,22 +513,30 @@ class GithubLogicTest(unittest.TestCase):
                     builder.review()
                     .submitted_at(submitted_at)
                     .state(ReviewState.CHANGES_REQUESTED)
+                    .author(builder.user("human"))
                 ]
             )
             .merged_at(merged_at)
+            .merged(True)
         )
-        self.assertFalse(
-            github_logic.pull_request_approved_before_merging(pull_request)
+        self.assertEqual(
+            github_logic.pull_request_approved_before_merging(pull_request),
+            github_logic.ApprovedBeforeMergeStatus.NO,
         )
 
     def test_pull_request_approved_before_merging_no_reviews(self):
-        pull_request = builder.pull_request().merged_at(datetime.now()).build()
-        self.assertFalse(
-            github_logic.pull_request_approved_before_merging(pull_request)
+        pull_request = (
+            builder.pull_request().merged_at(datetime.now()).merged(True).build()
+        )
+        self.assertEqual(
+            github_logic.pull_request_approved_before_merging(pull_request),
+            github_logic.ApprovedBeforeMergeStatus.NO,
         )
 
     def test_pull_request_approved_after_merging_no_reviews_or_comments(self):
-        pull_request = builder.pull_request().merged_at(datetime.now()).build()
+        pull_request = (
+            builder.pull_request().merged_at(datetime.now()).merged(True).build()
+        )
         self.assertFalse(github_logic.pull_request_approved_after_merging(pull_request))
 
     def test_pull_request_approved_after_merging_reviews_and_comments_no_approvals(
@@ -534,9 +550,20 @@ class GithubLogicTest(unittest.TestCase):
         pull_request = build(
             builder.pull_request()
             .merged_at(datetime.now())
-            .reviews([builder.review("This looks OK").submitted_at(reviewed_at)])
+            .merged(True)
+            .reviews(
+                [
+                    builder.review("This looks OK")
+                    .submitted_at(reviewed_at)
+                    .author(builder.user("human"))
+                ]
+            )
             .comments(
-                [builder.comment("v cool use of emojis").published_at(commented_at)]
+                [
+                    builder.comment("v cool use of emojis")
+                    .published_at(commented_at)
+                    .author(builder.user("human"))
+                ]
             )
         )
         self.assertFalse(github_logic.pull_request_approved_after_merging(pull_request))
@@ -548,8 +575,21 @@ class GithubLogicTest(unittest.TestCase):
         pull_request = build(
             builder.pull_request()
             .merged_at(datetime.now())
-            .reviews([builder.review("This looks OK").submitted_at(reviewed_at)])
-            .comments([builder.comment("SGTM!").published_at(commented_at)])
+            .merged(True)
+            .reviews(
+                [
+                    builder.review("This looks OK")
+                    .submitted_at(reviewed_at)
+                    .author(builder.user("human"))
+                ]
+            )
+            .comments(
+                [
+                    builder.comment("SGTM!")
+                    .published_at(commented_at)
+                    .author(builder.user("human"))
+                ]
+            )
         )
         self.assertTrue(github_logic.pull_request_approved_after_merging(pull_request))
 
@@ -560,11 +600,20 @@ class GithubLogicTest(unittest.TestCase):
         pull_request = build(
             builder.pull_request()
             .merged_at(datetime.now())
+            .merged(True)
             .reviews(
-                [builder.review("This looks great! :+1:").submitted_at(reviewed_at)]
+                [
+                    builder.review("This looks great! :+1:")
+                    .submitted_at(reviewed_at)
+                    .author(builder.user("human"))
+                ]
             )
             .comments(
-                [builder.comment("v cool use of emojis").published_at(commented_at)]
+                [
+                    builder.comment("v cool use of emojis")
+                    .published_at(commented_at)
+                    .author(builder.user("human"))
+                ]
             )
         )
         self.assertTrue(github_logic.pull_request_approved_after_merging(pull_request))

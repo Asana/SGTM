@@ -59,3 +59,9 @@ variable "sgtm_feature__autocomplete_enabled" {
   description = "'true' if behavior to autocomplete linked tasks with Github labels is enabled"
   default     = "false"
 }
+
+variable "sgtm_feature__followup_review_github_users" {
+  type        = string
+  description = "A comma-separated list of Github usernames that require follow-up review after merge"
+  default     = ""
+}
