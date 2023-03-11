@@ -11,7 +11,7 @@ class Builder(object):
     def comment(self, *args, **keywords):
         return CommentBuilder(*args, **keywords)
 
-    def pull_request(self, *args, **keywords) -> PullRequestBuilder:
+    def pull_request(self, *args, **keywords):
         return PullRequestBuilder(*args, **keywords)
 
     def review(self, *args, **keywords):
@@ -31,4 +31,4 @@ def build(builder: BuilderBaseClass):
     return builder.build()
 
 
-builder: Builder = Builder()
+builder = Builder()

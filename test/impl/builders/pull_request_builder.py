@@ -55,11 +55,11 @@ class PullRequestBuilder(BuilderBaseClass):
             },
         }
 
-    def closed(self, closed: bool) -> PullRequestBuilder:
+    def closed(self, closed: bool):
         self.raw_pr["closed"] = closed
         return self
 
-    def merged(self, merged: bool) -> PullRequestBuilder:
+    def merged(self, merged: bool):
         self.raw_pr["merged"] = merged
         return self
 
