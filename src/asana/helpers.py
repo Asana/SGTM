@@ -56,7 +56,7 @@ def today_str() -> str:
     return today.strftime("%Y-%m-%d")
 
 
-def default_due_date_str(reference_datetime: datetime = None) -> str:
+def default_due_date_str(reference_datetime: Optional[datetime] = None) -> str:
     if reference_datetime is None:
         reference_datetime = datetime.now()
 
