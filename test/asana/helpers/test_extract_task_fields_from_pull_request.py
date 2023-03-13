@@ -284,6 +284,34 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
 
     @patch("src.github.logic.pull_request_approved_before_merging")
     @patch("src.github.logic.pull_request_approved_after_merging")
+    def test_html_body_status_closed_needs_followup_approved_after(
+        self, approved_after_merging, approved_before_merging
+    ):
+        approved_before_merging.return_value = ApprovedBeforeMergeStatus.NEEDS_FOLLOWUP
+        approved_after_merging.return_value = True
+        pull_request = build(
+            builder.pull_request()
+            .author(builder.user("github_test_user_login"))
+            .url("https://foo.bar/baz")
+            .body("BODY")
+            .closed(True)
+            .merged(True)
+        )
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+        actual = task_fields["html_notes"]
+        expected_strings = [
+            "<body>",
+            "complete",
+            "the pull request was approved after merging.",
+            "BODY",
+            "</body>",
+        ]
+        self.assertContainsStrings(actual, expected_strings)
+
+    @patch("src.github.logic.pull_request_approved_before_merging")
+    @patch("src.github.logic.pull_request_approved_after_merging")
     def test_html_body_status_closed_approved_after(
         self, approved_after_merging, approved_before_merging
     ):
