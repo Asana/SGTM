@@ -10,7 +10,7 @@ class HttpResponseDict(TypedDict):
 
 
 class HttpResponse(object):
-    def __init__(self, status_code: HTTP_STATUS, body: str = None):
+    def __init__(self, status_code: HTTP_STATUS, body: Optional[str] = None):
         self.status_code = status_code
         self.body = body
 

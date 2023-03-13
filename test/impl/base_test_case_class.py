@@ -1,10 +1,10 @@
 from unittest import TestCase
-from typing import List
+from typing import List, Optional
 
 
 class BaseClass(TestCase):
     def assertContainsStrings(
-        self, actual: str, expected_strings: List[str], field_name: str = None
+        self, actual: str, expected_strings: List[str], field_name: Optional[str] = None
     ):
         if field_name is None:
             message = f"Expected '{actual}' to contain {{}}"

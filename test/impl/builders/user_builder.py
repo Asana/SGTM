@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from src.github.models import User
 from .helpers import create_uuid
 from .builder_base_class import BuilderBaseClass
@@ -7,7 +7,7 @@ from .builder_base_class import BuilderBaseClass
 class UserBuilder(BuilderBaseClass):
     LOGIN_COUNTER = 0
 
-    def __init__(self, login: str = None, name: str = ""):
+    def __init__(self, login: Optional[str] = None, name: str = ""):
         if login is None:
             login = UserBuilder.next_login()
         self.raw_user = {"id": create_uuid(), "login": login, "name": name}
