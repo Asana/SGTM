@@ -3,7 +3,7 @@ from typing import List
 from src.logger import logger
 
 from . import client as github_client
-from src.github.models import PullRequest, MergeableState, Review
+from src.github.models import PullRequest, MergeableState
 from enum import Enum, unique
 from src.github.helpers import pull_request_has_label
 from src.config import (
@@ -240,7 +240,6 @@ def maybe_add_automerge_warning_comment(pull_request: PullRequest):
             and not _pull_request_has_automerge_comment(pull_request, automerge_comment)
             and not pull_request.is_approved()
         ):
-
             github_client.add_pr_comment(owner, repo_name, pr_number, automerge_comment)
 
 
@@ -251,6 +250,8 @@ def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
             f"Pull request {pull_request.id()} is able to be automerged,"
             " automerging now"
         )
+        logger.info(f"Build status: {pull_request.build_status()}")
+        logger.info(f"Raw commits: {pull_request._raw['commits']['nodes']}")
         github_client.merge_pull_request(
             pull_request.repository_owner_handle(),
             pull_request.repository_name(),
