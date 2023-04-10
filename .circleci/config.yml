@@ -14,7 +14,7 @@ commands:
 jobs:
   black:
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.9
     steps:
       - setup
       - run:
@@ -22,7 +22,7 @@ jobs:
 
   mypy:
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.9
     steps:
       - setup
       - run:
@@ -30,7 +30,7 @@ jobs:
 
   test:
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.9
     steps:
       - setup
       - run:

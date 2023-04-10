@@ -29,7 +29,7 @@ variable "lambda_function_timeout" {
 variable "lambda_runtime" {
   type        = string
   description = "Runtime of AWS Lambda function"
-  default     = "python3.7"
+  default     = "python3.9"
 }
 
 
