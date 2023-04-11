@@ -91,7 +91,6 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
         md = "check out the [docs](README.md)"
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(
-            # title should get ignored
             xml,
             "check out the docs\n",
         )
