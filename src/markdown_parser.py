@@ -62,16 +62,7 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
 
         safe_url = self._safe_url(link)
         if self._is_valid_url(safe_url):
-            return (
-                "<a "
-                + asana_tags
-                + 'href="'
-                + safe_url
-                + '"'
-                + ">"
-                + (text or safe_url)
-                + "</a>"
-            )
+            return f'<a {asana_tags}href="{safe_url}">{text or safe_url}</a>'
         else:
             return escape(text or safe_url, quote=False)
 
