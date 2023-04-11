@@ -88,15 +88,13 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
         )
 
     def test_link_to_relative_url(self):
-        md = 'check out the [docs](README.md)'
+        md = "check out the [docs](README.md)"
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(
             # title should get ignored
             xml,
-            'check out the docs\n',
+            "check out the docs\n",
         )
-
-
 
     def test_converts_headings_to_bold(self):
         md = "## heading"
