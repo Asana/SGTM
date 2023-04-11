@@ -1,6 +1,7 @@
 import re
 from html import escape, unescape
 from typing import Match
+from urllib.parse import urlparse
 
 import mistune  # type: ignore
 
@@ -58,12 +59,25 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
 
         is_asana_vanity_link = link.startswith("https://app.asana.com") and text
         asana_tags = 'data-asana-dynamic="false" ' if is_asana_vanity_link else ""
-        s = "<a " + asana_tags + 'href="' + self._safe_url(link) + '"'
-        return s + ">" + (text or link) + "</a>"
+
+        safe_url = self._safe_url(link)
+        if self._is_valid_url(safe_url):
+            return "<a " + asana_tags + 'href="' + safe_url + '"' + ">" + (text or safe_url) + "</a>"
+        else:
+            return escape(text or safe_url, quote=False)
 
     # Asana's API can't handle img tags
     def image(self, src, alt="", title=None) -> str:
         return self.link(src, text=alt, title=title)
+
+
+    def _is_valid_url(self, url: str) -> bool:
+        try:
+            result = urlparse(url)
+            return all([result.scheme, result.netloc])
+        except:
+            # invalid URL
+            return False
 
 
 def convert_github_markdown_to_asana_xml(text: str) -> str:
