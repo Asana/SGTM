@@ -59,8 +59,8 @@ class MockDynamoDbTestCase(BaseClass):
                 }
             ],
             ProvisionedThroughput={
-                'ReadCapacityUnits': cls.READ_CAPACITY_UNITS,
-                'WriteCapacityUnits': cls.WRITE_CAPACITY_UNITS,
+                "ReadCapacityUnits": cls.READ_CAPACITY_UNITS,
+                "WriteCapacityUnits": cls.WRITE_CAPACITY_UNITS,
             },
         )
 
@@ -79,8 +79,8 @@ class MockDynamoDbTestCase(BaseClass):
                 }
             ],
             ProvisionedThroughput={
-                'ReadCapacityUnits': cls.READ_CAPACITY_UNITS,
-                'WriteCapacityUnits': cls.WRITE_CAPACITY_UNITS,
+                "ReadCapacityUnits": cls.READ_CAPACITY_UNITS,
+                "WriteCapacityUnits": cls.WRITE_CAPACITY_UNITS,
             },
         )
 
@@ -107,8 +107,8 @@ class MockDynamoDbTestCase(BaseClass):
                 },
             ],
             ProvisionedThroughput={
-                'ReadCapacityUnits': cls.READ_CAPACITY_UNITS,
-                'WriteCapacityUnits': cls.WRITE_CAPACITY_UNITS,
+                "ReadCapacityUnits": cls.READ_CAPACITY_UNITS,
+                "WriteCapacityUnits": cls.WRITE_CAPACITY_UNITS,
             },
         )
         cls.client = client
