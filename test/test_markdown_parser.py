@@ -6,12 +6,12 @@ from src.markdown_parser import convert_github_markdown_to_asana_xml
 
 class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
     def test_basic_markdown(self):
-        md = """~~strike~~ **bold** _italic_ `code` [link](asana.com)"""
+        md = """~~strike~~ **bold** _italic_ `code` [link](https://www.asana.com)"""
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(
             xml,
             "<s>strike</s> <strong>bold</strong> <em>italic</em> <code>code</code> <a"
-            ' href="asana.com">link</a>\n',
+            ' href="https://www.asana.com">link</a>\n',
         )
 
     def test_ul_tag(self):
@@ -47,12 +47,12 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
         self.assertEqual(xml, md)  # unchanged
 
     def test_auto_linking(self):
-        md = "https://asana.com/ [still works](www.test.com)"
+        md = "https://asana.com/ [still works](https://www.test.com)"
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(
             xml,
             '<a href="https://asana.com/">https://asana.com/</a> <a'
-            ' href="www.test.com">still works</a>\n',
+            ' href="https://www.test.com">still works</a>\n',
         )
 
     def test_link_to_non_asana_url(self):
@@ -85,6 +85,14 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
             # title should get ignored
             xml,
             'hi <a href="https://www.test.com">there</a>\n',
+        )
+
+    def test_link_to_relative_url(self):
+        md = "check out the [docs](README.md)"
+        xml = convert_github_markdown_to_asana_xml(md)
+        self.assertEqual(
+            xml,
+            "check out the docs\n",
         )
 
     def test_converts_headings_to_bold(self):
