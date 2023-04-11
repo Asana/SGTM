@@ -1,5 +1,5 @@
 asana==0.9.1
-boto3==1.10.15
+boto3==1.26.110
 mistune==2.0.3
 PyGithub==1.44.1
 python-dynamodb-lock==0.9.1
