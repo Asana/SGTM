@@ -1,5 +1,5 @@
 import unittest
-from mock import patch
+from unittest.mock import patch
 
 from src.sync_users.sgtm_user import SgtmUser
 from src.dynamodb.client import DynamoDbClient

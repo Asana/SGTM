@@ -1,5 +1,5 @@
 import unittest
-from mock import patch
+from unittest.mock import patch
 
 from src.asana import client as asana_client
 from src.dynamodb import client as dynamodb_client

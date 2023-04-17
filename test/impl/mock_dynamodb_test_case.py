@@ -2,14 +2,19 @@
 Test case that should be used for tests that require integration with dynamodb
 or other external resources.
 """
+import os
 import boto3  # type: ignore
-from moto import mock_dynamodb2  # type: ignore
+from moto import mock_dynamodb  # type: ignore
 from src.config import OBJECTS_TABLE, USERS_TABLE, LOCK_TABLE
 from .base_test_case_class import BaseClass
 from .mock_dynamodb_test_data_helper import MockDynamoDbTestDataHelper
 
+# "Mock" the AWS credentials as they can't be mocked in Botocore currently
+os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
+os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
 
-@mock_dynamodb2
+
+@mock_dynamodb
 class MockDynamoDbTestCase(BaseClass):
 
     """
@@ -23,16 +28,19 @@ class MockDynamoDbTestCase(BaseClass):
         of test data
     """
     test_data = None
+    READ_CAPACITY_UNITS = 123
+    WRITE_CAPACITY_UNITS = 123
 
     @classmethod
     def tearDownClass(cls):
         cls.test_data = None
         cls.client = None
-        mock_dynamodb2().__exit__()
+        mock_dynamodb().__exit__()
 
     @classmethod
     def setUpClass(cls):
-        mock_dynamodb2().__enter__()
+        mock_dynamodb().__enter__()
+
         client = boto3.client("dynamodb")
 
         # our DynamoDb Schema #DynamoDbSchema
@@ -50,6 +58,10 @@ class MockDynamoDbTestCase(BaseClass):
                     "KeyType": "HASH",
                 }
             ],
+            ProvisionedThroughput={
+                "ReadCapacityUnits": cls.READ_CAPACITY_UNITS,
+                "WriteCapacityUnits": cls.WRITE_CAPACITY_UNITS,
+            },
         )
 
         client.create_table(
@@ -66,6 +78,10 @@ class MockDynamoDbTestCase(BaseClass):
                     "KeyType": "HASH",
                 }
             ],
+            ProvisionedThroughput={
+                "ReadCapacityUnits": cls.READ_CAPACITY_UNITS,
+                "WriteCapacityUnits": cls.WRITE_CAPACITY_UNITS,
+            },
         )
 
         client.create_table(
@@ -90,6 +106,10 @@ class MockDynamoDbTestCase(BaseClass):
                     "KeyType": "RANGE",
                 },
             ],
+            ProvisionedThroughput={
+                "ReadCapacityUnits": cls.READ_CAPACITY_UNITS,
+                "WriteCapacityUnits": cls.WRITE_CAPACITY_UNITS,
+            },
         )
         cls.client = client
         cls.test_data = MockDynamoDbTestDataHelper(client)
