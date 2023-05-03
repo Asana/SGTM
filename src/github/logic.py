@@ -251,7 +251,8 @@ def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
             " automerging now"
         )
         logger.info(f"Build status: {pull_request.build_status()}")
-        logger.info(f"Raw commits: {pull_request._raw['commits']['nodes']}")
+        logger.info(f"Commmits: {[pull_request.commits()]}")
+        logger.info(f"Is mergeable: {pull_request.mergeable()}")
         github_client.merge_pull_request(
             pull_request.repository_owner_handle(),
             pull_request.repository_name(),
