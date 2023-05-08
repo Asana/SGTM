@@ -470,7 +470,6 @@ def _task_followers_from_pull_request(pull_request: PullRequest) -> List[str]:
     ]
 
 
-
 def _wrap_in_tag(
     tag_name: str, attrs: Optional[Dict[str, str]] = None
 ) -> Callable[[str], str]:
