@@ -20,13 +20,18 @@ def create_task(repository_id: str) -> Optional[str]:
 
 
 def update_task(
-        pull_request: PullRequest, task_id: str, followers: List[str], force_update_due_today: bool = False
+    pull_request: PullRequest,
+    task_id: str,
+    followers: List[str],
+    force_update_due_today: bool = False,
 ):
     task_url = asana_helpers.task_url_from_task_id(task_id)
     pr_url = pull_request.url()
     logger.info(f"Updating task {task_url} for pull request {pr_url}")
 
-    update_task_fields = asana_helpers.extract_task_fields_from_pull_request(pull_request)
+    update_task_fields = asana_helpers.extract_task_fields_from_pull_request(
+        pull_request
+    )
     task = asana_client.get_task(task_id)
     new_due_on = (
         asana_helpers.today_str()

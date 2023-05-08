@@ -435,14 +435,24 @@ def _task_completion_from_pull_request(pull_request: PullRequest) -> StatusReaso
             " Request.",
         )
 
+
 def task_followers_from_comment(comment: Comment) -> List[str]:
-    return _task_followers_from_gh_handles(github_logic.comment_participants_and_mentions(comment))
+    return _task_followers_from_gh_handles(
+        github_logic.comment_participants_and_mentions(comment)
+    )
+
 
 def task_followers_from_review(review: Review) -> List[str]:
-    return _task_followers_from_gh_handles(github_logic.review_participants_and_mentions(review))
+    return _task_followers_from_gh_handles(
+        github_logic.review_participants_and_mentions(review)
+    )
+
 
 def task_followers_from_pull_request(pull_request: PullRequest) -> List[str]:
-    return _task_followers_from_gh_handles(github_logic.pull_request_participants(pull_request))
+    return _task_followers_from_gh_handles(
+        github_logic.pull_request_participants(pull_request)
+    )
+
 
 def _task_followers_from_gh_handles(gh_handles: List[str]) -> List[str]:
     return [

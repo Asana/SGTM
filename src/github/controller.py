@@ -27,7 +27,11 @@ def upsert_pull_request(pull_request: PullRequest):
         logger.info(
             f"Task found for pull request {pull_request_id}, updating task {task_id}"
         )
-    asana_controller.update_task(pull_request, task_id, asana_helpers._task_followers_from_pull_request(pull_request))
+    asana_controller.update_task(
+        pull_request,
+        task_id,
+        asana_helpers._task_followers_from_pull_request(pull_request),
+    )
 
 
 def _add_asana_task_to_pull_request(pull_request: PullRequest, task_id: str):
@@ -55,7 +59,9 @@ def upsert_comment(pull_request: PullRequest, comment: Comment):
         # TODO: Full sync
     else:
         asana_controller.upsert_github_comment_to_task(comment, task_id)
-        asana_controller.update_task(pull_request, task_id, asana_helpers.task_followers_from_comment(comment))
+        asana_controller.update_task(
+            pull_request, task_id, asana_helpers.task_followers_from_comment(comment)
+        )
 
 
 def upsert_review(pull_request: PullRequest, review: Review):
@@ -85,7 +91,10 @@ def upsert_review(pull_request: PullRequest, review: Review):
                 assign_pull_request_to_author(pull_request)
                 force_update_due_today = True
         asana_controller.update_task(
-            pull_request, task_id, asana_helpers.task_followers_from_review(review), force_update_due_today=force_update_due_today
+            pull_request,
+            task_id,
+            asana_helpers.task_followers_from_review(review),
+            force_update_due_today=force_update_due_today,
         )
 
 

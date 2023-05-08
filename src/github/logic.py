@@ -83,13 +83,19 @@ def _pull_request_commenters(pull_request: PullRequest) -> List[str]:
 def comment_participants_and_mentions(comment: Comment) -> List[str]:
     return list(set([comment.author_handle()] + _extract_mentions(comment.body())))
 
+
 def review_participants_and_mentions(review: Review) -> List[str]:
     review_texts = [review.body()] + [comment.body() for comment in review.comments()]
-    return list(set([review.author_handle()] + [
-        mention
-        for review_text in review_texts
-        for mention in _extract_mentions(review_text)
-    ]))
+    return list(
+        set(
+            [review.author_handle()]
+            + [
+                mention
+                for review_text in review_texts
+                for mention in _extract_mentions(review_text)
+            ]
+        )
+    )
 
 
 def pull_request_approved_before_merging(
@@ -204,6 +210,7 @@ def pull_request_approved_after_merging(pull_request: PullRequest) -> bool:
         )
     return False
 
+
 def pull_request_participants(pull_request: PullRequest) -> List[str]:
     return list(
         set(
@@ -217,6 +224,7 @@ def pull_request_participants(pull_request: PullRequest) -> List[str]:
             if gh_handle
         )
     )
+
 
 def all_pull_request_participants(pull_request: PullRequest) -> List[str]:
     return list(
