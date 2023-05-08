@@ -456,18 +456,19 @@ def task_followers_from_pull_request(pull_request: PullRequest) -> List[str]:
 
 def _task_followers_from_gh_handles(gh_handles: List[str]) -> List[str]:
     return [
-        _asana_user_id_from_github_handle(gh_handle)
+        asana_user_id
         for gh_handle in gh_handles
-        if _asana_user_id_from_github_handle(gh_handle) is not None
+        if (asana_user_id := _asana_user_id_from_github_handle(gh_handle)) is not None
     ]
 
 
 def _task_followers_from_pull_request(pull_request: PullRequest) -> List[str]:
     return [
-        _asana_user_id_from_github_handle(gh_handle)
+        asana_user_id
         for gh_handle in github_logic.all_pull_request_participants(pull_request)
-        if _asana_user_id_from_github_handle(gh_handle) is not None
+        if (asana_user_id := _asana_user_id_from_github_handle(gh_handle)) is not None
     ]
+
 
 
 def _wrap_in_tag(
