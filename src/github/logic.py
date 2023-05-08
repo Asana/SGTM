@@ -3,7 +3,7 @@ from typing import List
 from src.logger import logger
 
 from . import client as github_client
-from src.github.models import PullRequest, MergeableState, Review
+from src.github.models import Comment, PullRequest, MergeableState, Review
 from enum import Enum, unique
 from src.github.helpers import pull_request_has_label
 from src.config import (
@@ -78,6 +78,18 @@ def _pull_request_body_mentions(pull_request: PullRequest) -> List[str]:
 
 def _pull_request_commenters(pull_request: PullRequest) -> List[str]:
     return sorted(comment.author_handle() for comment in pull_request.comments())
+
+
+def comment_participants_and_mentions(comment: Comment) -> List[str]:
+    return list(set([comment.author_handle()] + _extract_mentions(comment.body())))
+
+def review_participants_and_mentions(review: Review) -> List[str]:
+    review_texts = [review.body()] + [comment.body() for comment in review.comments()]
+    return list(set([review.author_handle()] + [
+        mention
+        for review_text in review_texts
+        for mention in _extract_mentions(review_text)
+    ]))
 
 
 def pull_request_approved_before_merging(
@@ -192,6 +204,19 @@ def pull_request_approved_after_merging(pull_request: PullRequest) -> bool:
         )
     return False
 
+def pull_request_participants(pull_request: PullRequest) -> List[str]:
+    return list(
+        set(
+            gh_handle
+            for gh_handle in (
+                [pull_request.author_handle()]
+                + pull_request.assignees()
+                + pull_request.requested_reviewers()
+                + _pull_request_body_mentions(pull_request)
+            )
+            if gh_handle
+        )
+    )
 
 def all_pull_request_participants(pull_request: PullRequest) -> List[str]:
     return list(

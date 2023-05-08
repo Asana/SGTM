@@ -27,7 +27,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
             add_asana_task_to_pr_mock.assert_called_with(pull_request, new_task_id)
 
         create_task_mock.assert_called_with(pull_request.repository_id())
-        update_task_mock.assert_called_with(pull_request, new_task_id)
+        update_task_mock.assert_called_with(pull_request, new_task_id, [])
 
         # Assert that the new task id was inserted into the table
         task_id = dynamodb_client.get_asana_id_from_github_node_id(pull_request.id())
@@ -51,7 +51,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
         github_controller.upsert_pull_request(pull_request)
 
         create_task_mock.assert_not_called()
-        update_task_mock.assert_called_with(pull_request, existing_task_id)
+        update_task_mock.assert_called_with(pull_request, existing_task_id, [])
 
     @patch.object(github_client, "edit_pr_description")
     def test_add_asana_task_to_pull_request(self, edit_pr_mock):
@@ -86,7 +86,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
         github_controller.upsert_comment(pull_request, comment)
 
         add_comment_mock.assert_called_with(comment, existing_task_id)
-        update_task_mock.assert_called_with(pull_request, existing_task_id)
+        update_task_mock.assert_called_with(pull_request, existing_task_id, [])
 
     @patch.object(asana_controller, "update_task")
     @patch.object(asana_controller, "upsert_github_comment_to_task")
