@@ -711,9 +711,7 @@ class TestTaskFollowersFromPullRequest(BaseClass):
         pull_request = build(
             builder.pull_request().author(builder.user("github_test_user_login"))
         )
-        followers = src.asana.helpers.task_followers_from_pull_request(
-            pull_request
-        )
+        followers = src.asana.helpers.task_followers_from_pull_request(pull_request)
         self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", followers)
 
     def test_assignee_is_a_follower(self):
@@ -722,9 +720,7 @@ class TestTaskFollowersFromPullRequest(BaseClass):
                 builder.user("github_test_user_login", "TEST_USER_ASANA_DOMAIN_USER_ID")
             )
         )
-        followers = src.asana.helpers.task_followers_from_pull_request(
-            pull_request
-        )
+        followers = src.asana.helpers.task_followers_from_pull_request(pull_request)
         self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", followers)
 
     def test_requested_reviewer_is_a_follower(self):
@@ -739,16 +735,12 @@ class TestTaskFollowersFromPullRequest(BaseClass):
             )
             .requested_reviewers([builder.user("github_test_user_login")])
         )
-        followers = src.asana.helpers.task_followers_from_pull_request(
-            pull_request
-        )
+        followers = src.asana.helpers.task_followers_from_pull_request(pull_request)
         self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", followers)
 
     def test_individual_that_is_at_mentioned_in_pr_body_is_a_follower(self):
         pull_request = build(builder.pull_request().body("@github_test_user_login"))
-        followers = src.asana.helpers.task_followers_from_pull_request(
-            pull_request
-        )
+        followers = src.asana.helpers.task_followers_from_pull_request(pull_request)
         self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", followers)
 
     def test_non_asana_user_is_not_a_follower(self):
@@ -772,40 +764,44 @@ class TestTaskFollowersFromPullRequest(BaseClass):
             )
             .requested_reviewer(unknown_github_user)
         )
-        followers = src.asana.helpers.task_followers_from_pull_request(
-            pull_request
-        )
+        followers = src.asana.helpers.task_followers_from_pull_request(pull_request)
         self.assertEqual(0, len(followers))
+
 
 class TestTaskFollowersFromReview(BaseClass):
     def test_reviewer_is_a_follower(self):
-        review = builder.review().submitted_at("2020-02-13T14:59:57Z").state(ReviewState.CHANGES_REQUESTED).body("LGTM!").author(builder.user("github_test_user_login")).build()
-        followers = src.asana.helpers.task_followers_from_review(
-            review
+        review = (
+            builder.review()
+            .submitted_at("2020-02-13T14:59:57Z")
+            .state(ReviewState.CHANGES_REQUESTED)
+            .body("LGTM!")
+            .author(builder.user("github_test_user_login"))
+            .build()
         )
+        followers = src.asana.helpers.task_followers_from_review(review)
         self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", followers)
 
     def test_individual_that_is_at_mentioned_in_review_body_is_a_follower(self):
         review = builder.review().body("@github_test_user_login").build()
-        followers = src.asana.helpers.task_followers_from_review(
-            review
-        )
+        followers = src.asana.helpers.task_followers_from_review(review)
         self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", followers)
 
 
 class TestTaskFollowersFromComment(BaseClass):
     def test_commentor_is_a_follower(self):
-        comment = builder.comment().published_at("2020-01-13T14:59:58Z").body("LGTM!").author(builder.user("github_test_user_login")).build()
-        followers = src.asana.helpers.task_followers_from_comment(
-            comment
+        comment = (
+            builder.comment()
+            .published_at("2020-01-13T14:59:58Z")
+            .body("LGTM!")
+            .author(builder.user("github_test_user_login"))
+            .build()
         )
+        followers = src.asana.helpers.task_followers_from_comment(comment)
         self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", followers)
 
     def test_individual_that_is_at_mentioned_in_comment_is_a_follower(self):
         comment = builder.comment().body("@github_test_user_login").build()
-        followers = src.asana.helpers.task_followers_from_comment(
-            comment
-        )
+        followers = src.asana.helpers.task_followers_from_comment(comment)
         self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", followers)
 
     # def test_non_asana_user_is_not_a_follower(self):
