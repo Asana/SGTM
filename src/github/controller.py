@@ -30,7 +30,7 @@ def upsert_pull_request(pull_request: PullRequest):
     asana_controller.update_task(
         pull_request,
         task_id,
-        asana_helpers._task_followers_from_pull_request(pull_request),
+        asana_helpers.task_followers_from_pull_request(pull_request),
     )
 
 

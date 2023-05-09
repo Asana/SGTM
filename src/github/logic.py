@@ -226,25 +226,6 @@ def pull_request_participants(pull_request: PullRequest) -> List[str]:
     )
 
 
-def all_pull_request_participants(pull_request: PullRequest) -> List[str]:
-    return list(
-        set(
-            gh_handle
-            for gh_handle in (
-                [pull_request.author_handle()]
-                + pull_request.assignees()
-                + pull_request.reviewers()
-                + pull_request.requested_reviewers()
-                + _pull_request_commenters(pull_request)
-                + _pull_request_comment_mentions(pull_request)
-                + _pull_request_review_mentions(pull_request)
-                + _pull_request_body_mentions(pull_request)
-            )
-            if gh_handle
-        )
-    )
-
-
 def maybe_add_automerge_warning_comment(pull_request: PullRequest):
     """Adds comment warnings if automerge label is enabled"""
 
