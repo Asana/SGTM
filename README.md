@@ -153,7 +153,7 @@ Because SGTM doesn't currently support a "staging" deployment to test changes, m
     1. Get the `pull_request_id`. One easy way to do this is to run a command like this `curl -i -u <github_username>:$GITHUB_API_KEY https://api.github.com/repos/asana/sgtm/pulls/123` and then grab the `node_id` from that response.
     1. Open up your REPL. Import the function you want to test (in this case: `import src.github.controller as github_controller; import src.github.graphql.client as graphql_client`)
     1. Run the code! In this case:
-        1. `pull_request = graphql_client.get_pull_request(<pull_request_id>)
+        1. `pull_request = graphql_client.get_pull_request(<pull_request_id>)`
         1. `github_controller.upsert_pull_request(pull_request)`
 
 ## Running Tests
