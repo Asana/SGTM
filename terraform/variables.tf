@@ -71,3 +71,14 @@ variable "sgtm_feature__followup_review_github_users" {
   description = "A comma-separated list of Github usernames that require follow-up review after merge"
   default     = ""
 }
+
+variable "sgtm_feature__staleness_check_enabled" {
+  type = string
+  description = "'true' if behavior to block automerge on stale check runs of pull requests is enabled. Staleness is defined by Github"
+}
+
+variable "sgtm_feature__staleness_check_duration" {
+  type = number
+  description = "Number of hours after which a check run is considered stale. Overrides Github's staleness definition"
+  default = 0
+}

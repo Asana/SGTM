@@ -1,15 +1,18 @@
 import re
+from datetime import datetime, timedelta
 from typing import List
 from src.logger import logger
 
 from . import client as github_client
-from src.github.models import Comment, PullRequest, MergeableState, Review
+from src.github.models import Comment, PullRequest, MergeableState, CheckRun, CheckConclusionState
 from enum import Enum, unique
 from src.github.helpers import pull_request_has_label
 from src.config import (
     SGTM_FEATURE__AUTOMERGE_ENABLED,
     SGTM_FEATURE__DISABLE_GITHUB_TEAM_SUBSCRIPTION,
     SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS,
+    SGTM_FEATURE__STALENESS_CHECK_ENABLED,
+    SGTM_FEATURE__STALENESS_CHECK_DURATION,
 )
 
 GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
@@ -276,16 +279,22 @@ def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
         )
 
     if pull_request_has_label(pull_request, AutomergeLabel.AFTER_TESTS.value):
-        return pull_request.is_build_successful() and pull_request.is_mergeable()
+        can_merge = pull_request.is_build_successful() and pull_request.is_mergeable()
+        if SGTM_FEATURE__STALENESS_CHECK_ENABLED:
+            can_merge &= not _pull_request_has_stale_required_checks(pull_request)
+        return can_merge
 
     if pull_request_has_label(
         pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
     ):
-        return (
+        can_merge = (
             pull_request.is_build_successful()
             and pull_request.is_mergeable()
             and pull_request.is_approved()
         )
+        if SGTM_FEATURE__STALENESS_CHECK_ENABLED:
+            can_merge &= not _pull_request_has_stale_required_checks(pull_request)
+        return can_merge
 
     if pull_request_has_label(pull_request, AutomergeLabel.AFTER_APPROVAL.value):
         return pull_request.is_mergeable() and pull_request.is_approved()
@@ -299,3 +308,18 @@ def _pull_request_has_automerge_comment(
     return any(
         comment.body() == automerge_comment for comment in pull_request.comments()
     )
+
+
+def _pull_request_has_stale_required_checks(pull_request: PullRequest) -> bool:
+    for check_suite in pull_request.commits()[0].check_suites():
+        for check_run in check_suite.check_runs():
+            if check_run.is_required() and _check_run_is_stale(check_run):
+                return True
+    return False
+            
+
+def _check_run_is_stale(check_run: CheckRun) -> bool:
+    is_stale = check_run.conclusion() == CheckConclusionState.STALE
+    if SGTM_FEATURE__STALENESS_CHECK_DURATION > 0:
+        is_stale &= check_run.completed_at() < datetime.now() - timedelta(hours=SGTM_FEATURE__STALENESS_CHECK_DURATION)
+    return is_stale
