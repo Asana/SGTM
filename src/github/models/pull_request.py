@@ -175,7 +175,7 @@ class PullRequest(object):
     def is_build_successful(self) -> bool:
         return self.build_status() == Commit.BUILD_SUCCESSFUL
     
-    def is_stale(self) -> bool:
+    def has_stale_checks(self) -> bool:
         return any(check_suite.is_stale() for check_suite in self.commits()[0].check_suites())
 
     def merged_at(self) -> Optional[datetime]:

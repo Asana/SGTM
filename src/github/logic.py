@@ -240,11 +240,36 @@ def maybe_add_automerge_warning_comment(pull_request: PullRequest):
 
 # returns True if the pull request was automerged, False if not
 def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
-    if _is_pull_request_ready_for_automerge(pull_request):
-        logger.info(
-            f"Pull request {pull_request.id()} is able to be automerged,"
-            " automerging now"
+    is_pull_request_ready_for_automerge = False
+    did_rerun_stale_required_checks = False
+    if (
+        not SGTM_FEATURE__AUTOMERGE_ENABLED
+        or pull_request.closed()
+        or pull_request.merged()
+    ):
+        is_pull_request_ready_for_automerge = False
+
+    
+    # if there are multiple labels, we use the most permissive to define automerge behavior
+    elif pull_request_has_label(pull_request, AutomergeLabel.IMMEDIATELY.value):
+        is_pull_request_ready_for_automerge = pull_request.mergeable() in (
+            MergeableState.MERGEABLE,
+            MergeableState.UNKNOWN,
         )
+    elif pull_request_has_label(pull_request, AutomergeLabel.AFTER_TESTS.value):
+        is_pull_request_ready_for_automerge = pull_request.is_build_successful() and pull_request.is_mergeable()
+        if SGTM_FEATURE__STALENESS_CHECK_ENABLED and is_pull_request_ready_for_automerge:
+            did_rerun_stale_required_checks = _maybe_rerun_stale_required_checks(pull_request)
+    elif pull_request_has_label(
+        pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+    ):
+        is_pull_request_ready_for_automerge = pull_request.is_build_successful() and pull_request.is_mergeable() and pull_request.is_approved()
+        if SGTM_FEATURE__STALENESS_CHECK_ENABLED and is_pull_request_ready_for_automerge:
+            did_rerun_stale_required_checks = _maybe_rerun_stale_required_checks(pull_request)
+    elif pull_request_has_label(pull_request, AutomergeLabel.AFTER_APPROVAL.value):
+        is_pull_request_ready_for_automerge = pull_request.is_mergeable() and pull_request.is_approved()
+
+    if is_pull_request_ready_for_automerge and not did_rerun_stale_required_checks:
         github_client.merge_pull_request(
             pull_request.repository_owner_handle(),
             pull_request.repository_name(),
@@ -253,53 +278,11 @@ def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
             pull_request.body(),
         )
         return True
-    else:
-        return False
-
+    return False
 
 # ----------------------------------------------------------------------------------
 # Automerge helpers
 # ----------------------------------------------------------------------------------
-
-
-def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
-    # autofail if not enabled or pull request isn't open
-    if (
-        not SGTM_FEATURE__AUTOMERGE_ENABLED
-        or pull_request.closed()
-        or pull_request.merged()
-    ):
-        return False
-
-    # if there are multiple labels, we use the most permissive to define automerge behavior
-    if pull_request_has_label(pull_request, AutomergeLabel.IMMEDIATELY.value):
-        return pull_request.mergeable() in (
-            MergeableState.MERGEABLE,
-            MergeableState.UNKNOWN,
-        )
-
-    if pull_request_has_label(pull_request, AutomergeLabel.AFTER_TESTS.value):
-        can_merge = pull_request.is_build_successful() and pull_request.is_mergeable()
-        if SGTM_FEATURE__STALENESS_CHECK_ENABLED:
-            can_merge &= not _maybe_rerun_stale_required_checks(pull_request)
-        return can_merge
-
-    if pull_request_has_label(
-        pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
-    ):
-        can_merge = (
-            pull_request.is_build_successful()
-            and pull_request.is_mergeable()
-            and pull_request.is_approved()
-        )
-        if SGTM_FEATURE__STALENESS_CHECK_ENABLED:
-            can_merge &= not _maybe_rerun_stale_required_checks(pull_request)
-        return can_merge
-
-    if pull_request_has_label(pull_request, AutomergeLabel.AFTER_APPROVAL.value):
-        return pull_request.is_mergeable() and pull_request.is_approved()
-
-    return False
 
 
 def _pull_request_has_automerge_comment(

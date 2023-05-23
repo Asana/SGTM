@@ -8,7 +8,6 @@ from .user import User
 from .commit import Commit
 from .label import Label
 from .check_run import CheckRun, CheckConclusionState
-from .app import App
 from .check_suite import CheckSuite
 
 

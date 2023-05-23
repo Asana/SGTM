@@ -73,11 +73,6 @@ fragment FullPullRequest on PullRequest {
         }
         checkSuites(last: 20) {
           nodes {
-            app {
-              id
-              databaseId
-              name
-            }
             conclusion
             checkRuns(filterBy: {checkType: LATEST}, last: 20) {
               nodes {
