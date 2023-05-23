@@ -22,7 +22,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
         is_pull_request_ready_for_automerge_mock.return_value = True
         pull_request = build(builder.pull_request())
 
-        merged = github_logic.maybe_automerge_pull_request(pull_request)
+        merged = github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(pull_request)
 
         self.assertTrue(merged)
         merge_pull_request_mock.assert_called_with(
@@ -43,7 +43,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
         is_pull_request_ready_for_automerge_mock.return_value = False
         pull_request = build(builder.pull_request())
 
-        merged = github_logic.maybe_automerge_pull_request(pull_request)
+        merged = github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(pull_request)
 
         self.assertFalse(merged)
         merge_pull_request_mock.assert_not_called()

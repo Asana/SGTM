@@ -11,8 +11,7 @@ from src.config import (
     SGTM_FEATURE__AUTOMERGE_ENABLED,
     SGTM_FEATURE__DISABLE_GITHUB_TEAM_SUBSCRIPTION,
     SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS,
-    SGTM_FEATURE__STALENESS_CHECK_ENABLED,
-    SGTM_FEATURE__STALENESS_CHECK_DURATION,
+    SGTM_FEATURE__CHECK_RUN_FRESHNESS_DURATION_HOURS,
 )
 
 GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
@@ -239,7 +238,7 @@ def maybe_add_automerge_warning_comment(pull_request: PullRequest):
 
 
 # returns True if the pull request was automerged, False if not
-def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
+def maybe_automerge_pull_request_and_rerun_stale_checks(pull_request: PullRequest) -> bool:
     is_pull_request_ready_for_automerge = False
     did_rerun_stale_required_checks = False
     if (
@@ -258,14 +257,12 @@ def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
         )
     elif pull_request_has_label(pull_request, AutomergeLabel.AFTER_TESTS.value):
         is_pull_request_ready_for_automerge = pull_request.is_build_successful() and pull_request.is_mergeable()
-        if SGTM_FEATURE__STALENESS_CHECK_ENABLED and is_pull_request_ready_for_automerge:
-            did_rerun_stale_required_checks = _maybe_rerun_stale_required_checks(pull_request)
+        did_rerun_stale_required_checks = is_pull_request_ready_for_automerge and _maybe_rerun_stale_required_checks(pull_request)
     elif pull_request_has_label(
         pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
     ):
         is_pull_request_ready_for_automerge = pull_request.is_build_successful() and pull_request.is_mergeable() and pull_request.is_approved()
-        if SGTM_FEATURE__STALENESS_CHECK_ENABLED and is_pull_request_ready_for_automerge:
-            did_rerun_stale_required_checks = _maybe_rerun_stale_required_checks(pull_request)
+        did_rerun_stale_required_checks = is_pull_request_ready_for_automerge and _maybe_rerun_stale_required_checks(pull_request)
     elif pull_request_has_label(pull_request, AutomergeLabel.AFTER_APPROVAL.value):
         is_pull_request_ready_for_automerge = pull_request.is_mergeable() and pull_request.is_approved()
 
@@ -294,16 +291,19 @@ def _pull_request_has_automerge_comment(
 
 
 def _maybe_rerun_stale_required_checks(pull_request: PullRequest) -> bool:
-    for check_suite in pull_request.commits()[0].check_suites():
-        for check_run in check_suite.check_runs():
-            if check_run.is_required() and _check_run_is_stale(check_run):
-                github_client.rerequest_check_run(pull_request.owner_handle(), pull_request.repository_name(), check_run.database_id())
-                return True
+    if SGTM_FEATURE__CHECK_RUN_FRESHNESS_DURATION_HOURS > 0:
+        did_rerun = False
+        # point in time when a check run status can still be considered 'fresh'
+        freshness_threshold = datetime.now() - timedelta(hours=SGTM_FEATURE__CHECK_RUN_FRESHNESS_DURATION_HOURS)
+        for check_suite in pull_request.commits()[0].check_suites():
+            for check_run in check_suite.check_runs():
+                if _should_rerequest_check_run(check_run, freshness_threshold):
+                    did_rerun = True
+                    github_client.rerequest_check_run(pull_request.owner_handle(), pull_request.repository_name(), check_run.database_id())
+        return did_rerun
+        
     return False
             
 
-def _check_run_is_stale(check_run: CheckRun) -> bool:
-    is_stale = check_run.conclusion() == CheckConclusionState.STALE
-    if SGTM_FEATURE__STALENESS_CHECK_DURATION > 0:
-        is_stale &= check_run.completed_at() < datetime.now() - timedelta(hours=SGTM_FEATURE__STALENESS_CHECK_DURATION)
-    return is_stale
+def _should_rerequest_check_run(check_run: CheckRun, freshness_threshold: datetime) -> bool:
+    return check_run.is_required() and check_run.completed_at() < freshness_threshold

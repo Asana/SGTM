@@ -72,13 +72,8 @@ variable "sgtm_feature__followup_review_github_users" {
   default     = ""
 }
 
-variable "sgtm_feature__staleness_check_enabled" {
-  type = string
-  description = "'true' if behavior to block automerge on stale check runs of pull requests is enabled. Staleness is defined by Github"
-}
-
-variable "sgtm_feature__staleness_check_duration" {
+variable "sgtm_feature__check_run_freshness_duration_hours" {
   type = number
-  description = "Number of hours after which a check run is considered stale. Overrides Github's staleness definition"
+  description = "Number of hours after which a check run is considered no longer fresh."
   default = 0
 }
