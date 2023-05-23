@@ -281,7 +281,7 @@ def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
     if pull_request_has_label(pull_request, AutomergeLabel.AFTER_TESTS.value):
         can_merge = pull_request.is_build_successful() and pull_request.is_mergeable()
         if SGTM_FEATURE__STALENESS_CHECK_ENABLED:
-            can_merge &= not _pull_request_has_stale_required_checks(pull_request)
+            can_merge &= not _maybe_rerun_stale_required_checks(pull_request)
         return can_merge
 
     if pull_request_has_label(
@@ -293,7 +293,7 @@ def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
             and pull_request.is_approved()
         )
         if SGTM_FEATURE__STALENESS_CHECK_ENABLED:
-            can_merge &= not _pull_request_has_stale_required_checks(pull_request)
+            can_merge &= not _maybe_rerun_stale_required_checks(pull_request)
         return can_merge
 
     if pull_request_has_label(pull_request, AutomergeLabel.AFTER_APPROVAL.value):
@@ -310,10 +310,11 @@ def _pull_request_has_automerge_comment(
     )
 
 
-def _pull_request_has_stale_required_checks(pull_request: PullRequest) -> bool:
+def _maybe_rerun_stale_required_checks(pull_request: PullRequest) -> bool:
     for check_suite in pull_request.commits()[0].check_suites():
         for check_run in check_suite.check_runs():
             if check_run.is_required() and _check_run_is_stale(check_run):
+                github_client.rerequest_check_run(pull_request.owner_handle(), pull_request.repository_name(), check_run.database_id())
                 return True
     return False
             
