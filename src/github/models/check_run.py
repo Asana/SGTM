@@ -5,6 +5,7 @@ from enum import Enum, unique
 
 import copy
 
+
 @unique
 class CheckConclusionState(Enum):
     """https://docs.github.com/en/graphql/reference/enums#checkconclusionstate"""
@@ -27,28 +28,27 @@ class CheckRun(object):
 
     def id(self) -> str:
         return self._raw["id"]
-    
+
     def completed_at(self) -> datetime:
         return parse_date_string(self._raw["completedAt"])
-    
+
     def is_required(self) -> bool:
         return self._raw["isRequired"]
-    
+
     def name(self) -> str:
         return self._raw["name"]
-    
+
     def status(self) -> str:
         return self._raw["status"]
-    
+
     def url(self) -> str:
         return self._raw["url"]
-    
+
     def database_id(self) -> int:
         return self._raw["databaseId"]
 
     def conclusion(self) -> CheckConclusionState:
         return CheckConclusionState(self._raw["conclusion"])
-    
+
     def to_raw(self) -> Dict[str, Any]:
         return copy.deepcopy(self._raw)
-    

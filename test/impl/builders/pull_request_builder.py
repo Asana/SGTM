@@ -35,6 +35,7 @@ class PullRequestBuilder(BuilderBaseClass):
                         "commit": {
                             "statusCheckRollup": {"state": Commit.BUILD_PENDING},
                             "node_id": create_uuid(),
+                            "checkSuites": {"nodes": []},
                         }
                     }
                 ]
@@ -53,6 +54,7 @@ class PullRequestBuilder(BuilderBaseClass):
                 "name": create_uuid(),
                 "owner": {"login": create_uuid(), "name": create_uuid()},
             },
+            "owner": {"login": create_uuid(), "name": create_uuid()},
         }
 
     def closed(self, closed: bool):

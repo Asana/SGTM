@@ -20,9 +20,12 @@ class Commit(object):
             return None
         else:
             return status.get("state", None)
-        
+
     def check_suites(self) -> List[CheckSuite]:
-        return [CheckSuite(raw_check_suite) for raw_check_suite in self._raw["commit"]["checkSuites"]["nodes"]]
+        return [
+            CheckSuite(raw_check_suite)
+            for raw_check_suite in self._raw["commit"]["checkSuites"]["nodes"]
+        ]
 
     def node_id(self) -> str:
         return self._raw["commit"]["node_id"]
