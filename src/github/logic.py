@@ -8,6 +8,7 @@ from enum import Enum, unique
 from src.github.helpers import pull_request_has_label
 from src.config import (
     SGTM_FEATURE__AUTOMERGE_ENABLED,
+    SGTM_FEATURE__DISABLE_GITHUB_TEAM_SUBSCRIPTION,
     SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS,
 )
 
@@ -192,7 +193,7 @@ def pull_request_participants(pull_request: PullRequest) -> List[str]:
             for gh_handle in (
                 [pull_request.author_handle()]
                 + pull_request.assignees()
-                + pull_request.requested_reviewers()
+                + pull_request.requested_reviewers(include_team_members=not SGTM_FEATURE__DISABLE_GITHUB_TEAM_SUBSCRIPTION)
                 + _pull_request_body_mentions(pull_request)
             )
             if gh_handle

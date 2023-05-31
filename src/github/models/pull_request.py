@@ -50,7 +50,7 @@ class PullRequest(object):
         ]
         self._assignees = self._assignees_from_raw()
 
-    def requested_reviewers(self) -> List[str]:
+    def requested_reviewers(self, include_team_members: bool = True) -> List[str]:
         reviewer_logins = set()
         for node in self._raw["reviewRequests"]["nodes"]:
             if (
@@ -61,6 +61,7 @@ class PullRequest(object):
             elif (
                 node["requestedReviewer"] is not None
                 and "members" in node["requestedReviewer"]
+                and include_team_members
             ):
                 for reviewer in node["requestedReviewer"]["members"].get("nodes", []):
                     reviewer_logins.add(reviewer["login"])
