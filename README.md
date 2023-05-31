@@ -173,9 +173,9 @@ python3 -m unittest discover
 Alternatively, you may run specific tests e.g. via:
 
 ```bash
-python3 ./test/<python-test-file-name>.py>
-python3 ./test/<python-test-file-name>.py> <TestClassName>
-python3 ./test/<python-test-file-name>.py> <TestClassName.test_function_name>
+python3 -m unittest test/<python-test-file-name>.py
+python3 -m unittest test.<python-test-module-name>.<TestClassName>
+python3 -m unittest test.<python-test-module-name>.<TestClassName>.<test_function_name>
 ```
 
 ## "Building"
