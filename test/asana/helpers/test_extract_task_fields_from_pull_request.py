@@ -786,6 +786,19 @@ class TestTaskFollowersFromReview(BaseClass):
         followers = src.asana.helpers.task_followers_from_review(review)
         self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", followers)
 
+    def test_non_asana_user_is_not_a_follower(self):
+        unknown_github_user = build(
+            builder.user("github_unknown_user_login", "GITHUB_UNKNOWN_USER_NAME")
+        )
+        review = (
+            builder.review()
+            .body("@github_unknown_user_login")
+            .author(unknown_github_user)
+            .build()
+        )
+        followers = src.asana.helpers.task_followers_from_review(review)
+        self.assertEqual(0, len(followers))
+
 
 class TestTaskFollowersFromComment(BaseClass):
     def test_commentor_is_a_follower(self):
@@ -804,31 +817,18 @@ class TestTaskFollowersFromComment(BaseClass):
         followers = src.asana.helpers.task_followers_from_comment(comment)
         self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", followers)
 
-    # def test_non_asana_user_is_not_a_follower(self):
-    #     unknown_github_user = build(
-    #         builder.user("github_unknown_user_login", "GITHUB_UNKNOWN_USER_NAME")
-    #     )
-    #     pull_request = build(
-    #         builder.pull_request()
-    #         .body("@github_unknown_user_login")
-    #         .author(unknown_github_user)
-    #         .assignee(unknown_github_user)
-    #         .review(
-    #             builder.review()
-    #             .body("@github_unknown_user_login")
-    #             .author(unknown_github_user)
-    #         )
-    #         .comment(
-    #             builder.comment()
-    #             .body("@github_unknown_user_login")
-    #             .author(unknown_github_user)
-    #         )
-    #         .requested_reviewer(unknown_github_user)
-    #     )
-    #     task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
-    #         pull_request
-    #     )
-    #     self.assertEqual(0, len(task_fields["followers"]))
+    def test_non_asana_user_is_not_a_follower(self):
+        unknown_github_user = build(
+            builder.user("github_unknown_user_login", "GITHUB_UNKNOWN_USER_NAME")
+        )
+        comment = (
+            builder.comment()
+            .body("@github_unknown_user_login")
+            .author(unknown_github_user)
+            .build()
+        )
+        followers = src.asana.helpers.task_followers_from_comment(comment)
+        self.assertEqual(0, len(followers))
 
 
 class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
