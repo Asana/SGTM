@@ -21,7 +21,9 @@ class TestPullRequest(BaseClass):
             .requested_reviewers([user])
             .requested_reviewer_team("some_team", ["user1", "user2"])
         )
-        self.assertEqual(["user1"], pull_request.requested_reviewers(include_team_members=False))
+        self.assertEqual(
+            ["user1"], pull_request.requested_reviewers(include_team_members=False)
+        )
 
 
 if __name__ == "__main__":
