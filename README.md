@@ -138,6 +138,14 @@ By default SGTM subscribes every member of a reviewing Github team to the SGTM t
 **How to configure**:
 * Set an env variable of `TF_VAR_sgtm_feature__disable_github_team_subscription` to `true`
 
+### Rerun required checks on pull requests that are older than N hours
+SGTM can use Github API to rerun Check Runs on pull requests if the results of those check runs exceeds a set number of hours. Only set for check runs that are "required" as determined by Github's API. To set required checks on a branch see https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches#require-status-checks-before-merging
+
+*Note*: This does not use Github's check conclusion state `stale` and instead overrides it with a custom definition of "stale". 
+
+**How to configure**:
+* Set an env variable of `TF_VAR_sgtm_feature__check_run_freshness_duration_hours` to any positive integer to represent the number of hours a required check is considered "fresh". The default is 0 which disables the feature.
+
 ## Installing a Virtual Environment for Python
 
 See [these instructions](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) for help in
