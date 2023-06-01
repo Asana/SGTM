@@ -62,7 +62,7 @@ variable "sgtm_feature__autocomplete_enabled" {
 
 variable "sgtm_feature__disable_github_team_subscription" {
   type        = string
-  description = "'true' if behavior to not auto-subscribe github team members is enabled"
+  description = "'true' if behavior to auto-subscribe github team members is disabled"
   default     = "false"
 }
 
