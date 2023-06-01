@@ -50,34 +50,8 @@ def _extract_mentions(text: str) -> List[str]:
     return re.findall(GITHUB_MENTION_REGEX, text)
 
 
-def _pull_request_comment_mentions(pull_request: PullRequest) -> List[str]:
-    comment_texts = [comment.body() for comment in pull_request.comments()]
-    return [
-        mention
-        for comment_text in comment_texts
-        for mention in _extract_mentions(comment_text)
-    ]
-
-
-def _pull_request_review_mentions(pull_request: PullRequest) -> List[str]:
-    review_texts = [review.body() for review in pull_request.reviews()] + [
-        comment.body()
-        for comments in [review.comments() for review in pull_request.reviews()]
-        for comment in comments
-    ]
-    return [
-        mention
-        for review_text in review_texts
-        for mention in _extract_mentions(review_text)
-    ]
-
-
 def _pull_request_body_mentions(pull_request: PullRequest) -> List[str]:
     return _extract_mentions(pull_request.body())
-
-
-def _pull_request_commenters(pull_request: PullRequest) -> List[str]:
-    return sorted(comment.author_handle() for comment in pull_request.comments())
 
 
 def comment_participants_and_mentions(comment: Comment) -> List[str]:
