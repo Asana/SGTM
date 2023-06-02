@@ -5,11 +5,11 @@ from src.logger import logger
 
 from . import client as github_client
 from src.github.models import (
-    Comment,
-    PullRequest,
-    MergeableState,
     CheckRun,
-    CheckConclusionState,
+    Comment,
+    MergeableState,
+    PullRequest,
+    Review,
 )
 from enum import Enum, unique
 from src.github.helpers import pull_request_has_label
