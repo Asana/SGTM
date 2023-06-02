@@ -46,7 +46,6 @@ def extract_task_fields_from_pull_request(pull_request: PullRequest) -> dict:
         "name": _task_name_from_pull_request(pull_request),
         "html_notes": _task_description_from_pull_request(pull_request),
         "completed": _task_completion_from_pull_request(pull_request).is_complete,
-        "followers": _task_followers_from_pull_request(pull_request),
         "custom_fields": _custom_fields_from_pull_request(pull_request),
     }
 
@@ -436,11 +435,29 @@ def _task_completion_from_pull_request(pull_request: PullRequest) -> StatusReaso
         )
 
 
-def _task_followers_from_pull_request(pull_request: PullRequest):
+def task_followers_from_comment(comment: Comment) -> List[str]:
+    return _task_followers_from_gh_handles(
+        github_logic.comment_participants_and_mentions(comment)
+    )
+
+
+def task_followers_from_review(review: Review) -> List[str]:
+    return _task_followers_from_gh_handles(
+        github_logic.review_participants_and_mentions(review)
+    )
+
+
+def task_followers_from_pull_request(pull_request: PullRequest) -> List[str]:
+    return _task_followers_from_gh_handles(
+        github_logic.pull_request_participants(pull_request)
+    )
+
+
+def _task_followers_from_gh_handles(gh_handles: List[str]) -> List[str]:
     return [
-        _asana_user_id_from_github_handle(gh_handle)
-        for gh_handle in github_logic.all_pull_request_participants(pull_request)
-        if _asana_user_id_from_github_handle(gh_handle) is not None
+        asana_user_id
+        for gh_handle in gh_handles
+        if (asana_user_id := _asana_user_id_from_github_handle(gh_handle)) is not None
     ]
 
 

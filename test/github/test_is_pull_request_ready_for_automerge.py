@@ -403,36 +403,30 @@ class GithubLogicTest(unittest.TestCase):
         )
         self.assertEqual(github_logic._extract_mentions("hello @*"), [])
 
-    def test_pull_request_comment_mentions(self):
-        pull_request = build(
-            builder.pull_request().comments(
+    def test_comment_participants_and_mentions(self):
+        author = builder.user().login("four").build()
+        comment = builder.comment("@one @two @three").author(author).build()
+        self.assertEqual(
+            sorted(github_logic.comment_participants_and_mentions(comment)),
+            sorted(["one", "two", "three", "four"]),
+        )
+
+    def test_pull_request_review_mentions(self):
+        author = builder.user().login("five").build()
+        review = (
+            builder.review("@a @b @c")
+            .comments(
                 [
                     builder.comment(""),
                     builder.comment("@one @two @three"),
                     builder.comment("@four"),
                 ]
             )
+            .author(author)
+            .build()
         )
         self.assertEqual(
-            github_logic._pull_request_comment_mentions(pull_request),
-            ["one", "two", "three", "four"],
-        )
-
-    def test_pull_request_review_mentions(self):
-        pull_request = build(
-            builder.pull_request().reviews(
-                [
-                    builder.review("").comments(
-                        [builder.comment("@one @two @three"), builder.comment("@four")]
-                    ),
-                    builder.review("@a @b @c").comments(
-                        [builder.comment(""), builder.comment("@five")]
-                    ),
-                ]
-            )
-        )
-        self.assertEqual(
-            sorted(github_logic._pull_request_review_mentions(pull_request)),
+            sorted(github_logic.review_participants_and_mentions(review)),
             ["a", "b", "c", "five", "four", "one", "three", "two"],
         )
 
@@ -440,20 +434,6 @@ class GithubLogicTest(unittest.TestCase):
         pull_request = builder.pull_request("@foo\n@bar").build()
         self.assertEqual(
             github_logic._pull_request_body_mentions(pull_request), ["foo", "bar"]
-        )
-
-    def test_pull_request_commenters(self):
-        pull_request = build(
-            builder.pull_request().comments(
-                [
-                    builder.comment().author(builder.user().login("foo")),
-                    builder.comment().author(builder.user().login("bar")),
-                ]
-            )
-        )
-        self.assertEqual(
-            github_logic._pull_request_commenters(pull_request),
-            ["bar", "foo"],  # sorted
         )
 
     def test_pull_request_approved_before_merging_review_approved_after_merge(self):

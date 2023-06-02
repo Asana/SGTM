@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 from . import client as asana_client
 from . import helpers as asana_helpers
 from . import logic as asana_logic
@@ -20,21 +20,18 @@ def create_task(repository_id: str) -> Optional[str]:
 
 
 def update_task(
-    pull_request: PullRequest, task_id: str, force_update_due_today: bool = False
+    pull_request: PullRequest,
+    task_id: str,
+    followers: List[str],
+    force_update_due_today: bool = False,
 ):
     task_url = asana_helpers.task_url_from_task_id(task_id)
     pr_url = pull_request.url()
     logger.info(f"Updating task {task_url} for pull request {pr_url}")
 
-    fields = asana_helpers.extract_task_fields_from_pull_request(pull_request)
-
-    # TODO: Should extract_task_fields_from_pull_request be broken into two
-    # methods, one for fields and one for followers?
-    update_task_fields = {
-        k: v
-        for k, v in fields.items()
-        if k in ("assignee", "name", "html_notes", "completed", "custom_fields")
-    }
+    update_task_fields = asana_helpers.extract_task_fields_from_pull_request(
+        pull_request
+    )
     task = asana_client.get_task(task_id)
     new_due_on = (
         asana_helpers.today_str()
@@ -44,7 +41,7 @@ def update_task(
     if new_due_on is not None:
         update_task_fields["due_on"] = new_due_on
     asana_client.update_task(task_id, update_task_fields)
-    asana_client.add_followers(task_id, fields["followers"])
+    asana_client.add_followers(task_id, followers)
     maybe_complete_tasks_on_merge(pull_request)
 
 
