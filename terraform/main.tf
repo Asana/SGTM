@@ -180,6 +180,7 @@ resource "aws_lambda_function" "sgtm" {
       API_KEYS_S3_KEY                    = var.api_key_s3_object,
       SGTM_FEATURE__AUTOMERGE_ENABLED    = var.sgtm_feature__automerge_enabled,
       SGTM_FEATURE__AUTOCOMPLETE_ENABLED = var.sgtm_feature__autocomplete_enabled,
+      SGTM_FEATURE__DISABLE_GITHUB_TEAM_SUBSCRIPTION = var.sgtm_feature__disable_github_team_subscription,
       SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS = var.sgtm_feature__followup_review_github_users
     }
   }

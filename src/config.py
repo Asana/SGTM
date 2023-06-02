@@ -33,6 +33,9 @@ SGTM_FEATURE__AUTOCOMPLETE_ENABLED = is_feature_flag_enabled(
 SGTM_FEATURE__AUTOMERGE_ENABLED = is_feature_flag_enabled(
     "SGTM_FEATURE__AUTOMERGE_ENABLED"
 )
+SGTM_FEATURE__DISABLE_GITHUB_TEAM_SUBSCRIPTION = is_feature_flag_enabled(
+    "SGTM_FEATURE__DISABLE_GITHUB_TEAM_SUBSCRIPTION"
+)
 SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS = {
     github_username
     for github_username in os.getenv(

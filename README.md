@@ -132,6 +132,12 @@ For example, you may have a bot that automatically approves certain auto-generat
 **How to configure**:
 * Set an env variable of `TF_VAR_sgtm_feature__followup_review_github_users` to contain a comma-separated list of Github usernames that should have follow-up review
 
+### Turn off Github team task subscriptions to reduce inbox noise
+By default SGTM subscribes every member of a reviewing Github team to the SGTM task. You might want to turn this off if you want to use team reviewers as a marker for PR ownership or triage, but don't need every member of that team to see each PR.
+
+**How to configure**:
+* Set an env variable of `TF_VAR_sgtm_feature__disable_github_team_subscription` to `true`
+
 ## Installing a Virtual Environment for Python
 
 See [these instructions](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) for help in

@@ -60,6 +60,12 @@ variable "sgtm_feature__autocomplete_enabled" {
   default     = "false"
 }
 
+variable "sgtm_feature__disable_github_team_subscription" {
+  type        = string
+  description = "'true' if behavior to auto-subscribe github team members is disabled"
+  default     = "false"
+}
+
 variable "sgtm_feature__followup_review_github_users" {
   type        = string
   description = "A comma-separated list of Github usernames that require follow-up review after merge"
