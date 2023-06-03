@@ -9,7 +9,7 @@ class CheckSuiteBuilder(BuilderBaseClass):
     def __init__(self, conclusion=CheckConclusionState.NONE):
         self.raw_check_suite = {
             "node_id": create_uuid(),
-            "checkRuns": [],
+            "checkRuns": {"nodes": []},
             "conclusion": conclusion,
         }
 
@@ -21,7 +21,7 @@ class CheckSuiteBuilder(BuilderBaseClass):
         self, check_runs: List[Union[CheckRunBuilder, CheckRun]]
     ) -> Union["CheckSuiteBuilder", CheckSuite]:
         for check_run in check_runs:
-            self.raw_check_suite["checkRuns"].append(check_run.to_raw())
+            self.raw_check_suite["checkRuns"]["nodes"].append(check_run.to_raw())
         return self
 
     def build(self) -> CheckSuite:

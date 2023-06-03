@@ -324,7 +324,7 @@ def _maybe_rerun_stale_required_checks(pull_request: PullRequest) -> bool:
                 if _should_rerequest_check_run(check_run, freshness_threshold):
                     did_rerun = True
                     github_client.rerequest_check_run(
-                        pull_request.owner_handle(),
+                        pull_request.repository_owner_handle(),
                         pull_request.repository_name(),
                         check_run.database_id(),
                     )

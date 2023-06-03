@@ -9,7 +9,9 @@ class CheckSuite(object):
         self._raw = copy.deepcopy(raw_check_suite)
 
     def check_runs(self) -> List[CheckRun]:
-        return [CheckRun(raw_check_run) for raw_check_run in self._raw["checkRuns"]]
+        return [
+            CheckRun(raw_check_run) for raw_check_run in self._raw["checkRuns"]["nodes"]
+        ]
 
     def conclusion(self) -> CheckConclusionState:
         return CheckConclusionState(self._raw["conclusion"])

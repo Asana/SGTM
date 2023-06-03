@@ -524,7 +524,7 @@ class TestMaybeRerunStaleRequiredChecks(unittest.TestCase):
         )
         self.assertTrue(github_logic._maybe_rerun_stale_required_checks(pull_request))
         mock_rerequest_check_run.assert_called_once_with(
-            pull_request.owner_handle(),
+            pull_request.repository_owner_handle(),
             pull_request.repository_name(),
             check_run.database_id(),
         )
