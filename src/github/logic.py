@@ -239,7 +239,6 @@ def maybe_add_automerge_warning_comment(pull_request: PullRequest):
             and not _pull_request_has_automerge_comment(pull_request, automerge_comment)
             and not pull_request.is_approved()
         ):
-
             github_client.add_pr_comment(owner, repo_name, pr_number, automerge_comment)
 
 
@@ -313,8 +312,8 @@ def _pull_request_has_automerge_comment(
 
 
 def _maybe_rerun_stale_required_checks(pull_request: PullRequest) -> bool:
+    did_rerun = False
     if SGTM_FEATURE__CHECK_RUN_FRESHNESS_DURATION_HOURS > 0:
-        did_rerun = False
         # point in time when a check run status can still be considered 'fresh'
         freshness_threshold = datetime.utcnow() - timedelta(
             hours=SGTM_FEATURE__CHECK_RUN_FRESHNESS_DURATION_HOURS
@@ -328,9 +327,12 @@ def _maybe_rerun_stale_required_checks(pull_request: PullRequest) -> bool:
                         pull_request.repository_name(),
                         check_run.database_id(),
                     )
-        return did_rerun
+                    # To avoid multiple check suite reruns which often supersede/abort themselves,
+                    # we only rerun the first check run that is "stale" in the check suite.
+                    # TODO: Change the Github required checks list to only include 1 check run per check suite to avoid this hacky logic
+                    break
 
-    return False
+    return did_rerun
 
 
 def _should_rerequest_check_run(check_run: CheckRun, freshness_date: datetime) -> bool:

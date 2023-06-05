@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, call
 import src.github.logic as github_logic
 from src.github.models import Commit, ReviewState, PullRequest, MergeableState
 from test.impl.builders import builder, build
@@ -547,6 +547,29 @@ class TestMaybeRerunStaleRequiredChecks(unittest.TestCase):
         self.assertFalse(github_logic._maybe_rerun_stale_required_checks(pull_request))
         mock_rerequest_check_run.assert_not_called()
 
+    @patch("src.github.logic.SGTM_FEATURE__CHECK_RUN_FRESHNESS_DURATION_HOURS", 1)
+    def test_maybe_rerun_stale_required_checks_once_per_check_suite(
+        self, mock_rerequest_check_run
+    ):
+        check_run = build(
+            builder.check_run().is_required(True).completed_at("2020-01-13T14:59:58Z")
+        )
+        pull_request = build(
+            builder.pull_request().commit(
+                builder.commit()
+                .status(Commit.BUILD_SUCCESSFUL)
+                .check_suites(
+                    [builder.check_suite().check_runs([check_run, check_run])]
+                )
+            )
+        )
+        self.assertTrue(github_logic._maybe_rerun_stale_required_checks(pull_request))
+        mock_rerequest_check_run.assert_called_once_with(
+            pull_request.repository_owner_handle(),
+            pull_request.repository_name(),
+            check_run.database_id(),
+        )
+
 
 class TestPullRequestHasLabel(unittest.TestCase):
     def test_pull_request_with_label(self):
@@ -597,7 +620,7 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
     def test_adds_warnings_if_label_and_no_warning_in_comments(
         self, add_pr_comment_mock, edit_pr_title_mock
     ):
-        for (label, automerge_comment) in [
+        for label, automerge_comment in [
             (
                 github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value,
                 github_logic.AUTOMERGE_COMMENT_WARNING_AFTER_TESTS_AND_APPROVAL,
