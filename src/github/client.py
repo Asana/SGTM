@@ -50,4 +50,5 @@ def rerequest_check_run(owner: str, repository: str, check_run_id: int):
     url = "https://api.github.com/repos/{owner}/{repository}/check-runs/{check_run_id}/rerequest".format(
         owner=owner, repository=repository, check_run_id=check_run_id
     )
-    return requests.post(url, auth=auth)
+    # Some check runs cannot be rerequested. See https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#rerequest-a-check-run--status-codes
+    return requests.post(url, auth=auth).status_code == 201

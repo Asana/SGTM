@@ -324,8 +324,7 @@ def _maybe_rerun_stale_required_checks(pull_request: PullRequest) -> bool:
                     check_run.is_required()
                     and check_run.completed_at() < freshness_date
                 ):
-                    did_rerun = True
-                    github_client.rerequest_check_run(
+                    did_rerun |= github_client.rerequest_check_run(
                         pull_request.repository_owner_handle(),
                         pull_request.repository_name(),
                         check_run.database_id(),
