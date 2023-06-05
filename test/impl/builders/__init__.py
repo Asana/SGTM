@@ -5,8 +5,6 @@ from .review_builder import ReviewBuilder
 from .user_builder import UserBuilder
 from .commit_builder import CommitBuilder
 from .label_builder import LabelBuilder
-from .check_suite_builder import CheckSuiteBuilder
-from .check_run_builder import CheckRunBuilder
 
 
 class Builder(object):
@@ -27,12 +25,6 @@ class Builder(object):
 
     def label(self, *args, **keywords):
         return LabelBuilder(*args, **keywords)
-
-    def check_suite(self, *args, **keywords):
-        return CheckSuiteBuilder(*args, **keywords)
-
-    def check_run(self, *args, **keywords):
-        return CheckRunBuilder(*args, **keywords)
 
 
 def build(builder: BuilderBaseClass):

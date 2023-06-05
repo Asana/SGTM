@@ -71,22 +71,6 @@ fragment FullPullRequest on PullRequest {
         statusCheckRollup {
           state
         }
-        checkSuites(last: 20) {
-          nodes {
-            conclusion
-            checkRuns(filterBy: {checkType: LATEST}, last: 20) {
-              nodes {
-                id
-                conclusion
-                completedAt
-                isRequired(pullRequestId: $id)
-                name
-                status
-                databaseId
-              }
-            }
-          }
-        }
       }
     }
   }
