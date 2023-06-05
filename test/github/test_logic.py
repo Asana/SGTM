@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, call
 import src.github.logic as github_logic
 from src.github.models import Commit, ReviewState, PullRequest, MergeableState
 from test.impl.builders import builder, build
@@ -8,24 +8,36 @@ import src.github.client as github_client
 from src.github.helpers import pull_request_has_label
 
 
-@patch.object(github_controller, "upsert_pull_request")
 @patch.object(github_client, "merge_pull_request")
-@patch.object(github_logic, "_is_pull_request_ready_for_automerge")
+@patch("src.github.logic.SGTM_FEATURE__CHECK_RUN_FRESHNESS_DURATION_HOURS", 0)
 class TestMaybeAutomergePullRequest(unittest.TestCase):
-    def test_handle_status_webhook_ready_for_automerge(
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_after_tests_and_approval(
         self,
-        is_pull_request_ready_for_automerge_mock,
-        merge_pull_request_mock,
-        upsert_pull_request_mock,
+        mock_merge_pull_request,
     ):
-        # Mock that pull request can be automerged
-        is_pull_request_ready_for_automerge_mock.return_value = True
-        pull_request = build(builder.pull_request())
-
-        merged = github_logic.maybe_automerge_pull_request(pull_request)
-
-        self.assertTrue(merged)
-        merge_pull_request_mock.assert_called_with(
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
+            )
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(False)
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
+        )
+        self.assertTrue(
+            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+                pull_request
+            )
+        )
+        mock_merge_pull_request.assert_called_once_with(
             pull_request.repository_owner_handle(),
             pull_request.repository_name(),
             pull_request.number(),
@@ -33,20 +45,529 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
             pull_request.body(),
         )
 
-    def test_handle_status_webhook_not_ready_for_automerge(
-        self,
-        is_pull_request_ready_for_automerge_mock,
-        merge_pull_request_mock,
-        upsert_pull_request_mock,
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_after_approval(
+        self, mock_merge_pull_request
     ):
-        # Mock that pull request cannot be automerged
-        is_pull_request_ready_for_automerge_mock.return_value = False
+        pull_request = build(
+            builder.pull_request()
+            .commit(
+                builder.commit().status(Commit.BUILD_PENDING)
+            )  # build hasn't finished, but PR is approved
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
+            )
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(False)
+            .label(
+                builder.label().name(github_logic.AutomergeLabel.AFTER_APPROVAL.value)
+            )
+        )
+        self.assertTrue(
+            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+                pull_request
+            )
+        )
+        mock_merge_pull_request.assert_called_once()
+
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_after_tests(
+        self, mock_merge_pull_request
+    ):
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.CHANGES_REQUESTED)
+            )
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(False)
+            .label(builder.label().name(github_logic.AutomergeLabel.AFTER_TESTS.value))
+        )
+        self.assertTrue(
+            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+                pull_request
+            )
+        )
+        mock_merge_pull_request.assert_called_once()
+
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_immediately(
+        self, mock_merge_pull_request
+    ):
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_FAILED))
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.CHANGES_REQUESTED)
+            )
+            .mergeable(MergeableState.UNKNOWN)
+            .merged(False)
+            .label(builder.label().name(github_logic.AutomergeLabel.IMMEDIATELY.value))
+        )
+        self.assertTrue(
+            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+                pull_request
+            )
+        )
+        mock_merge_pull_request.assert_called_once()
+
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_immediately_conflicting(
+        self, mock_merge_pull_request
+    ):
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_FAILED))
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.CHANGES_REQUESTED)
+            )
+            .mergeable(MergeableState.CONFLICTING)
+            .merged(False)
+            .label(builder.label().name(github_logic.AutomergeLabel.IMMEDIATELY.value))
+        )
+        self.assertFalse(
+            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+                pull_request
+            )
+        )
+        mock_merge_pull_request.assert_not_called()
+
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", False)
+    def test_is_pull_request_ready_for_automerge_autofail_if_feature_not_enabled(
+        self, mock_merge_pull_request
+    ):
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
+            )
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(False)
+            .label(builder.label().name(github_logic.AutomergeLabel.IMMEDIATELY.value))
+        )
+        self.assertFalse(
+            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+                pull_request
+            )
+        )
+        mock_merge_pull_request.assert_not_called()
+
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_autofail_if_merged(
+        self, mock_merge_pull_request
+    ):
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
+            )
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(True)
+            .closed(False)
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
+        )
+        self.assertFalse(
+            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+                pull_request
+            )
+        )
+        mock_merge_pull_request.assert_not_called()
+
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_autofail_if_closed(
+        self, mock_merge_pull_request
+    ):
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
+            )
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(False)
+            .closed(True)
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
+        )
+        self.assertFalse(
+            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+                pull_request
+            )
+        )
+        mock_merge_pull_request.assert_not_called()
+
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_build_failed(
+        self, mock_merge_pull_request
+    ):
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_FAILED))
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
+            )
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(False)
+            .label(builder.label().name(github_logic.AutomergeLabel.AFTER_TESTS.value))
+        )
+        self.assertFalse(
+            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+                pull_request
+            )
+        )
+        mock_merge_pull_request.assert_not_called()
+
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_build_pending(
+        self, mock_merge_pull_request
+    ):
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_PENDING))
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
+            )
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(False)
+            .label(builder.label().name(github_logic.AutomergeLabel.AFTER_TESTS.value))
+        )
+        self.assertFalse(
+            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+                pull_request
+            )
+        )
+        mock_merge_pull_request.assert_not_called()
+
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_after_approval_reviewer_requested_changes(
+        self, mock_merge_pull_request
+    ):
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.CHANGES_REQUESTED)
+            )
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(False)
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
+        )
+        self.assertFalse(
+            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+                pull_request
+            )
+        )
+        mock_merge_pull_request.assert_not_called()
+
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_after_approval_approved_and_requested_changes(
+        self, mock_merge_pull_request
+    ):
+        author_1 = builder.user().login("author_1")
+        author_2 = builder.user().login("author_2")
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .reviews(
+                [
+                    builder.review()
+                    .submitted_at("2020-01-11T14:59:58Z")
+                    .state(ReviewState.CHANGES_REQUESTED)
+                    .author(author_1),
+                    builder.review()
+                    .submitted_at("2020-01-12T14:59:58Z")
+                    .state(ReviewState.APPROVED)
+                    .author(author_2),
+                ]
+            )
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(False)
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
+        )
+        self.assertFalse(
+            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+                pull_request
+            )
+        )
+        mock_merge_pull_request.assert_not_called()
+
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_changes_after_approval_requested_then_approval(
+        self, mock_merge_pull_request
+    ):
+        author_1 = builder.user().login("author_1")
+        author_2 = builder.user().login("author_2")
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .reviews(
+                [
+                    builder.review()
+                    .submitted_at("2020-01-11T14:59:58Z")
+                    .state(ReviewState.CHANGES_REQUESTED)
+                    .author(author_1),
+                    builder.review()
+                    .submitted_at("2020-01-12T14:59:58Z")
+                    .state(ReviewState.APPROVED)
+                    .author(author_2),
+                    builder.review()
+                    .submitted_at("2020-01-13T14:59:58Z")
+                    .state(ReviewState.APPROVED)
+                    .author(author_1),
+                ]
+            )
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(False)
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
+        )
+        self.assertTrue(
+            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+                pull_request
+            )
+        )
+        mock_merge_pull_request.assert_called_once()
+
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_after_tests_no_review(
+        self, mock_merge_pull_request
+    ):
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .title("blah blah [shipit]")
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(False)
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
+        )
+        self.assertFalse(
+            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+                pull_request
+            )
+        )
+        mock_merge_pull_request.assert_not_called()
+
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_after_approval_no_review(
+        self, mock_merge_pull_request
+    ):
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .title("blah blah [shipit]")
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(False)
+            .label(builder.label().name(github_logic.AutomergeLabel.AFTER_TESTS.value))
+        )
+        self.assertTrue(
+            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+                pull_request
+            )
+        )
+        mock_merge_pull_request.assert_called_once()
+
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_no_automerge_label(
+        self, mock_merge_pull_request
+    ):
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
+            )
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(False)
+            .label(builder.label().name("random label"))
+        )
+        self.assertFalse(
+            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+                pull_request
+            )
+        )
+        mock_merge_pull_request.assert_not_called()
+
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_after_approval_mergeable_is_false(
+        self, mock_merge_pull_request
+    ):
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
+            )
+            .mergeable(MergeableState.CONFLICTING)
+            .merged(False)
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
+        )
+        self.assertFalse(
+            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+                pull_request
+            )
+        )
+        mock_merge_pull_request.assert_not_called()
+
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_after_tests_mergeable_is_false(
+        self, mock_merge_pull_request
+    ):
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
+            )
+            .mergeable(MergeableState.CONFLICTING)
+            .merged(False)
+            .label(builder.label().name(github_logic.AutomergeLabel.AFTER_TESTS.value))
+        )
+        self.assertFalse(
+            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+                pull_request
+            )
+        )
+        mock_merge_pull_request.assert_not_called()
+
+
+@patch.object(github_client, "rerequest_check_run")
+class TestMaybeRerunStaleRequiredChecks(unittest.TestCase):
+    @patch("src.github.logic.SGTM_FEATURE__CHECK_RUN_FRESHNESS_DURATION_HOURS", 0)
+    def test_maybe_rerun_stale_required_checks_feature_disabled(
+        self, mock_rerequest_check_run
+    ):
         pull_request = build(builder.pull_request())
+        self.assertFalse(github_logic._maybe_rerun_stale_required_checks(pull_request))
+        mock_rerequest_check_run.assert_not_called()
 
-        merged = github_logic.maybe_automerge_pull_request(pull_request)
+    @patch("src.github.logic.SGTM_FEATURE__CHECK_RUN_FRESHNESS_DURATION_HOURS", 1)
+    def test_maybe_rerun_stale_required_checks_for_old_pr(
+        self, mock_rerequest_check_run
+    ):
+        check_run = build(
+            builder.check_run().is_required(True).completed_at("2020-01-13T14:59:58Z")
+        )
+        pull_request = build(
+            builder.pull_request()
+            .commit(
+                builder.commit()
+                .status(Commit.BUILD_SUCCESSFUL)
+                .check_suites([builder.check_suite().check_runs([check_run])])
+            )
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
+            )
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(False)
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
+        )
+        self.assertTrue(github_logic._maybe_rerun_stale_required_checks(pull_request))
+        mock_rerequest_check_run.assert_called_once_with(
+            pull_request.repository_owner_handle(),
+            pull_request.repository_name(),
+            check_run.database_id(),
+        )
 
-        self.assertFalse(merged)
-        merge_pull_request_mock.assert_not_called()
+    @patch("src.github.logic.SGTM_FEATURE__CHECK_RUN_FRESHNESS_DURATION_HOURS", 1)
+    def test_maybe_rerun_stale_required_checks_not_required(
+        self, mock_rerequest_check_run
+    ):
+        check_run = build(
+            builder.check_run().is_required(False).completed_at("2020-01-13T14:59:58Z")
+        )
+        pull_request = build(
+            builder.pull_request().commit(
+                builder.commit()
+                .status(Commit.BUILD_SUCCESSFUL)
+                .check_suites([builder.check_suite().check_runs([check_run])])
+            )
+        )
+        self.assertFalse(github_logic._maybe_rerun_stale_required_checks(pull_request))
+        mock_rerequest_check_run.assert_not_called()
+
+    @patch("src.github.logic.SGTM_FEATURE__CHECK_RUN_FRESHNESS_DURATION_HOURS", 1)
+    def test_maybe_rerun_stale_required_checks_once_per_check_suite(
+        self, mock_rerequest_check_run
+    ):
+        check_run = build(
+            builder.check_run().is_required(True).completed_at("2020-01-13T14:59:58Z")
+        )
+        pull_request = build(
+            builder.pull_request().commit(
+                builder.commit()
+                .status(Commit.BUILD_SUCCESSFUL)
+                .check_suites(
+                    [builder.check_suite().check_runs([check_run, check_run])]
+                )
+            )
+        )
+        self.assertTrue(github_logic._maybe_rerun_stale_required_checks(pull_request))
+        mock_rerequest_check_run.assert_called_once_with(
+            pull_request.repository_owner_handle(),
+            pull_request.repository_name(),
+            check_run.database_id(),
+        )
 
 
 class TestPullRequestHasLabel(unittest.TestCase):
@@ -98,7 +619,7 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
     def test_adds_warnings_if_label_and_no_warning_in_comments(
         self, add_pr_comment_mock, edit_pr_title_mock
     ):
-        for (label, automerge_comment) in [
+        for label, automerge_comment in [
             (
                 github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value,
                 github_logic.AUTOMERGE_COMMENT_WARNING_AFTER_TESTS_AND_APPROVAL,

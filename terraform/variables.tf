@@ -71,3 +71,9 @@ variable "sgtm_feature__followup_review_github_users" {
   description = "A comma-separated list of Github usernames that require follow-up review after merge"
   default     = ""
 }
+
+variable "sgtm_feature__check_run_freshness_duration_hours" {
+  type = number
+  description = "Number of hours after which a check run is considered no longer fresh."
+  default = 0
+}

@@ -17,7 +17,7 @@ def _handle_pull_request_webhook(payload: dict) -> HttpResponse:
     with dynamodb_lock(pull_request_id):
         pull_request = graphql_client.get_pull_request(pull_request_id)
         # a label change will trigger this webhook, so it may trigger automerge
-        github_logic.maybe_automerge_pull_request(pull_request)
+        github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(pull_request)
         github_logic.maybe_add_automerge_warning_comment(pull_request)
         github_controller.upsert_pull_request(pull_request)
         return HttpResponse("200")
@@ -55,7 +55,7 @@ def _handle_pull_request_review_webhook(payload: dict) -> HttpResponse:
         pull_request, review = graphql_client.get_pull_request_and_review(
             pull_request_id, review_id
         )
-        github_logic.maybe_automerge_pull_request(pull_request)
+        github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(pull_request)
         github_controller.upsert_review(pull_request, review)
     return HttpResponse("200")
 
@@ -130,7 +130,7 @@ def _handle_status_webhook(payload: dict) -> HttpResponse:
         return HttpResponse("200")
 
     with dynamodb_lock(pull_request.id()):
-        github_logic.maybe_automerge_pull_request(pull_request)
+        github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(pull_request)
         github_controller.upsert_pull_request(pull_request)
         return HttpResponse("200")
 
@@ -150,7 +150,7 @@ def _handle_check_suite_webhook(payload: dict) -> HttpResponse:
     )
 
     with dynamodb_lock(pull_request.id()):
-        github_logic.maybe_automerge_pull_request(pull_request)
+        github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(pull_request)
         github_controller.upsert_pull_request(pull_request)
         return HttpResponse("200")
 
