@@ -529,13 +529,12 @@ class TestMaybeRerunStaleRequiredChecks(unittest.TestCase):
             check_run.database_id(),
         )
 
-    @patch.object(github_logic, "_should_rerequest_check_run", return_value=False)
     @patch("src.github.logic.SGTM_FEATURE__CHECK_RUN_FRESHNESS_DURATION_HOURS", 1)
-    def test_maybe_rerun_stale_required_checks_false(
-        self, mock_should_rerequest_check_run, mock_rerequest_check_run
+    def test_maybe_rerun_stale_required_checks_not_required(
+        self, mock_rerequest_check_run
     ):
         check_run = build(
-            builder.check_run().is_required(True).completed_at("2020-01-13T14:59:58Z")
+            builder.check_run().is_required(False).completed_at("2020-01-13T14:59:58Z")
         )
         pull_request = build(
             builder.pull_request().commit(

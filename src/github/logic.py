@@ -1,5 +1,5 @@
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List
 from src.logger import logger
 
@@ -315,12 +315,15 @@ def _maybe_rerun_stale_required_checks(pull_request: PullRequest) -> bool:
     did_rerun = False
     if SGTM_FEATURE__CHECK_RUN_FRESHNESS_DURATION_HOURS > 0:
         # point in time when a check run status can still be considered 'fresh'
-        freshness_threshold = datetime.utcnow() - timedelta(
+        freshness_date = datetime.now(timezone.utc) - timedelta(
             hours=SGTM_FEATURE__CHECK_RUN_FRESHNESS_DURATION_HOURS
         )
         for check_suite in pull_request.commits()[0].check_suites():
             for check_run in check_suite.check_runs():
-                if _should_rerequest_check_run(check_run, freshness_threshold):
+                if (
+                    check_run.is_required()
+                    and check_run.completed_at() < freshness_date
+                ):
                     did_rerun = True
                     github_client.rerequest_check_run(
                         pull_request.repository_owner_handle(),
@@ -333,11 +336,3 @@ def _maybe_rerun_stale_required_checks(pull_request: PullRequest) -> bool:
                     break
 
     return did_rerun
-
-
-def _should_rerequest_check_run(check_run: CheckRun, freshness_date: datetime) -> bool:
-    return (
-        check_run.is_required()
-        and check_run.completed_at()
-        < freshness_date.astimezone(tz=check_run.completed_at().tzinfo)
-    )
