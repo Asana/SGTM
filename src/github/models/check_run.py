@@ -4,6 +4,7 @@ from src.utils import parse_date_string
 
 import copy
 
+
 class CheckRun(object):
     def __init__(self, raw_check_run: Dict[str, Any]):
         self._raw = copy.deepcopy(raw_check_run)

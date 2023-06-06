@@ -81,4 +81,6 @@ fragment FullPullRequest on PullRequest {
 }
 """
 
-FullPullRequest: FrozenSet[str] = frozenset([_full_pull_request]) | FullReview | FullCommit
+FullPullRequest: FrozenSet[str] = (
+    frozenset([_full_pull_request]) | FullReview | FullCommit
+)
