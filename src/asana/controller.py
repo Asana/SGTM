@@ -41,7 +41,8 @@ def update_task(
     if new_due_on is not None:
         update_task_fields["due_on"] = new_due_on
     asana_client.update_task(task_id, update_task_fields)
-    asana_client.add_followers(task_id, followers)
+    if len(followers) > 0:
+        asana_client.add_followers(task_id, followers)
     maybe_complete_tasks_on_merge(pull_request)
 
 
