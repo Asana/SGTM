@@ -10,7 +10,6 @@ from .review import Review
 from .commit import Commit
 from .user import User
 from .label import Label
-from .check_run import CheckConclusionState
 import copy
 import collections
 
@@ -175,12 +174,6 @@ class PullRequest(object):
 
     def is_build_successful(self) -> bool:
         return self.build_status() == Commit.BUILD_SUCCESSFUL
-
-    def has_stale_checks(self) -> bool:
-        return any(
-            check_suite.conclusion() == CheckConclusionState.STALE
-            for check_suite in self.commits()[0].check_suites()
-        )
 
     def merged_at(self) -> Optional[datetime]:
         merged_at = self._raw.get("mergedAt", None)

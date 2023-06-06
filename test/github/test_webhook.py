@@ -40,6 +40,7 @@ class HandleIssueCommentWebhook(BaseClass):
 @patch("src.github.controller.delete_comment")
 @patch("src.github.controller.upsert_review")
 class TestHandlePullRequestReviewComment(BaseClass):
+
     PULL_REQUEST_REVIEW_ID = "123456"
     COMMENT_NODE_ID = "hijkl"
     PULL_REQUEST_NODE_ID = "abcde"

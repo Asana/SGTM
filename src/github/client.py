@@ -1,6 +1,3 @@
-import requests
-from requests.auth import HTTPBasicAuth
-
 from github import Github, PullRequest  # type: ignore
 from src.config import GITHUB_API_KEY
 
@@ -43,12 +40,3 @@ def merge_pull_request(owner: str, repository: str, number: int, title: str, bod
     # which we rely on for code review tests.
     title_with_number = f"{title} (#{number})"
     pr.merge(commit_title=title_with_number, commit_message=body, merge_method="squash")
-
-
-def rerequest_check_run(owner: str, repository: str, check_run_id: int):
-    auth = HTTPBasicAuth(GITHUB_API_KEY, "")
-    url = "https://api.github.com/repos/{owner}/{repository}/check-runs/{check_run_id}/rerequest".format(
-        owner=owner, repository=repository, check_run_id=check_run_id
-    )
-    # Some check runs cannot be rerequested. See https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#rerequest-a-check-run--status-codes
-    return requests.post(url, auth=auth).status_code == 201
