@@ -1,26 +1,20 @@
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, Union
 from datetime import datetime
 from .helpers import create_uuid, transform_datetime
-from src.github.models import CheckConclusionState, CheckRun
+from src.github.models import CheckRun
 from .builder_base_class import BuilderBaseClass
 
 
 class CheckRunBuilder(BuilderBaseClass):
     def __init__(
         self,
-        conclusion: CheckConclusionState = CheckConclusionState.NONE,
         is_required: bool = False,
     ):
         self.raw_check_run = {
             "node_id": create_uuid(),
             "isRequired": is_required,
-            "conclusion": conclusion,
             "databaseId": create_uuid(),
         }
-
-    def conclusion(self, conclusion: str) -> Union["CheckRunBuilder", CheckRun]:
-        self.raw_check_run["conclusion"] = conclusion
-        return self
 
     def completed_at(
         self, completed_at: Union[str, datetime]

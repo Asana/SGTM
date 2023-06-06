@@ -1,16 +1,15 @@
 from typing import Any, Dict, List, Union
 from .helpers import create_uuid
-from src.github.models import CheckConclusionState, CheckSuite, CheckRun
+from src.github.models import CheckSuite, CheckRun
 from .builder_base_class import BuilderBaseClass
 from .check_run_builder import CheckRunBuilder
 
 
 class CheckSuiteBuilder(BuilderBaseClass):
-    def __init__(self, conclusion=CheckConclusionState.NONE):
+    def __init__(self):
         self.raw_check_suite = {
             "node_id": create_uuid(),
             "checkRuns": {"nodes": []},
-            "conclusion": conclusion,
         }
 
     def conclusion(self, conclusion: str) -> Union["CheckSuiteBuilder", CheckSuite]:

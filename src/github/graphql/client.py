@@ -29,7 +29,7 @@ def _execute_graphql_query(query: FrozenSet[str], variables: dict) -> dict:
 
 
 def get_pull_request(pull_request_id: str) -> PullRequest:
-    data = _execute_graphql_query(GetPullRequest, {"id": pull_request_id})
+    data = _execute_graphql_query(GetPullRequest, {"pullRequestId": pull_request_id})
     return PullRequest(data["pullRequest"])
 
 
@@ -38,7 +38,7 @@ def get_pull_request_by_repository_and_number(
 ) -> PullRequest:
     data = _execute_graphql_query(
         GetPullRequestByRepositoryAndNumber,
-        {"repository": repository_node_id, "number": pull_request_number},
+        {"repositoryId": repository_node_id, "pullRequestNumber": pull_request_number},
     )
     return PullRequest(data["repository"]["pullRequest"])
 
@@ -64,7 +64,7 @@ def get_pull_request_and_review(
 
 
 def get_pull_request_for_commit(commit_id: str) -> Optional[PullRequest]:
-    data = _execute_graphql_query(GetPullRequestForCommit, {"id": commit_id})
+    data = _execute_graphql_query(GetPullRequestForCommit, {"commitId": commit_id})
     edges = data["commit"]["associatedPullRequests"]["edges"]
 
     if edges:

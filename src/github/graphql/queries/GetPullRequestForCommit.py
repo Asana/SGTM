@@ -3,8 +3,8 @@ from ..fragments import FullPullRequest, FullReview
 
 # @GraphqlInPython
 _get_pull_request_for_commit = """
-query GetPullRequestForCommit($id: ID!) {
-  commit: node(id: $id) {
+query GetPullRequestForCommit($commitId: ID!, $pullRequestId: ID, $pullRequestNumber: Int, $getCheckSuites: Boolean = false) {
+  commit: node(id: $commitId) {
     ... on Commit {
       associatedPullRequests(first: 1) {
         edges {

@@ -1,3 +1,4 @@
+from .FullCommit import FullCommit
 from .FullReview import FullReview
 from typing import FrozenSet
 
@@ -68,25 +69,7 @@ fragment FullPullRequest on PullRequest {
   commits(last: 1) {
     nodes {
       commit {
-        statusCheckRollup {
-          state
-        }
-        checkSuites(last: 20) {
-          nodes {
-            conclusion
-            checkRuns(filterBy: {checkType: LATEST}, last: 20) {
-              nodes {
-                id
-                conclusion
-                completedAt
-                isRequired(pullRequestId: $id)
-                name
-                status
-                databaseId
-              }
-            }
-          }
-        }
+        ...FullCommit
       }
     }
   }
@@ -98,4 +81,4 @@ fragment FullPullRequest on PullRequest {
 }
 """
 
-FullPullRequest: FrozenSet[str] = frozenset([_full_pull_request]) | FullReview
+FullPullRequest: FrozenSet[str] = frozenset([_full_pull_request]) | FullReview | FullCommit

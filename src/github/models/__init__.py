@@ -7,7 +7,7 @@ from .pull_request_review_comment import PullRequestReviewComment
 from .user import User
 from .commit import Commit
 from .label import Label
-from .check_run import CheckRun, CheckConclusionState
+from .check_run import CheckRun
 from .check_suite import CheckSuite
 
 

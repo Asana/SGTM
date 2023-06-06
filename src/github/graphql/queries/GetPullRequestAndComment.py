@@ -3,7 +3,7 @@ from ..fragments import FullPullRequest, FullComment, FullReview
 
 # @GraphqlInPython
 _get_pull_request_and_comment = """
-query GetPullRequestAndComment($pullRequestId: ID!, $commentId: ID!) {
+query GetPullRequestAndComment($pullRequestId: ID!, $commentId: ID!, $pullRequestNumber: Int, $getCheckSuites: Boolean = true) {
   pullRequest: node(id: $pullRequestId) {
     __typename
     ... on PullRequest {
