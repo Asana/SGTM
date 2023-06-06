@@ -130,6 +130,7 @@ def _handle_status_webhook(payload: dict) -> HttpResponse:
         return HttpResponse("200")
 
     with dynamodb_lock(pull_request.id()):
+        pull_request = graphql_client.get_pull_request(pull_request.id())
         github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(pull_request)
         github_controller.upsert_pull_request(pull_request)
         return HttpResponse("200")
