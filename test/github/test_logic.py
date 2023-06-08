@@ -488,17 +488,13 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
 @patch.object(github_client, "rerequest_check_run")
 class TestMaybeRerunStaleRequiredChecks(unittest.TestCase):
     @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS", 0)
-    def test_maybe_rerun_stale_checks_feature_disabled(
-        self, mock_rerequest_check_run
-    ):
+    def test_maybe_rerun_stale_checks_feature_disabled(self, mock_rerequest_check_run):
         pull_request = build(builder.pull_request())
         self.assertFalse(github_logic._maybe_rerun_stale_checks(pull_request))
         mock_rerequest_check_run.assert_not_called()
 
     @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS", 1)
-    def test_maybe_rerun_stale_checks_for_old_pr(
-        self, mock_rerequest_check_run
-    ):
+    def test_maybe_rerun_stale_checks_for_old_pr(self, mock_rerequest_check_run):
         check_run = build(
             builder.check_run().is_required(True).completed_at("2020-01-13T14:59:58Z")
         )
@@ -530,9 +526,7 @@ class TestMaybeRerunStaleRequiredChecks(unittest.TestCase):
         )
 
     @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS", 1)
-    def test_maybe_rerun_stale_checks_not_required(
-        self, mock_rerequest_check_run
-    ):
+    def test_maybe_rerun_stale_checks_not_required(self, mock_rerequest_check_run):
         check_run = build(
             builder.check_run().is_required(False).completed_at("2020-01-13T14:59:58Z")
         )

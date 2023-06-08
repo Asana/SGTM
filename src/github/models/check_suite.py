@@ -12,6 +12,6 @@ class CheckSuite(object):
         return [
             CheckRun(raw_check_run) for raw_check_run in self._raw["checkRuns"]["nodes"]
         ]
-    
+
     def to_raw(self) -> Dict[str, Any]:
         return copy.deepcopy(self._raw)

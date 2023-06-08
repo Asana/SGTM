@@ -317,7 +317,7 @@ def _maybe_rerun_stale_checks(pull_request: PullRequest) -> bool:
         return False
     if SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS <= 0:
         return False
-    
+
     did_rerun = False
     # point in time when a check run status can still be considered 'fresh'
     freshness_date = datetime.now(timezone.utc) - timedelta(
@@ -325,7 +325,7 @@ def _maybe_rerun_stale_checks(pull_request: PullRequest) -> bool:
     )
     for check_suite in pull_request.commits()[0].check_suites():
         for check_run in check_suite.check_runs():
-            if (check_run.completed_at() < freshness_date):
+            if check_run.completed_at() < freshness_date:
                 did_rerun |= github_client.rerequest_check_run(
                     pull_request.repository_owner_handle(),
                     pull_request.repository_name(),
