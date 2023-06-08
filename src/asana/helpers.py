@@ -464,7 +464,6 @@ def _task_followers_from_gh_handles(gh_handles: List[str]) -> List[str]:
 def _wrap_in_tag(
     tag_name: str, attrs: Optional[Dict[str, str]] = None
 ) -> Callable[[str], str]:
-
     if attrs is not None:
         # This will always start with a blank space, so that it's separate from the tag name.
         attr_list = "".join(f' {k}="{escape(v)}"' for k, v in attrs.items())

@@ -1,15 +1,24 @@
 import re
+from datetime import datetime, timedelta, timezone
 from typing import List
 from src.logger import logger
 
 from . import client as github_client
-from src.github.models import Comment, PullRequest, MergeableState, Review
+from src.github.models import (
+    CheckRun,
+    Comment,
+    MergeableState,
+    PullRequest,
+    Review,
+)
 from enum import Enum, unique
 from src.github.helpers import pull_request_has_label
 from src.config import (
     SGTM_FEATURE__AUTOMERGE_ENABLED,
     SGTM_FEATURE__DISABLE_GITHUB_TEAM_SUBSCRIPTION,
     SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS,
+    SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS,
+    SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES,
 )
 
 GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
@@ -231,17 +240,54 @@ def maybe_add_automerge_warning_comment(pull_request: PullRequest):
             and not _pull_request_has_automerge_comment(pull_request, automerge_comment)
             and not pull_request.is_approved()
         ):
-
             github_client.add_pr_comment(owner, repo_name, pr_number, automerge_comment)
 
 
 # returns True if the pull request was automerged, False if not
-def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
-    if _is_pull_request_ready_for_automerge(pull_request):
-        logger.info(
-            f"Pull request {pull_request.id()} is able to be automerged,"
-            " automerging now"
+def maybe_automerge_pull_request_and_rerun_stale_checks(
+    pull_request: PullRequest,
+) -> bool:
+    is_pull_request_ready_for_automerge = False
+    did_rerun_stale_required_checks = False
+    if (
+        not SGTM_FEATURE__AUTOMERGE_ENABLED
+        or pull_request.closed()
+        or pull_request.merged()
+    ):
+        is_pull_request_ready_for_automerge = False
+
+    # if there are multiple labels, we use the most permissive to define automerge behavior
+    elif pull_request_has_label(pull_request, AutomergeLabel.IMMEDIATELY.value):
+        is_pull_request_ready_for_automerge = pull_request.mergeable() in (
+            MergeableState.MERGEABLE,
+            MergeableState.UNKNOWN,
         )
+    elif pull_request_has_label(pull_request, AutomergeLabel.AFTER_TESTS.value):
+        is_pull_request_ready_for_automerge = (
+            pull_request.is_build_successful() and pull_request.is_mergeable()
+        )
+        did_rerun_stale_required_checks = (
+            is_pull_request_ready_for_automerge
+            and _maybe_rerun_stale_checks(pull_request)
+        )
+    elif pull_request_has_label(
+        pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+    ):
+        is_pull_request_ready_for_automerge = (
+            pull_request.is_build_successful()
+            and pull_request.is_mergeable()
+            and pull_request.is_approved()
+        )
+        did_rerun_stale_required_checks = (
+            is_pull_request_ready_for_automerge
+            and _maybe_rerun_stale_checks(pull_request)
+        )
+    elif pull_request_has_label(pull_request, AutomergeLabel.AFTER_APPROVAL.value):
+        is_pull_request_ready_for_automerge = (
+            pull_request.is_mergeable() and pull_request.is_approved()
+        )
+
+    if is_pull_request_ready_for_automerge and not did_rerun_stale_required_checks:
         github_client.merge_pull_request(
             pull_request.repository_owner_handle(),
             pull_request.repository_name(),
@@ -250,47 +296,12 @@ def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
             pull_request.body(),
         )
         return True
-    else:
-        return False
+    return False
 
 
 # ----------------------------------------------------------------------------------
 # Automerge helpers
 # ----------------------------------------------------------------------------------
-
-
-def _is_pull_request_ready_for_automerge(pull_request: PullRequest) -> bool:
-    # autofail if not enabled or pull request isn't open
-    if (
-        not SGTM_FEATURE__AUTOMERGE_ENABLED
-        or pull_request.closed()
-        or pull_request.merged()
-    ):
-        return False
-
-    # if there are multiple labels, we use the most permissive to define automerge behavior
-    if pull_request_has_label(pull_request, AutomergeLabel.IMMEDIATELY.value):
-        return pull_request.mergeable() in (
-            MergeableState.MERGEABLE,
-            MergeableState.UNKNOWN,
-        )
-
-    if pull_request_has_label(pull_request, AutomergeLabel.AFTER_TESTS.value):
-        return pull_request.is_build_successful() and pull_request.is_mergeable()
-
-    if pull_request_has_label(
-        pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
-    ):
-        return (
-            pull_request.is_build_successful()
-            and pull_request.is_mergeable()
-            and pull_request.is_approved()
-        )
-
-    if pull_request_has_label(pull_request, AutomergeLabel.AFTER_APPROVAL.value):
-        return pull_request.is_mergeable() and pull_request.is_approved()
-
-    return False
 
 
 def _pull_request_has_automerge_comment(
@@ -299,3 +310,30 @@ def _pull_request_has_automerge_comment(
     return any(
         comment.body() == automerge_comment for comment in pull_request.comments()
     )
+
+
+def _maybe_rerun_stale_checks(pull_request: PullRequest) -> bool:
+    if pull_request.base_ref_name() not in SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES:
+        return False
+    if SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS <= 0:
+        return False
+    
+    did_rerun = False
+    # point in time when a check run status can still be considered 'fresh'
+    freshness_date = datetime.now(timezone.utc) - timedelta(
+        hours=SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS
+    )
+    for check_suite in pull_request.commits()[0].check_suites():
+        for check_run in check_suite.check_runs():
+            if (check_run.completed_at() < freshness_date):
+                did_rerun |= github_client.rerequest_check_run(
+                    pull_request.repository_owner_handle(),
+                    pull_request.repository_name(),
+                    check_run.database_id(),
+                )
+                # To avoid multiple check suite reruns which often supersede/abort themselves,
+                # we only rerun the first check run that is "stale" in the check suite.
+                # TODO: Change the Github required checks list to only include 1 check run per check suite to avoid this hacky logic
+                break
+
+    return did_rerun

@@ -71,3 +71,15 @@ variable "sgtm_feature__followup_review_github_users" {
   description = "A comma-separated list of Github usernames that require follow-up review after merge"
   default     = ""
 }
+
+variable "sgtm_feature__check_rerun_threshold_hours" {
+  type = number
+  description = "Number of hours after which a check run should be rerequested. Must be combined with sgtm_feature__check_rerun_base_ref_names."
+  default = 0
+}
+
+variable "sgtm_feature__check_rerun_base_ref_names" {
+  type        = string
+  description = "A comma-separated list of base refs that will trigger check run rerequests when stale. Must be combined with sgtm_feature__check_rerun_freshness_duration_hours."
+  default     = ""
+}
