@@ -494,12 +494,18 @@ class TestMaybeRerunStaleRequiredChecks(unittest.TestCase):
         mock_rerequest_check_run.assert_not_called()
 
     @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS", 1)
+    def test_maybe_rerun_stale_checks_no_base_ref(self, mock_rerequest_check_run):
+        pull_request = build(builder.pull_request().base_ref_name("master"))
+        self.assertFalse(github_logic._maybe_rerun_stale_checks(pull_request))
+        mock_rerequest_check_run.assert_not_called()
+
+    @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS", 1)
+    @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES", ["master"])
     def test_maybe_rerun_stale_checks_for_old_pr(self, mock_rerequest_check_run):
-        check_run = build(
-            builder.check_run().is_required(True).completed_at("2020-01-13T14:59:58Z")
-        )
+        check_run = build(builder.check_run().completed_at("2020-01-13T14:59:58Z"))
         pull_request = build(
             builder.pull_request()
+            .base_ref_name("master")
             .commit(
                 builder.commit()
                 .status(Commit.BUILD_SUCCESSFUL)
@@ -526,29 +532,15 @@ class TestMaybeRerunStaleRequiredChecks(unittest.TestCase):
         )
 
     @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS", 1)
-    def test_maybe_rerun_stale_checks_not_required(self, mock_rerequest_check_run):
-        check_run = build(
-            builder.check_run().is_required(False).completed_at("2020-01-13T14:59:58Z")
-        )
-        pull_request = build(
-            builder.pull_request().commit(
-                builder.commit()
-                .status(Commit.BUILD_SUCCESSFUL)
-                .check_suites([builder.check_suite().check_runs([check_run])])
-            )
-        )
-        self.assertFalse(github_logic._maybe_rerun_stale_checks(pull_request))
-        mock_rerequest_check_run.assert_not_called()
-
-    @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS", 1)
+    @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES", ["master"])
     def test_maybe_rerun_stale_checks_once_per_check_suite(
         self, mock_rerequest_check_run
     ):
-        check_run = build(
-            builder.check_run().is_required(True).completed_at("2020-01-13T14:59:58Z")
-        )
+        check_run = build(builder.check_run().completed_at("2020-01-13T14:59:58Z"))
         pull_request = build(
-            builder.pull_request().commit(
+            builder.pull_request()
+            .base_ref_name("master")
+            .commit(
                 builder.commit()
                 .status(Commit.BUILD_SUCCESSFUL)
                 .check_suites(
@@ -560,6 +552,49 @@ class TestMaybeRerunStaleRequiredChecks(unittest.TestCase):
         mock_rerequest_check_run.assert_called_once_with(
             pull_request.repository_owner_handle(),
             pull_request.repository_name(),
+            check_run.database_id(),
+        )
+
+    @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS", 1)
+    @patch(
+        "src.github.logic.SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES",
+        ["master", "main", "test"],
+    )
+    def test_maybe_rerun_stale_checks_multiple_base_refs(
+        self, mock_rerequest_check_run
+    ):
+        check_run = build(builder.check_run().completed_at("2020-01-13T14:59:58Z"))
+        pull_request_main = build(
+            builder.pull_request()
+            .base_ref_name("main")
+            .commit(
+                builder.commit()
+                .status(Commit.BUILD_SUCCESSFUL)
+                .check_suites([builder.check_suite().check_runs([check_run])])
+            )
+        )
+        pull_request_test = build(
+            builder.pull_request()
+            .base_ref_name("test")
+            .commit(
+                builder.commit()
+                .status(Commit.BUILD_SUCCESSFUL)
+                .check_suites([builder.check_suite().check_runs([check_run])])
+            )
+        )
+
+        self.assertTrue(github_logic._maybe_rerun_stale_checks(pull_request_main))
+        mock_rerequest_check_run.assert_called_once_with(
+            pull_request_main.repository_owner_handle(),
+            pull_request_main.repository_name(),
+            check_run.database_id(),
+        )
+        mock_rerequest_check_run.reset_mock()
+
+        self.assertTrue(github_logic._maybe_rerun_stale_checks(pull_request_test))
+        mock_rerequest_check_run.assert_called_once_with(
+            pull_request_test.repository_owner_handle(),
+            pull_request_test.repository_name(),
             check_run.database_id(),
         )
 
