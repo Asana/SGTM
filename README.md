@@ -144,7 +144,7 @@ SGTM can use Github API to rerun Check Runs on pull requests with a specified ba
 *Note*: This does not use Github's check conclusion state `stale`. 
 
 **How to configure**:
-* Set an env variable of `TF_VAR_sgtm_feature__check_rerun_base_ref_names` to contain a comma-separated list of ref names (e.g. `master`, `main`) that pull requests must be based off of to have their check runs rerequested. The default is `""` which disables the feature.
+* Set an env variable of `TF_VAR_sgtm_feature__check_rerun_base_ref_names` to contain a comma-separated list of ref names (e.g. `master`, `main`) that pull requests must be based off of to have their check runs rerequested. The default is `"main,master"`.
 * Set an env variable of `TF_VAR_sgtm_feature__check_rerun_threshold_hours` to any positive integer to represent the number of hours before a check run will be rerequested. The default is `0` which disables the feature.
 
 ## Installing a Virtual Environment for Python

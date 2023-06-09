@@ -81,5 +81,5 @@ variable "sgtm_feature__check_rerun_threshold_hours" {
 variable "sgtm_feature__check_rerun_base_ref_names" {
   type        = string
   description = "A comma-separated list of base refs that will trigger check run rerequests when stale. Must be combined with sgtm_feature__check_rerun_freshness_duration_hours."
-  default     = ""
+  default     = "main,master"
 }
