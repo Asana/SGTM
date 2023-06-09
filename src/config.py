@@ -49,6 +49,8 @@ SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS = int(
 )
 SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES = {
     base_ref
-    for base_ref in os.getenv("SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES", "main,master").split(",")
+    for base_ref in os.getenv(
+        "SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES", "main,master"
+    ).split(",")
     if base_ref
 }
