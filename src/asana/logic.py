@@ -10,7 +10,6 @@ class AutocompleteLabel(Enum):
 
 
 def should_autocomplete_tasks_on_merge(pull_request: PullRequest) -> bool:
-
     return (
         SGTM_FEATURE__AUTOCOMPLETE_ENABLED
         and pull_request.merged()

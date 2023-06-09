@@ -5,6 +5,7 @@ from typing import FrozenSet
 _full_pull_request = """
 fragment FullPullRequest on PullRequest {
   id
+  baseRefName
   body
   bodyHTML
   title
@@ -70,6 +71,16 @@ fragment FullPullRequest on PullRequest {
       commit {
         statusCheckRollup {
           state
+        }
+        checkSuites(last: 20) {
+          nodes {
+            checkRuns(filterBy: {checkType: LATEST}, last: 20) {
+              nodes {
+                completedAt
+                databaseId
+              }
+            }
+          }
         }
       }
     }

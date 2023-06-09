@@ -198,3 +198,6 @@ class PullRequest(object):
 
     def labels(self) -> List[Label]:
         return [Label(label) for label in self._raw["labels"]["nodes"]]
+
+    def base_ref_name(self) -> str:
+        return self._raw["baseRefName"]

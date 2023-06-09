@@ -182,6 +182,7 @@ resource "aws_lambda_function" "sgtm" {
       SGTM_FEATURE__AUTOCOMPLETE_ENABLED = var.sgtm_feature__autocomplete_enabled,
       SGTM_FEATURE__DISABLE_GITHUB_TEAM_SUBSCRIPTION = var.sgtm_feature__disable_github_team_subscription,
       SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS = var.sgtm_feature__followup_review_github_users
+      SGTM_FEATURE__CHECK_RUN_FRESHNESS_DURATION_HOURS = var.sgtm_feature__check_run_freshness_duration_hours
     }
   }
 }
