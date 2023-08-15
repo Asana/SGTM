@@ -254,6 +254,7 @@ def maybe_automerge_pull_request_and_rerun_stale_checks(
         or pull_request.closed()
         or pull_request.merged()
     ):
+        logger.info(f"Skipping automerge for {pull_request.id()} because it is closed")
         is_pull_request_ready_for_automerge = False
 
     # if there are multiple labels, we use the most permissive to define automerge behavior
@@ -287,6 +288,13 @@ def maybe_automerge_pull_request_and_rerun_stale_checks(
             pull_request.is_mergeable() and pull_request.is_approved()
         )
 
+    logger.info(
+        f"{pull_request.id()} is {'' if is_pull_request_ready_for_automerge else 'not '}ready for automerge"
+    )
+    logger.info(
+        f"{pull_request.id()} did {'' if did_rerun_stale_required_checks else 'not '}rerun stale required checks"
+    )
+
     if is_pull_request_ready_for_automerge and not did_rerun_stale_required_checks:
         github_client.merge_pull_request(
             pull_request.repository_owner_handle(),
@@ -314,6 +322,9 @@ def _pull_request_has_automerge_comment(
 
 def _maybe_rerun_stale_checks(pull_request: PullRequest) -> bool:
     if pull_request.base_ref_name() not in SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES:
+        logger.info(
+            f"PR-{pull_request.id()} base {pull_request.base_ref_name()} not in {SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES}"
+        )
         return False
     if SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS <= 0:
         return False
@@ -323,9 +334,14 @@ def _maybe_rerun_stale_checks(pull_request: PullRequest) -> bool:
     freshness_date = datetime.now(timezone.utc) - timedelta(
         hours=SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS
     )
+    logger.info(f"Looking for check runs older than {freshness_date}")
     for check_suite in pull_request.commits()[0].check_suites():
         for check_run in check_suite.check_runs():
-            if check_run.completed_at() < freshness_date:
+            is_check_run_stale = check_run.completed_at() < freshness_date
+            logger.info(
+                f"Check Run {check_run.database_id()} is {'' if is_check_run_stale else 'not '}stale"
+            )
+            if is_check_run_stale:
                 did_rerun |= github_client.rerequest_check_run(
                     pull_request.repository_owner_handle(),
                     pull_request.repository_name(),
