@@ -2,6 +2,7 @@ from typing import List, Iterator, Dict, Optional
 from typing_extensions import Literal
 import asana  # type: ignore
 from src.config import ASANA_API_KEY
+from src.utils import safe_asana_api_request
 
 # See: https://developers.asana.com/docs/input-output-options
 # As we use more opt_fields, add to this list
@@ -66,6 +67,7 @@ class AsanaClient(object):
         response = self.asana_api_client.tasks.create(create_task_params)
         return response["gid"]
 
+    @safe_asana_api_request
     def update_task(self, task_id: str, fields: dict):
         """
         Updates the specified Asana task, setting the provided fields
@@ -77,6 +79,7 @@ class AsanaClient(object):
             )
         self.asana_api_client.tasks.update(task_id, fields)
 
+    @safe_asana_api_request
     def add_followers(self, task_id: str, followers: List[str]):
         """
         Adds followers to the specified task. The followers should be Asana domain-user ids.
@@ -90,6 +93,7 @@ class AsanaClient(object):
             validate_object_id(follower, "Followers should be Asana domain-user-ids")
         self.asana_api_client.tasks.add_followers(task_id, {"followers": followers})
 
+    @safe_asana_api_request
     def add_comment(self, task_id: str, comment_body: str) -> str:
         """
         Adds a html-formatted comment to the specified task. The comment will be posted on behalf of the SGTM
@@ -103,6 +107,7 @@ class AsanaClient(object):
         )
         return response["gid"]
 
+    @safe_asana_api_request
     def update_comment(self, comment_id: str, comment_body: str) -> None:
         validate_object_id(
             comment_id, "AsanaClient.update_comment requires a comment_id"
@@ -111,6 +116,7 @@ class AsanaClient(object):
             raise ValueError("AsanaClient.update_comment requires a comment body")
         self.asana_api_client.stories.update(comment_id, {"html_text": comment_body})
 
+    @safe_asana_api_request
     def delete_comment(self, comment_id: str) -> None:
         validate_object_id(
             comment_id, "AsanaClient.update_comment requires a comment_id"

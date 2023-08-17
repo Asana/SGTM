@@ -1,5 +1,8 @@
+import asana  # type: ignore
+
 from datetime import datetime
 from typing import Callable, Dict, Any
+from src.logger import logger
 
 
 def parse_date_string(date_string: str) -> datetime:
@@ -21,3 +24,14 @@ def memoize(func: Callable) -> Callable:
         return result
 
     return inner
+
+def safe_asana_api_request(func: Callable) -> Callable:
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except ValueError as ve:
+            logger.error(f"ValueError: {ve}")
+        except asana.error.InvalidRequestError as ire:
+            logger.error(f"asana.error.InvalidRequestError: {ire}")
+
+    return wrapper

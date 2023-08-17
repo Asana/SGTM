@@ -47,7 +47,6 @@ def update_task(
 
 
 def _new_due_on_or_none(task: dict, update_task_fields: dict) -> Optional[str]:
-    due_on = None
     today = asana_helpers.today_str()
 
     if task["due_on"] >= today:
