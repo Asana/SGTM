@@ -4,7 +4,7 @@ from test.impl.base_test_case_class import BaseClass
 
 
 class TestTaskUrlFromTaskId(BaseClass):
-    @unittest.skip
+    @unittest.skip # type: ignore
     def test_task_url_from_task_id_requires_a_task_id(self):
         with self.assertRaises(ValueError):
             src.asana.helpers.task_url_from_task_id("")
