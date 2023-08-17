@@ -25,6 +25,7 @@ def memoize(func: Callable) -> Callable:
 
     return inner
 
+
 def safe_asana_api_request(func: Callable) -> Callable:
     def wrapper(*args, **kwargs):
         try:
