@@ -180,7 +180,7 @@ def _asana_user_url_from_github_user_handle(github_handle: str) -> Optional[str]
     user_id = _asana_user_id_from_github_handle(github_handle)
     if user_id is None:
         return None
-    return f'<a data-asana-gid="{user_id}"/>'
+    return _wrap_in_tag("A", attrs={"href": f"https://github.com/{github_handle}", "data-asana-gid": user_id})(github_handle)
 
 
 def _task_name_from_pull_request(pull_request: PullRequest) -> str:
