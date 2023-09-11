@@ -183,8 +183,8 @@ def _asana_user_url_from_github_user_handle(github_handle: str) -> Optional[str]
     return _wrap_in_tag(
         "A",
         attrs={
-            "href": f"https://github.com/{github_handle}",
             "data-asana-gid": user_id,
+            "href": f"https://github.com/{github_handle}",
         },
     )(github_handle)
 

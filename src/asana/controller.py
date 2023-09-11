@@ -41,8 +41,12 @@ def update_task(
     if new_due_on is not None:
         update_task_fields["due_on"] = new_due_on
     asana_client.update_task(task_id, update_task_fields)
-    if len(followers) > 0:
+    # Add followers is optional because Asana should automatically add followers
+    # if the body contains well-formatted data-asana-gid fields
+    try:
         asana_client.add_followers(task_id, followers)
+    except Exception as e:
+        logger.error(f"Failed to add followers to task {task_id}: {e}")
     maybe_complete_tasks_on_merge(pull_request)
 
 
