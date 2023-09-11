@@ -91,7 +91,9 @@ def _build_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
 
 
 def _author_asana_user_id_from_pull_request(pull_request: PullRequest) -> Optional[str]:
-    return _asana_user_id_from_github_handle(pull_request.author_handle())
+    return dynamodb_client.get_asana_domain_user_id_from_github_handle(
+        github_handle=pull_request.author_handle()
+    )
 
 
 _custom_fields_to_extract_map = {
@@ -153,11 +155,9 @@ def _get_custom_field_value(custom_field: dict, value_name: str) -> Optional[str
 
 def _task_assignee_from_pull_request(pull_request: PullRequest) -> Optional[str]:
     assignee = pull_request.assignee()
-    return _asana_user_id_from_github_handle(assignee.login)
-
-
-def _asana_user_id_from_github_handle(github_handle: str) -> Optional[str]:
-    return dynamodb_client.get_asana_domain_user_id_from_github_handle(github_handle)
+    return dynamodb_client.get_asana_domain_user_id_from_github_handle(
+        github_handle=assignee.login
+    )
 
 
 def _asana_display_name_for_github_user(github_user: User) -> str:
@@ -177,10 +177,16 @@ def _asana_display_name_for_github_user(github_user: User) -> str:
 
 
 def _asana_user_url_from_github_user_handle(github_handle: str) -> Optional[str]:
-    user_id = _asana_user_id_from_github_handle(github_handle)
+    user_id = dynamodb_client.get_asana_domain_user_id_from_github_handle(github_handle)
     if user_id is None:
         return None
-    return f'<a data-asana-gid="{user_id}"/>'
+    return _wrap_in_tag(
+        "A",
+        attrs={
+            "data-asana-gid": user_id,
+            "href": f"https://github.com/{github_handle}",
+        },
+    )(github_handle)
 
 
 def _task_name_from_pull_request(pull_request: PullRequest) -> str:
@@ -190,7 +196,9 @@ def _task_name_from_pull_request(pull_request: PullRequest) -> str:
 def _transform_github_mentions_to_asana_mentions(text: str) -> str:
     def _github_mention_to_asana_mention(match: Match[str]) -> str:
         github_handle = match.group(1)
-        asana_user_id = _asana_user_id_from_github_handle(github_handle)
+        asana_user_id = dynamodb_client.get_asana_domain_user_id_from_github_handle(
+            github_handle
+        )
         if asana_user_id is None:
             # Return the full matched string, including the "@"
             return match.group(0)
@@ -456,8 +464,13 @@ def task_followers_from_pull_request(pull_request: PullRequest) -> List[str]:
 def _task_followers_from_gh_handles(gh_handles: List[str]) -> List[str]:
     return [
         asana_user_id
-        for gh_handle in gh_handles
-        if (asana_user_id := _asana_user_id_from_github_handle(gh_handle)) is not None
+        for github_handle in gh_handles
+        if (
+            asana_user_id := dynamodb_client.get_asana_domain_user_id_from_github_handle(
+                github_handle
+            )
+        )
+        is not None
     ]
 
 
