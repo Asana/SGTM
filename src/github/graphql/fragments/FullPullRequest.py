@@ -72,6 +72,14 @@ fragment FullPullRequest on PullRequest {
         statusCheckRollup {
           state
         }
+        status {
+          state
+          contexts {
+            context
+            description
+            state
+          }
+        }
         checkSuites(last: 20) {
           nodes {
             checkRuns(filterBy: {checkType: LATEST}, last: 20) {

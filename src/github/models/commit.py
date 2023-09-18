@@ -21,6 +21,16 @@ class Commit(object):
         else:
             return status.get("state", None)
 
+    def status_old(self) -> Optional[str]:
+        status = self._raw["commit"].get("status")
+
+        if status is None:
+            return None
+        else:
+            return [
+                (context["context"], context["state"]) for context in status["contexts"]
+            ]
+
     def check_suites(self) -> List[CheckSuite]:
         return [
             CheckSuite(raw_check_suite)
