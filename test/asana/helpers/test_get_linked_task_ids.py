@@ -7,7 +7,7 @@ from functools import reduce
 
 class TestGetLinkedTaskIds(BaseClass):
     def test_gets_many_task_ids(self):
-        task_ids = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+        task_ids = {"1", "2", "3", "4", "5", "6", "7", "8", "9"}
         url_list = [
             f"https://app.asana.com/0/1162076285812014/{id}/f " for id in task_ids
         ]
@@ -21,7 +21,7 @@ class TestGetLinkedTaskIds(BaseClass):
         self.assertCountEqual(asana_helpers.get_linked_task_ids(pull_request), task_ids)
 
     def test_gets_many_task_ids_newline(self):
-        task_ids = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+        task_ids = {"1", "2", "3", "4", "5", "6", "7", "8", "9"}
         url_list = [
             f"https://app.asana.com/0/1162076285812014/{id}/f " for id in task_ids
         ]
@@ -35,7 +35,7 @@ class TestGetLinkedTaskIds(BaseClass):
         self.assertCountEqual(asana_helpers.get_linked_task_ids(pull_request), task_ids)
 
     def test_gets_many_task_ids_newline_does_not_register_after_empty(self):
-        task_ids = ["1", "2", "3"]
+        task_ids = {"1", "2", "3"}
         url_list = [
             f"https://app.asana.com/0/1162076285812014/{id}/f " for id in task_ids
         ]

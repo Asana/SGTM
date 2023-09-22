@@ -1,7 +1,7 @@
 import re
 from html import escape
 from datetime import datetime, timedelta
-from typing import Callable, Match, Optional, List, Dict
+from typing import Callable, Match, Optional, List, Dict, Set
 from src.dynamodb import client as dynamodb_client
 from src.github.models import (
     Comment,
@@ -284,7 +284,7 @@ _review_action_to_text_map: Dict[ReviewState, str] = {
 }
 
 
-def get_linked_task_ids(pull_request: PullRequest) -> List[str]:
+def get_linked_task_ids(pull_request: PullRequest) -> Set[str]:
     """
     Extracts linked task ids from the body of the PR.
     We expect linked tasks to be in the description in a line under the line containing "Asana tasks:".
@@ -293,7 +293,7 @@ def get_linked_task_ids(pull_request: PullRequest) -> List[str]:
     """
     body_lines = pull_request.body().splitlines()
     curr_line = 0
-    task_ids = []
+    task_ids = set()
     seen_asana_tasks_line = False
 
     while curr_line < len(body_lines):
@@ -308,7 +308,7 @@ def get_linked_task_ids(pull_request: PullRequest) -> List[str]:
                 maybe_id = re.search("\d+(?!.*\d)", url)
                 if maybe_id is not None:
                     line_has_task_urls = True
-                    task_ids.append(maybe_id.group())
+                    task_ids.add(maybe_id.group())
 
             if line_has_task_urls:
                 curr_line += 1
