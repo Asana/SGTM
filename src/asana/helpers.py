@@ -292,26 +292,33 @@ def get_linked_task_ids(pull_request: PullRequest) -> List[str]:
     :return: Returns a list of task ids.
     """
     body_lines = pull_request.body().splitlines()
-    stripped_body_lines = (line.strip() for line in body_lines)
-    task_url_line = None
+    curr_line = 0
+    task_ids = []
     seen_asana_tasks_line = False
-    for line in stripped_body_lines:
-        if seen_asana_tasks_line:
-            task_url_line = line
-            break
-        if line.startswith("Asana tasks:"):
-            seen_asana_tasks_line = True
 
-    if task_url_line:
-        task_urls = task_url_line.split()
-        task_ids = []
-        for url in task_urls:
-            maybe_id = re.search("\d+(?!.*\d)", url)
-            if maybe_id is not None:
-                task_ids.append(maybe_id.group())
-        return task_ids
-    else:
-        return []
+    while curr_line < len(body_lines):
+        stripped_line = body_lines[curr_line].strip()
+        if stripped_line.startswith("Asana tasks:"):
+            seen_asana_tasks_line = True
+            curr_line += 1
+        elif seen_asana_tasks_line:
+            task_urls = stripped_line.split()
+            line_has_task_urls = False
+            for url in task_urls:
+                maybe_id = re.search("\d+(?!.*\d)", url)
+                if maybe_id is not None:
+                    line_has_task_urls = True
+                    task_ids.append(maybe_id.group())
+            
+            if line_has_task_urls:
+                curr_line += 1
+            else:
+                # no more task urls if the last one is not defined
+                break
+        else:
+            curr_line += 1
+
+    return task_ids
 
 
 def asana_comment_from_github_review(review: Review) -> str:
