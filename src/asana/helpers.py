@@ -309,7 +309,7 @@ def get_linked_task_ids(pull_request: PullRequest) -> List[str]:
                 if maybe_id is not None:
                     line_has_task_urls = True
                     task_ids.append(maybe_id.group())
-            
+
             if line_has_task_urls:
                 curr_line += 1
             else:
