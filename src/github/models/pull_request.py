@@ -5,7 +5,7 @@ from src.utils import parse_date_string
 from enum import Enum, unique
 
 # from .review import Review
-from .issue_comment import IssueComment
+from .comment import IssueComment
 from .review import Review
 from .commit import Commit
 from .user import User

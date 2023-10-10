@@ -30,3 +30,21 @@ class Comment(object):
 
     def url(self) -> str:
         return self._raw["url"]
+
+
+class IssueComment(Comment):
+    pass
+
+
+class PullRequestReviewComment(Comment):
+    def raw_review(self) -> dict:
+        return self._raw["pullRequestReview"]
+
+
+def comment_factory(raw: Dict[str, Any]) -> Comment:
+    if raw["__typename"] == "IssueComment":
+        return IssueComment(raw)
+    elif raw["__typename"] == "PullRequestReviewComment":
+        return PullRequestReviewComment(raw)
+    else:
+        raise Exception(f"Unexpected type found: {raw['__typename']}")

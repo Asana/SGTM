@@ -1,4 +1,5 @@
 from .FullReview import FullReview
+from .FullStatusCheckRollupContext import FullStatusCheckRollupContext
 from typing import FrozenSet
 
 # @GraphqlInPython
@@ -70,15 +71,9 @@ fragment FullPullRequest on PullRequest {
     nodes {
       commit {
         statusCheckRollup {
-          state
-        }
-        checkSuites(last: 20) {
-          nodes {
-            checkRuns(filterBy: {checkType: LATEST}, last: 20) {
-              nodes {
-                completedAt
-                databaseId
-              }
+          contexts(last: 20) {
+            nodes {
+              ...FullStatusCheckRollupContext
             }
           }
         }
@@ -93,4 +88,6 @@ fragment FullPullRequest on PullRequest {
 }
 """
 
-FullPullRequest: FrozenSet[str] = frozenset([_full_pull_request]) | FullReview
+FullPullRequest: FrozenSet[str] = (
+    frozenset([_full_pull_request]) | FullReview | FullStatusCheckRollupContext
+)

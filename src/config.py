@@ -54,3 +54,10 @@ SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES = {
     ).split(",")
     if base_ref
 }
+SGTM_FEATURE__IGNORED_STATUS_CHECK_CONTEXTS = {
+    context
+    for context in os.getenv("SGTM_FEATURE__IGNORED_STATUS_CHECK_CONTEXTS", "").split(
+        ","
+    )
+    if context
+}

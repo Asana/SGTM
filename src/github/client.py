@@ -1,5 +1,7 @@
 import requests
+from functools import reduce
 from requests.auth import HTTPBasicAuth
+from typing import List
 
 from github import Github, PullRequest  # type: ignore
 from src.config import GITHUB_API_KEY

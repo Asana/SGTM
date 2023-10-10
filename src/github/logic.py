@@ -1,11 +1,11 @@
 import re
 from datetime import datetime, timedelta, timezone
 from typing import List
-from src.logger import logger
+from functools import reduce
 
+from src.logger import logger
 from . import client as github_client
 from src.github.models import (
-    CheckRun,
     Comment,
     MergeableState,
     PullRequest,
@@ -255,7 +255,7 @@ def maybe_automerge_pull_request_and_rerun_stale_checks(
         or pull_request.merged()
     ):
         logger.info(f"Skipping automerge for {pull_request.id()} because it is closed")
-        is_pull_request_ready_for_automerge = False
+        return False
 
     # if there are multiple labels, we use the most permissive to define automerge behavior
     elif pull_request_has_label(pull_request, AutomergeLabel.IMMEDIATELY.value):
@@ -329,27 +329,29 @@ def _maybe_rerun_stale_checks(pull_request: PullRequest) -> bool:
     if SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS <= 0:
         return False
 
-    did_rerun = False
     # point in time when a check run status can still be considered 'fresh'
     freshness_date = datetime.now(timezone.utc) - timedelta(
         hours=SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS
     )
     logger.info(f"Looking for check runs older than {freshness_date}")
-    for check_suite in pull_request.commits()[0].check_suites():
-        for check_run in check_suite.check_runs():
-            is_check_run_stale = check_run.completed_at() < freshness_date
-            logger.info(
-                f"Check Run {check_run.database_id()} is {'' if is_check_run_stale else 'not '}stale"
+    checks_to_rerun = [
+        status_check
+        for status_check in pull_request.status_checks()
+        if status_check.is_required()  # only rerun required checks
+        and status_check.completed_at() < freshness_date  # only rerun "stale" checks
+        and status_check.database_id()
+        != None  # only rerun checks that can rerun with the rerequested API
+    ]
+    logger.info(f"Rerunning {len(checks_to_rerun)} checks: {checks_to_rerun}")
+    return reduce(
+        lambda check_rerun_succeeded, status_check: check_rerun_succeeded
+        and (
+            github_client.rerun_check_run(
+                pull_request.repository_owner_handle(),
+                pull_request.repository_name(),
+                status_check.database_id(),
             )
-            if is_check_run_stale:
-                did_rerun |= github_client.rerequest_check_run(
-                    pull_request.repository_owner_handle(),
-                    pull_request.repository_name(),
-                    check_run.database_id(),
-                )
-                # To avoid multiple check suite reruns which often supersede/abort themselves,
-                # we only rerun the first check run that is "stale" in the check suite.
-                # TODO: Change the Github required checks list to only include 1 check run per check suite to avoid this hacky logic
-                break
-
-    return did_rerun
+        ),
+        checks_to_rerun,
+        True,
+    )
