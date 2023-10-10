@@ -1,5 +1,4 @@
 import requests
-from functools import reduce
 from requests.auth import HTTPBasicAuth
 from typing import List
 
