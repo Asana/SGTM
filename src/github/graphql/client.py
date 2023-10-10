@@ -7,8 +7,8 @@ from .queries import (
     GetPullRequestByRepositoryAndNumber,
     GetPullRequestAndComment,
     GetPullRequestAndReview,
-    GetPullRequestForCommit,
-    IterateReviews,
+    IteratePullRequestIdsForCommitId,
+    IterateReviewsForPullRequestId,
 )
 
 
@@ -29,7 +29,7 @@ def _execute_graphql_query(query: FrozenSet[str], variables: dict) -> dict:
 
 
 def get_pull_request(pull_request_id: str) -> PullRequest:
-    data = _execute_graphql_query(GetPullRequest, {"id": pull_request_id})
+    data = _execute_graphql_query(GetPullRequest, {"pullRequestId": pull_request_id})
     return PullRequest(data["pullRequest"])
 
 
@@ -38,7 +38,7 @@ def get_pull_request_by_repository_and_number(
 ) -> PullRequest:
     data = _execute_graphql_query(
         GetPullRequestByRepositoryAndNumber,
-        {"repository": repository_node_id, "number": pull_request_number},
+        {"repositoryId": repository_node_id, "pullRequestNumber": pull_request_number},
     )
     return PullRequest(data["repository"]["pullRequest"])
 
@@ -64,14 +64,39 @@ def get_pull_request_and_review(
 
 
 def get_pull_request_for_commit(commit_id: str) -> Optional[PullRequest]:
-    data = _execute_graphql_query(GetPullRequestForCommit, {"id": commit_id})
-    edges = data["commit"]["associatedPullRequests"]["edges"]
+    """Get the PullRequest given a commit id.
 
-    if edges:
-        pull_request = data["commit"]["associatedPullRequests"]["edges"][0]["node"]
-        return PullRequest(pull_request)
-    else:
-        return None
+    Every commit is associated with one or more pull requests.
+    We're only interested in the first pull request where the head commit (latest commit) matches the given commit id.
+    We could match commit shas but commit ids are more stable.
+
+    TODO: handle multiple pull requests for a commit id.
+    """
+
+    def is_last_commit(pull_request_edge):
+        last_commit_id = pull_request_edge["node"]["commits"]["nodes"][0]["commit"][
+            "id"
+        ]
+        return last_commit_id == commit_id
+
+    pull_request_edges = _execute_graphql_query(
+        IteratePullRequestIdsForCommitId, {"commitId": commit_id}
+    )["commit"]["associatedPullRequests"]["edges"]
+    while pull_request_edges:
+        try:
+            match = next(
+                (e["node"]["id"] for e in pull_request_edges if is_last_commit(e))
+            )
+            return get_pull_request(match)
+        except StopIteration:
+            pull_request_edges = _execute_graphql_query(
+                IteratePullRequestIdsForCommitId,
+                {
+                    "commitId": commit_id,
+                    "cursor": pull_request_edges[-1]["cursor"],
+                },
+            )["commit"]["associatedPullRequests"]["edges"]
+    return None
 
 
 def get_review_for_database_id(
@@ -93,24 +118,24 @@ def get_review_for_database_id(
 
     See https://developer.github.com/v4/object/repository/#fields
     """
-    data = _execute_graphql_query(IterateReviews, {"pullRequestId": pull_request_id})
-    while data["node"]["reviews"]["edges"]:
+
+    def is_review(review_edge):
+        return review_edge["node"]["databaseId"] == review_db_id
+
+    review_edges = _execute_graphql_query(
+        IterateReviewsForPullRequestId, {"pullRequestId": pull_request_id}
+    )["node"]["reviews"]["edges"]
+    while review_edges:
         try:
-            match = next(
-                (
-                    e["node"]
-                    for e in data["node"]["reviews"]["edges"]
-                    if e["node"]["databaseId"] == review_db_id
-                )
-            )
+            match = next((e["node"] for e in review_edges if is_review(e)))
             return Review(match)
         except StopIteration:
             # no matching reviews, continue.
-            data = _execute_graphql_query(
-                IterateReviews,
+            review_edges = _execute_graphql_query(
+                IterateReviewsForPullRequestId,
                 {
                     "pullRequestId": pull_request_id,
-                    "cursor": data["node"]["reviews"]["edges"][-1]["cursor"],
+                    "cursor": review_edges[-1]["cursor"],
                 },
-            )
+            )["node"]["reviews"]["edges"]
     return None

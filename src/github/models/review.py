@@ -7,7 +7,7 @@ from enum import Enum, unique
 from src.utils import parse_date_string
 from .user import User
 import copy
-from .pull_request_review_comment import PullRequestReviewComment
+from .comment import PullRequestReviewComment
 
 
 @unique

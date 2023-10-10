@@ -3,10 +3,10 @@ from ..fragments import FullPullRequest, FullReview
 
 # @GraphqlInPython
 _get_pull_request_by_repository_and_number = """
-query GetPullRequestByRepositoryAndNumber($repository: ID!, $number: Int!) {
-  repository: node(id: $repository) {
+query GetPullRequestByRepositoryAndNumber($repositoryId: ID!, $pullRequestNumber: Int!) {
+  repository: node(id: $repositoryId) {
     ... on Repository {
-        pullRequest(number: $number) {
+        pullRequest(number: $pullRequestNumber) {
           __typename
           ... on PullRequest {
             ...FullPullRequest
