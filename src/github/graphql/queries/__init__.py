@@ -2,5 +2,5 @@ from .GetPullRequest import GetPullRequest
 from .GetPullRequestByRepositoryAndNumber import GetPullRequestByRepositoryAndNumber
 from .GetPullRequestAndComment import GetPullRequestAndComment
 from .GetPullRequestAndReview import GetPullRequestAndReview
-from .GetPullRequestForCommit import GetPullRequestForCommit
-from .IterateReviews import IterateReviews
+from .IteratePullRequestsForCommit import IteratePullRequestsForCommit
+from .IterateReviewsForPullRequest import IterateReviewsForPullRequest

@@ -1,4 +1,7 @@
 from .FullComment import FullComment
-from .FullPullRequest import FullPullRequest
+from .FullPullRequest import FullPullRequestByNumber, FullPullRequestById
 from .FullReview import FullReview
-from .FullStatusCheckRollupContext import FullStatusCheckRollupContext
+from .FullStatusCheckRollupContext import (
+    FullStatusCheckRollupContextByNumber,
+    FullStatusCheckRollupContextById,
+)

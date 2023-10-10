@@ -1,15 +1,19 @@
 from typing import FrozenSet
-from ..fragments import FullPullRequest, FullReview
+from ..fragments import (
+    FullPullRequestByNumber,
+    FullReview,
+    FullStatusCheckRollupContextByNumber,
+)
 
 # @GraphqlInPython
 _get_pull_request_by_repository_and_number = """
-query GetPullRequestByRepositoryAndNumber($repository: ID!, $number: Int!) {
-  repository: node(id: $repository) {
+query GetPullRequestByRepositoryAndNumber($repositoryId: ID!, $pullRequestNumber: Int!) {
+  repository: node(id: $repositoryId) {
     ... on Repository {
-        pullRequest(number: $number) {
+        pullRequest(number: $pullRequestNumber) {
           __typename
           ... on PullRequest {
-            ...FullPullRequest
+            ...FullPullRequestByNumber
           }
         }
       }
@@ -19,6 +23,7 @@ query GetPullRequestByRepositoryAndNumber($repository: ID!, $number: Int!) {
 
 GetPullRequestByRepositoryAndNumber: FrozenSet[str] = (
     frozenset([_get_pull_request_by_repository_and_number])
-    | FullPullRequest
+    | FullPullRequestByNumber
     | FullReview
+    | FullStatusCheckRollupContextByNumber
 )

@@ -7,8 +7,8 @@ from .queries import (
     GetPullRequestByRepositoryAndNumber,
     GetPullRequestAndComment,
     GetPullRequestAndReview,
-    GetPullRequestForCommit,
-    IterateReviews,
+    IteratePullRequestsForCommit,
+    IterateReviewsForPullRequest,
 )
 
 
@@ -29,7 +29,7 @@ def _execute_graphql_query(query: FrozenSet[str], variables: dict) -> dict:
 
 
 def get_pull_request(pull_request_id: str) -> PullRequest:
-    data = _execute_graphql_query(GetPullRequest, {"id": pull_request_id})
+    data = _execute_graphql_query(GetPullRequest, {"pullRequestId": pull_request_id})
     return PullRequest(data["pullRequest"])
 
 
@@ -64,14 +64,40 @@ def get_pull_request_and_review(
 
 
 def get_pull_request_for_commit(commit_id: str) -> Optional[PullRequest]:
-    data = _execute_graphql_query(GetPullRequestForCommit, {"id": commit_id})
-    edges = data["commit"]["associatedPullRequests"]["edges"]
+    """
+    Every commit can be associated with more than one Pull Request. However, we are only
+    interested in the Pull Requests where the most recent commit is the current commitId.
 
-    if edges:
-        pull_request = data["commit"]["associatedPullRequests"]["edges"][0]["node"]
-        return PullRequest(pull_request)
-    else:
-        return None
+    We iterate through all Pull Requests associated with the commit, and return the first
+    Pull Request where the most recent commit is the current commitId.
+    """
+    data = _execute_graphql_query(IteratePullRequestsForCommit, {"commitId": commit_id})
+
+    def is_commit_last_commit_on_pull_request(pull_request_edge):
+        last_commit_id = pull_request_edge["node"]["commits"]["nodes"][0]["commit"][
+            "id"
+        ]
+        matches = last_commit_id == commit_id
+        print("Matches: {} because {} ?= {}".format(matches, last_commit_id, commit_id))
+        return matches
+
+    print(data)
+    pull_request_edges = data["commit"]["associatedPullRequests"]["edges"]
+    while pull_request_edges:
+        try:
+            match = next(
+                pull_request_edge["node"]["id"]
+                for pull_request_edge in pull_request_edges
+                if is_commit_last_commit_on_pull_request(pull_request_edge)
+            )
+            return get_pull_request(match)
+        except StopIteration:
+            data = _execute_graphql_query(
+                IteratePullRequestsForCommit,
+                {"commitId": commit_id, "cursor": pull_request_edges[-1]["cursor"]},
+            )
+            pull_request_edges = data["commit"]["associatedPullRequests"]["edges"]
+    return None
 
 
 def get_review_for_database_id(
@@ -93,13 +119,16 @@ def get_review_for_database_id(
 
     See https://developer.github.com/v4/object/repository/#fields
     """
-    data = _execute_graphql_query(IterateReviews, {"pullRequestId": pull_request_id})
-    while data["node"]["reviews"]["edges"]:
+    data = _execute_graphql_query(
+        IterateReviewsForPullRequest, {"pullRequestId": pull_request_id}
+    )
+    review_edges = data["node"]["reviews"]["edges"]
+    while review_edges:
         try:
             match = next(
                 (
                     e["node"]
-                    for e in data["node"]["reviews"]["edges"]
+                    for e in review_edges
                     if e["node"]["databaseId"] == review_db_id
                 )
             )
@@ -107,10 +136,11 @@ def get_review_for_database_id(
         except StopIteration:
             # no matching reviews, continue.
             data = _execute_graphql_query(
-                IterateReviews,
+                IterateReviewsForPullRequest,
                 {
                     "pullRequestId": pull_request_id,
-                    "cursor": data["node"]["reviews"]["edges"][-1]["cursor"],
+                    "cursor": review_edges[-1]["cursor"],
                 },
             )
+            review_edges = data["node"]["reviews"]["edges"]
     return None

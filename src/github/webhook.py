@@ -142,7 +142,9 @@ def _handle_check_suite_webhook(payload: dict) -> HttpResponse:
         return HttpResponse("400", "No Pull Request Found")
 
     # TODO: How to handle multiple PRs?
-    pull_request_number = pull_requests[0]["number"]
+    pull_request_number = pull_requests[0][
+        "number"
+    ]  # "id" field is not the node_id of the PR and we cannot use it to query the PR
     repository_node_id = payload["repository"]["node_id"]
 
     pull_request = graphql_client.get_pull_request_by_repository_and_number(

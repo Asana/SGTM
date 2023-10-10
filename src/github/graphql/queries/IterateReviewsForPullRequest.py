@@ -2,8 +2,8 @@ from typing import FrozenSet
 from ..fragments import FullReview
 
 # @GraphqlInPython
-_iterate_reviews = """
-query IterateReviews($pullRequestId: ID!, $cursor: String) {
+_iterate_reviews_for_pull_request = """
+query IterateReviewsForPullRequest($pullRequestId: ID!, $cursor: String) {
   node(id: $pullRequestId) {
     ... on PullRequest {
       reviews(first: 20, after: $cursor) {
@@ -20,4 +20,6 @@ query IterateReviews($pullRequestId: ID!, $cursor: String) {
 }
 """
 
-IterateReviews: FrozenSet[str] = frozenset([_iterate_reviews]) | FullReview
+IterateReviewsForPullRequest: FrozenSet[str] = (
+    frozenset([_iterate_reviews_for_pull_request]) | FullReview
+)

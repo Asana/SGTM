@@ -1,5 +1,9 @@
 from typing import FrozenSet
-from ..fragments import FullPullRequest, FullReview
+from ..fragments import (
+    FullPullRequestById,
+    FullReview,
+    FullStatusCheckRollupContextById,
+)
 
 # @GraphqlInPython
 _get_pull_request_and_review = """
@@ -7,7 +11,7 @@ query GetPullRequestAndReview($pullRequestId: ID!, $reviewId: ID!) {
   pullRequest: node(id: $pullRequestId) {
     __typename
     ... on PullRequest {
-      ...FullPullRequest
+      ...FullPullRequestById
     }
   }
 
@@ -22,5 +26,8 @@ query GetPullRequestAndReview($pullRequestId: ID!, $reviewId: ID!) {
 """
 
 GetPullRequestAndReview: FrozenSet[str] = (
-    frozenset([_get_pull_request_and_review]) | FullPullRequest | FullReview
+    frozenset([_get_pull_request_and_review])
+    | FullPullRequestById
+    | FullReview
+    | FullStatusCheckRollupContextById
 )
