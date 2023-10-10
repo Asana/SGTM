@@ -1,17 +1,16 @@
 from typing import Any, Dict, List, Union
 from .helpers import create_uuid
-from src.github.models import Commit, CheckSuite
+from src.github.models import Commit, StatusCheckRollupContext
 from .builder_base_class import BuilderBaseClass
-from .check_suite_builder import CheckSuiteBuilder
+from .status_check_rollup_context_builder import StatusCheckRollupContextBuilder
 
 
 class CommitBuilder(BuilderBaseClass):
-    def __init__(self, status=Commit.BUILD_PENDING):
+    def __init__(self):
         self.raw_commit = {
             "commit": {
-                "statusCheckRollup": {"state": status},
+                "statusCheckRollup": {"contexts": {"nodes": []}},
                 "node_id": create_uuid(),
-                "checkSuites": {"nodes": []},
             }
         }
 
@@ -19,12 +18,15 @@ class CommitBuilder(BuilderBaseClass):
         self.raw_commit["commit"]["statusCheckRollup"]["state"] = status
         return self
 
-    def check_suites(
-        self, check_suites: List[Union[CheckSuiteBuilder, CheckSuite]]
+    def status_check_rollup_contexts(
+        self,
+        status_check_rollup_contexts: List[
+            Union[StatusCheckRollupContextBuilder, StatusCheckRollupContext]
+        ],
     ) -> Union["CommitBuilder", Commit]:
-        for check_suite in check_suites:
-            self.raw_commit["commit"]["checkSuites"]["nodes"].append(
-                check_suite.to_raw()
+        for status_check_rollup_context in status_check_rollup_contexts:
+            self.raw_commit["commit"]["statusCheckRollup"]["contexts"]["nodes"].append(
+                status_check_rollup_context.to_raw()
             )
         return self
 
