@@ -63,7 +63,7 @@ def get_pull_request_and_review(
     return PullRequest(data["pullRequest"]), Review(data["review"])
 
 
-def get_pull_request_for_commit(commit_id: str) -> Optional[PullRequest]:
+def get_pull_request_for_commit_id(commit_id: str) -> Optional[PullRequest]:
     """Get the PullRequest given a commit id.
 
     Every commit is associated with one or more pull requests.
