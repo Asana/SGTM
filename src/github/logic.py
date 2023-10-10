@@ -247,64 +247,24 @@ def maybe_add_automerge_warning_comment(pull_request: PullRequest):
 def maybe_automerge_pull_request_and_rerun_stale_checks(
     pull_request: PullRequest,
 ) -> bool:
-    is_pull_request_ready_for_automerge = False
-    did_rerun_stale_required_checks = False
     if (
         not SGTM_FEATURE__AUTOMERGE_ENABLED
         or pull_request.closed()
         or pull_request.merged()
+        or pull_request.is_draft()
     ):
-        logger.info(f"Skipping automerge for {pull_request.id()} because it is closed")
+        logger.info(
+            f"Skipping automerge for {pull_request.id()} because it is not open"
+        )
         return False
 
     # if there are multiple labels, we use the most permissive to define automerge behavior
-    elif pull_request_has_label(pull_request, AutomergeLabel.IMMEDIATELY.value):
-        is_pull_request_ready_for_automerge = pull_request.mergeable() in (
-            MergeableState.MERGEABLE,
-            MergeableState.UNKNOWN,
-        )
-    elif pull_request_has_label(pull_request, AutomergeLabel.AFTER_TESTS.value):
-        is_pull_request_ready_for_automerge = (
-            pull_request.is_build_successful() and pull_request.is_mergeable()
-        )
-        did_rerun_stale_required_checks = (
-            is_pull_request_ready_for_automerge
-            and _maybe_rerun_stale_checks(pull_request)
-        )
-    elif pull_request_has_label(
-        pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
-    ):
-        is_pull_request_ready_for_automerge = (
-            pull_request.is_build_successful()
-            and pull_request.is_mergeable()
-            and pull_request.is_approved()
-        )
-        did_rerun_stale_required_checks = (
-            is_pull_request_ready_for_automerge
-            and _maybe_rerun_stale_checks(pull_request)
-        )
-    elif pull_request_has_label(pull_request, AutomergeLabel.AFTER_APPROVAL.value):
-        is_pull_request_ready_for_automerge = (
-            pull_request.is_mergeable() and pull_request.is_approved()
-        )
-
-    logger.info(
-        f"{pull_request.id()} is {'' if is_pull_request_ready_for_automerge else 'not '}ready for automerge"
+    return (
+        maybe_automerge_immediately(pull_request)
+        or maybe_automerge_after_tests(pull_request)
+        or maybe_automerge_after_tests_and_approval(pull_request)
+        or maybe_automerge_after_approval(pull_request)
     )
-    logger.info(
-        f"{pull_request.id()} did {'' if did_rerun_stale_required_checks else 'not '}rerun stale required checks"
-    )
-
-    if is_pull_request_ready_for_automerge and not did_rerun_stale_required_checks:
-        github_client.merge_pull_request(
-            pull_request.repository_owner_handle(),
-            pull_request.repository_name(),
-            pull_request.number(),
-            pull_request.title(),
-            pull_request.body(),
-        )
-        return True
-    return False
 
 
 # ----------------------------------------------------------------------------------
@@ -318,6 +278,91 @@ def _pull_request_has_automerge_comment(
     return any(
         comment.body() == automerge_comment for comment in pull_request.comments()
     )
+
+
+def _merge_pull_request(pull_request: PullRequest):
+    logger.info(f"Merging PR-{pull_request.id()}")
+    github_client.merge_pull_request(
+        pull_request.repository_owner_handle(),
+        pull_request.repository_name(),
+        pull_request.number(),
+        pull_request.title(),
+        pull_request.body(),
+    )
+
+
+def maybe_automerge_immediately(pull_request: PullRequest) -> bool:
+    if pull_request_has_label(
+        pull_request, AutomergeLabel.IMMEDIATELY.value
+    ) and pull_request.mergeable() in (
+        MergeableState.MERGEABLE,
+        MergeableState.UNKNOWN,
+    ):
+        logger.info(
+            f"PR has automerge label {AutomergeLabel.IMMEDIATELY.value} and is {pull_request.mergeable()}."
+        )
+        _merge_pull_request(pull_request)
+        return True
+    return False
+
+
+def maybe_automerge_after_tests(pull_request: PullRequest) -> bool:
+    if (
+        pull_request_has_label(pull_request, AutomergeLabel.AFTER_TESTS.value)
+        and pull_request.is_build_successful()
+        and pull_request.is_mergeable()
+    ):
+        logger.info(
+            f"PR has automerge label {AutomergeLabel.AFTER_TESTS.value} and is mergeable and successful."
+        )
+        if _maybe_rerun_stale_checks(pull_request):
+            logger.info(
+                "PR rerun checks so not merging. Next PR event should automerge."
+            )
+            return False
+        else:
+            logger.info("PR is up-to-date")
+            _merge_pull_request(pull_request)
+            return True
+    return False
+
+
+def maybe_automerge_after_approval(pull_request: PullRequest) -> bool:
+    if (
+        pull_request_has_label(pull_request, AutomergeLabel.AFTER_APPROVAL.value)
+        and pull_request.is_mergeable()
+        and pull_request.is_approved()
+    ):
+        logger.info(
+            f"PR has automerge label {AutomergeLabel.AFTER_APPROVAL.value} and is mergeable and approved."
+        )
+        _merge_pull_request(pull_request)
+        return True
+    return False
+
+
+def maybe_automerge_after_tests_and_approval(pull_request: PullRequest) -> bool:
+    if (
+        pull_request_has_label(
+            pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+        )
+        and pull_request.is_build_successful()
+        and pull_request.is_mergeable()
+        and pull_request.is_approved()
+    ):
+        logger.info(
+            f"PR has automerge label {AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value} and is mergeable, successful, and approved."
+        )
+        if _maybe_rerun_stale_checks(pull_request):
+            logger.info(
+                "PR rerun checks so not merging. Next PR event should automerge."
+            )
+            return False
+        else:
+            logger.info("PR is up-to-date")
+            _merge_pull_request(pull_request)
+            return True
+    return False
 
 
 def _maybe_rerun_stale_checks(pull_request: PullRequest) -> bool:

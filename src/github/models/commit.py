@@ -11,10 +11,6 @@ from src.utils import memoize
 
 
 class Commit(object):
-    BUILD_SUCCESSFUL = "SUCCESS"
-    BUILD_PENDING = "PENDING"
-    BUILD_FAILED = "FAILURE"
-
     def __init__(self, raw_commit: Dict[str, Any]):
         self._raw = copy.deepcopy(raw_commit)
 
@@ -30,7 +26,9 @@ class Commit(object):
     def status_check_rollup_contexts(self) -> List[StatusCheckRollupContext]:
         return [
             status_check_rollup_context_factory(raw_status)
-            for raw_status in self._raw["commit"]["statusCheckRollup"]["contexts"]
+            for raw_status in self._raw["commit"]["statusCheckRollup"]["contexts"][
+                "nodes"
+            ]
         ]
 
     @memoize

@@ -13,11 +13,11 @@ class StatusCheckRollupContextState(IntEnum):
     CheckConclusionStates: https://docs.github.com/en/graphql/reference/enums#checkconclusionstate
     """
 
-    SUCCESS = 0  # both
-    PENDING = 1  # status state
-    EXPECTED = 2  # status state
-    SKIPPED = 3  # check conclusion state
-    NEUTRAL = 4  # check conclusion state
+    NEUTRAL = 0  # check conclusion state
+    SKIPPED = 1  # check conclusion state
+    SUCCESS = 2  # both
+    EXPECTED = 3  # status state
+    PENDING = 4  # status state
     STALE = 5  # check conclusion state
     CANCELLED = 6  # check conclusion state
     ACTION_REQUIRED = 7  # check conclusion state
@@ -25,6 +25,17 @@ class StatusCheckRollupContextState(IntEnum):
     TIMED_OUT = 9  # check conclusion state
     ERROR = 10  # status state
     FAILURE = 11  # both
+
+    def __str__(self):
+        return f"{self.__class__.__name__}.{self.name}"
+
+    @classmethod
+    def _missing_(cls, value):
+        if type(value) is str:
+            if value in dir(cls):
+                return cls[value]
+
+        raise ValueError("%r is not a valid %s" % (value, cls.__name__))
 
 
 class StatusCheckRollupContext(object):
@@ -64,14 +75,14 @@ class CheckRun(StatusCheckRollupContext):
         return StatusCheckRollupContextState(self._raw["conclusion"])
 
 
-class StatusContext(object):
+class StatusContext(StatusCheckRollupContext):
     def name(self) -> str:
         return self._raw["context"]
 
     def completed_at(self) -> datetime:
         return parse_date_string(self._raw["createdAt"])
 
-    def state(self) -> str:
+    def state(self) -> StatusCheckRollupContextState:
         return StatusCheckRollupContextState(self._raw["state"])
 
 

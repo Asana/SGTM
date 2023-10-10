@@ -10,6 +10,7 @@ from .review import Review
 from .commit import Commit
 from .user import User
 from .label import Label
+from .status_check_rollup_context import StatusCheckRollupContextState
 import copy
 import collections
 
@@ -173,7 +174,7 @@ class PullRequest(object):
             return False
 
     def is_build_successful(self) -> bool:
-        return self.build_status() == Commit.BUILD_SUCCESSFUL
+        return self.build_status() == StatusCheckRollupContextState.SUCCESS
 
     def merged_at(self) -> Optional[datetime]:
         merged_at = self._raw.get("mergedAt", None)
@@ -190,7 +191,7 @@ class PullRequest(object):
     def to_raw(self) -> Dict[str, Any]:
         return copy.deepcopy(self._raw)
 
-    def build_status(self) -> Optional[str]:
+    def build_status(self) -> Optional[StatusCheckRollupContextState]:
         return self.commits()[0].status()
 
     def commits(self) -> List[Commit]:

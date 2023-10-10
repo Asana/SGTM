@@ -87,7 +87,7 @@ def _task_status_from_pull_request(pull_request: PullRequest) -> str:
 
 def _build_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
     build_status = pull_request.build_status()
-    return build_status.capitalize() if build_status is not None else None
+    return str(build_status).capitalize() if build_status is not None else None
 
 
 def _author_asana_user_id_from_pull_request(pull_request: PullRequest) -> Optional[str]:
