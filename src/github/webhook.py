@@ -122,7 +122,7 @@ def _handle_pull_request_review_comment(payload: dict):
 # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#status
 def _handle_status_webhook(payload: dict) -> HttpResponse:
     commit_id = payload["commit"]["node_id"]
-    pull_request = graphql_client.get_pull_request_for_commit(commit_id)
+    pull_request = graphql_client.get_pull_request_for_commit_id(commit_id)
     if pull_request is None:
         # This could happen for commits that get pushed outside of the normal
         # pull request flow. These should just be silently ignored.
