@@ -84,6 +84,26 @@ def _task_status_from_pull_request(pull_request: PullRequest) -> str:
     else:
         return "Draft" if pull_request.is_draft() else "Open"
 
+def _review_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
+    approval_or_changes_requested_reviews = sorted(
+        (
+            review
+            for review in pull_request.reviews()
+            if review.is_approval_or_changes_requested()
+        ),
+        key=lambda r: r.submitted_at(),
+    )
+
+    if len(approval_or_changes_requested_reviews) == 0:
+        # We didn't find any reviews
+        return "Needs Review"
+
+    latest_review = approval_or_changes_requested_reviews[-1]
+    if latest_review.is_approval():
+        return "Approved"
+    else:
+        return "Changes Requested"
+
 
 def _build_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
     build_status = pull_request.build_status()
@@ -100,14 +120,16 @@ _custom_fields_to_extract_map = {
     "PR Status": _task_status_from_pull_request,
     "Build": _build_status_from_pull_request,
     "Author (SGTM)": _author_asana_user_id_from_pull_request,
+    "Review Status": _review_status_from_pull_request,
 }
 
 
 def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
     """
-    We currently expect the project to have two custom fields with its corresponding enum options:
+    We currently expect the project to have three custom fields with its corresponding enum options:
         • PR Status: "Open", "Draft", "Closed", "Merged"
         • Build: "Success", "Failure"
+        • Review Status: "Needs Review", "Requested Changes", "Approved"
     """
     repository_id = pull_request.repository_id()
     project_id = dynamodb_client.get_asana_id_from_github_node_id(repository_id)
@@ -119,6 +141,7 @@ def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
         # TODO: Full sync
         return {}
     else:
+        # TODO ensure our custom filed for review status is in the project
         custom_field_map = {
             cf["custom_field"]["name"]: cf["custom_field"]
             for cf in asana_client.get_project_custom_fields(project_id)

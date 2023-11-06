@@ -74,6 +74,14 @@ CUSTOM_FIELDS = [
         ],
     ),
     PeopleCustomField(name="Author (SGTM)"),
+    EnumCustomField(
+        name="Review Status",
+        enum_options=[
+            EnumOption(name="Needs Review", color="yellow"),
+            EnumOption(name="Requested Changes", color="red"),
+            EnumOption(name="Approved", color="green"),
+        ],
+    ),
 ]
 
 
