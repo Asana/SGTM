@@ -84,7 +84,10 @@ def _task_status_from_pull_request(pull_request: PullRequest) -> str:
     else:
         return "Draft" if pull_request.is_draft() else "Open"
 
+
 def _review_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
+    if pull_request.is_draft():
+        return "Draft"
     approval_or_changes_requested_reviews = sorted(
         (
             review
@@ -129,7 +132,7 @@ def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
     We currently expect the project to have three custom fields with its corresponding enum options:
         • PR Status: "Open", "Draft", "Closed", "Merged"
         • Build: "Success", "Failure"
-        • Review Status: "Needs Review", "Changes Requested", "Approved"
+        • Review Status: "Needs Review", "Changes Requested", "Approved", "Draft"
     """
     repository_id = pull_request.repository_id()
     project_id = dynamodb_client.get_asana_id_from_github_node_id(repository_id)
@@ -141,7 +144,6 @@ def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
         # TODO: Full sync
         return {}
     else:
-        # TODO ensure our custom filed for review status is in the project
         custom_field_map = {
             cf["custom_field"]["name"]: cf["custom_field"]
             for cf in asana_client.get_project_custom_fields(project_id)
