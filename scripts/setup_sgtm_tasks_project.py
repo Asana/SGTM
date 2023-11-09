@@ -80,7 +80,7 @@ CUSTOM_FIELDS = [
             EnumOption(name="Needs Review", color="yellow"),
             EnumOption(name="Changes Requested", color="red"),
             EnumOption(name="Approved", color="green"),
-            EnumOption(name="Draft", color="blue"),
+            EnumOption(name="Draft", color="purple"),
         ],
     ),
 ]
