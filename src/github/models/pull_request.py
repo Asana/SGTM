@@ -150,9 +150,32 @@ class PullRequest(object):
     def is_draft(self) -> bool:
         return self._raw["isDraft"]
 
-    # A PR is considered approved if it has at least one approval and every time changes were requested by a reviewer
-    # that same reviewer later approved.
+    # A PR is considered approved if the latest review has an approve review status.
     def is_approved(self) -> bool:
+        if self.is_draft():
+            return False
+        approval_or_changes_requested_reviews = sorted(
+            (
+                review
+                for review in self.reviews()
+                if review.is_approval_or_changes_requested()
+            ),
+            key=lambda r: r.submitted_at(),
+        )
+
+        if len(approval_or_changes_requested_reviews) == 0:
+            return False
+
+        latest_review = approval_or_changes_requested_reviews[-1]
+        if latest_review.is_approval():
+            return True
+        else:
+            return False
+
+
+
+
+
         if len(self.reviews()) > 0:
             reviews = self.reviews()
             reviews.sort(key=lambda review: review.submitted_at())

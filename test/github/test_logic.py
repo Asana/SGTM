@@ -294,7 +294,43 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
         mock_merge_pull_request.assert_not_called()
 
     @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
-    def test_is_pull_request_ready_for_automerge_after_approval_approved_and_requested_changes(
+    def test_is_pull_request_ready_for_automerge_after_requested_changes_then_approved(
+        self, mock_merge_pull_request
+    ):
+        author_1 = builder.user().login("author_1")
+        author_2 = builder.user().login("author_2")
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .reviews(
+                [
+                    builder.review()
+                    .submitted_at("2020-01-12T14:59:58Z")
+                    .state(ReviewState.APPROVED)
+                    .author(author_2),
+                     builder.review()
+                    .submitted_at("2020-01-13T14:59:58Z")
+                    .state(ReviewState.CHANGES_REQUESTED)
+                    .author(author_1),
+                ]
+            )
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(False)
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
+        )
+        self.assertFalse(
+            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+                pull_request
+            )
+        )
+        mock_merge_pull_request.assert_not_called()
+
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_after_approved_then_requested_changes(
         self, mock_merge_pull_request
     ):
         author_1 = builder.user().login("author_1")
@@ -322,12 +358,12 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
                 )
             )
         )
-        self.assertFalse(
+        self.assertTrue(
             github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
                 pull_request
             )
         )
-        mock_merge_pull_request.assert_not_called()
+        mock_merge_pull_request.assert_called()
 
     @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
     def test_is_pull_request_ready_for_automerge_changes_after_approval_requested_then_approval(
