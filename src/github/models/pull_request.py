@@ -150,7 +150,9 @@ class PullRequest(object):
     def is_draft(self) -> bool:
         return self._raw["isDraft"]
 
-    # A PR is considered approved if the latest review has an approve review status.
+    # A PR is considered to be approved if the latest review attached to the PR
+    # is approved. If the latest review status is changes requested, the PR is not
+    # considered to be approved.
     def is_approved(self) -> bool:
         if self.is_draft():
             return False
