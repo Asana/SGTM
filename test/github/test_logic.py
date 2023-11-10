@@ -308,7 +308,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
                     .submitted_at("2020-01-12T14:59:58Z")
                     .state(ReviewState.APPROVED)
                     .author(author_2),
-                     builder.review()
+                    builder.review()
                     .submitted_at("2020-01-13T14:59:58Z")
                     .state(ReviewState.CHANGES_REQUESTED)
                     .author(author_1),

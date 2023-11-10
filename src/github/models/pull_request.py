@@ -150,6 +150,19 @@ class PullRequest(object):
     def is_draft(self) -> bool:
         return self._raw["isDraft"]
 
+    # If there are no reviews attached to the PR with an approval status
+    # or changes requested status, the PR is considered to be in a needs review state.
+    def is_needs_review(self) -> bool:
+        if self.is_draft():
+            return False
+        approval_or_changes_requested_reviews = list(
+            filter(lambda x: x.is_approval_or_changes_requested(), self.reviews())
+        )
+
+        if len(approval_or_changes_requested_reviews) == 0:
+            return True
+        return False
+
     # A PR is considered to be approved if the latest review attached to the PR
     # is approved. If the latest review status is changes requested, the PR is not
     # considered to be approved.
@@ -171,29 +184,6 @@ class PullRequest(object):
         latest_review = approval_or_changes_requested_reviews[-1]
         if latest_review.is_approval():
             return True
-        else:
-            return False
-
-
-
-
-
-        if len(self.reviews()) > 0:
-            reviews = self.reviews()
-            reviews.sort(key=lambda review: review.submitted_at())
-
-            approved = False
-            reviewers_requesting_changes: Set[str] = set()
-            for review in reviews:
-                author_handle = review.author_handle()
-                if review.is_approval():
-                    approved = True
-                    if author_handle in reviewers_requesting_changes:
-                        reviewers_requesting_changes.remove(author_handle)
-                if review.is_changes_requested():
-                    reviewers_requesting_changes.add(author_handle)
-
-            return approved and len(reviewers_requesting_changes) == 0
         else:
             return False
 

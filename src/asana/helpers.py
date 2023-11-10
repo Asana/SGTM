@@ -88,21 +88,9 @@ def _task_status_from_pull_request(pull_request: PullRequest) -> str:
 def _review_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
     if pull_request.is_draft():
         return "Not Ready"
-    approval_or_changes_requested_reviews = sorted(
-        (
-            review
-            for review in pull_request.reviews()
-            if review.is_approval_or_changes_requested()
-        ),
-        key=lambda r: r.submitted_at(),
-    )
-
-    if len(approval_or_changes_requested_reviews) == 0:
-        # We didn't find any reviews
+    elif pull_request.is_needs_review():
         return "Needs Review"
-
-    latest_review = approval_or_changes_requested_reviews[-1]
-    if latest_review.is_approval():
+    elif pull_request.is_approved():
         return "Approved"
     else:
         return "Changes Requested"
