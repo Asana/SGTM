@@ -87,7 +87,7 @@ def _task_status_from_pull_request(pull_request: PullRequest) -> str:
 
 def _review_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
     if pull_request.is_draft():
-        return "Draft"
+        return "Not Ready"
     approval_or_changes_requested_reviews = sorted(
         (
             review
@@ -132,7 +132,7 @@ def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
     We currently expect the project to have three custom fields with its corresponding enum options:
         • PR Status: "Open", "Draft", "Closed", "Merged"
         • Build: "Success", "Failure"
-        • Review Status: "Needs Review", "Changes Requested", "Approved", "Draft"
+        • Review Status: "Needs Review", "Changes Requested", "Approved", "Not Ready"
     """
     repository_id = pull_request.repository_id()
     project_id = dynamodb_client.get_asana_id_from_github_node_id(repository_id)
