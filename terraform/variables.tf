@@ -66,6 +66,12 @@ variable "sgtm_feature__disable_github_team_subscription" {
   default     = "false"
 }
 
+variable "sgtm_feature__task_assignee_is_always_pr_creator" {
+  type        = string
+  description = "'true' if behavior to set the Asana task assignee as the PR creator with Github labels is enabled"
+  default     = "false"
+}
+
 variable "sgtm_feature__followup_review_github_users" {
   type        = string
   description = "A comma-separated list of Github usernames that require follow-up review after merge"

@@ -3,6 +3,9 @@ from html import escape
 from datetime import datetime, timedelta
 from typing import Callable, Match, Optional, List, Dict, Set
 from src.dynamodb import client as dynamodb_client
+from src.config import (
+    SGTM_FEATURE__TASK_ASSIGNEE_IS_ALWAYS_PR_CREATOR
+)
 from src.github.models import (
     Comment,
     PullRequest,
@@ -154,6 +157,8 @@ def _get_custom_field_value(custom_field: dict, value_name: str) -> Optional[str
 
 
 def _task_assignee_from_pull_request(pull_request: PullRequest) -> Optional[str]:
+    if SGTM_FEATURE__TASK_ASSIGNEE_IS_ALWAYS_PR_CREATOR:
+        return _author_asana_user_id_from_pull_request(pull_request)
     assignee = pull_request.assignee()
     return dynamodb_client.get_asana_domain_user_id_from_github_handle(
         github_handle=assignee.login
