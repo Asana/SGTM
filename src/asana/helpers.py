@@ -85,6 +85,17 @@ def _task_status_from_pull_request(pull_request: PullRequest) -> str:
         return "Draft" if pull_request.is_draft() else "Open"
 
 
+def _review_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
+    if pull_request.is_draft():
+        return "Not Ready"
+    elif pull_request.is_needs_review():
+        return "Needs Review"
+    elif pull_request.is_approved():
+        return "Approved"
+    else:
+        return "Changes Requested"
+
+
 def _build_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
     build_status = pull_request.build_status()
     return build_status.capitalize() if build_status is not None else None
@@ -100,14 +111,16 @@ _custom_fields_to_extract_map = {
     "PR Status": _task_status_from_pull_request,
     "Build": _build_status_from_pull_request,
     "Author (SGTM)": _author_asana_user_id_from_pull_request,
+    "Review Status": _review_status_from_pull_request,
 }
 
 
 def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
     """
-    We currently expect the project to have two custom fields with its corresponding enum options:
+    We currently expect the project to have three custom fields with its corresponding enum options:
         • PR Status: "Open", "Draft", "Closed", "Merged"
         • Build: "Success", "Failure"
+        • Review Status: "Needs Review", "Changes Requested", "Approved", "Not Ready"
     """
     repository_id = pull_request.repository_id()
     project_id = dynamodb_client.get_asana_id_from_github_node_id(repository_id)
