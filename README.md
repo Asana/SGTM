@@ -138,11 +138,12 @@ By default SGTM subscribes every member of a reviewing Github team to the SGTM t
 **How to configure**:
 * Set an env variable of `TF_VAR_sgtm_feature__disable_github_team_subscription` to `true`
 
-### Always set Asana task assignee to the creator of the Github Pull Request
-By default SGTM will assign the task corresponding to the PR to the assignee on the Github pull request. The assignee on the Asana task will change for the following events: the PR is in draft status, changes are requested on the PR, the PR is approved, or a review is requested. Turning this feature on will keep the owner of the task corresponding to the PR to always be the owner of the pull request. This is usefull if you want to reduce Asana inbox noise from reassignment or if you prefer to have the owner of the PR be the only one receiving github updates within Asana. 
+### Always set the Asana task assignee to be the author of the Github Pull Request
+By default SGTM will assign the task corresponding to the PR to the assignee on the Github pull request. The assignee on the Asana task will change for the following events: when the PR is in draft status, when changes are requested on the PR, when the PR is approved, or when a review is requested. Turning this feature on will keep the assignee of the task corresponding to the PR to always be the author of the pull request. This is usefull if you want to reduce Asana inbox noise from reassignment or if you prefer to have the author of the PR be reponsible for the corresponding Asana task.
 
 **How to configure**:
-* Set an env variable of `TF_VAR_sgtm_feature__task_assignee_is_always_pr_creator` to `true`
+* Set an env variable of `TF_VAR_sgtm_feature__task_assignee_is_always_pr_author` to `true`
+* Ensure that the PR has the `task assignee is always pr author` Github label attached to the PR.
 
 ### Rerun required checks on pull requests that are older than N hours with a specific base ref
 SGTM can use Github API to rerun Check Runs on pull requests with a specified base ref if the results of those check runs exceeds a set number of hours. This is useful for keeping the status of your check runs "fresh" especially if the base ref is updated frequently. It will ignore pull requests that do not match the specified base ref.
