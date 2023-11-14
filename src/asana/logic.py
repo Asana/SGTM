@@ -3,7 +3,7 @@ from src.github.helpers import pull_request_has_label
 from enum import Enum, unique
 from src.config import (
     SGTM_FEATURE__AUTOCOMPLETE_ENABLED,
-    SGTM_FEATURE__TASK_ASSIGNEE_IS_ALWAYS_PR_AUTHOR,
+    SGTM_FEATURE__ALLOW_PERSISTENT_TASK_ASSIGNEE,
 )
 
 
@@ -14,7 +14,7 @@ class AutocompleteLabel(Enum):
 
 @unique
 class TaskAssigneeLabel(Enum):
-    PR_AUTHOR = "task assignee is always pr author"
+    PERSISTENT = "persistent task assignee"
 
 
 def should_autocomplete_tasks_on_merge(pull_request: PullRequest) -> bool:
@@ -28,6 +28,6 @@ def should_autocomplete_tasks_on_merge(pull_request: PullRequest) -> bool:
 
 
 def should_set_task_owner_to_pr_author(pull_request: PullRequest) -> bool:
-    return SGTM_FEATURE__TASK_ASSIGNEE_IS_ALWAYS_PR_AUTHOR and pull_request_has_label(
-        pull_request, TaskAssigneeLabel.PR_AUTHOR.value
+    return SGTM_FEATURE__ALLOW_PERSISTENT_TASK_ASSIGNEE and pull_request_has_label(
+        pull_request, TaskAssigneeLabel.PERSISTENT.value
     )

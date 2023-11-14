@@ -3,8 +3,8 @@ from html import escape
 from datetime import datetime, timedelta
 from typing import Callable, Match, Optional, List, Dict, Set
 from src.dynamodb import client as dynamodb_client
-from . import logic as asana_logic
-from src.config import SGTM_FEATURE__TASK_ASSIGNEE_IS_ALWAYS_PR_AUTHOR
+from src.asana import logic as asana_logic
+from src.config import SGTM_FEATURE__ALLOW_PERSISTENT_TASK_ASSIGNEE
 from src.github.models import (
     Comment,
     PullRequest,

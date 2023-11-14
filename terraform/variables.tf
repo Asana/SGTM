@@ -66,7 +66,7 @@ variable "sgtm_feature__disable_github_team_subscription" {
   default     = "false"
 }
 
-variable "sgtm_feature__task_assignee_is_always_pr_author" {
+variable "sgtm_feature__allow_persistent_task_assignee" {
   type        = string
   description = "'true' if behavior to set the Asana task assignee as the PR creator with Github labels is enabled"
   default     = "false"

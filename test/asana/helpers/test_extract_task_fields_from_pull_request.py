@@ -379,7 +379,7 @@ class TestExtractsAssigneeFromPullRequest(BaseClass):
             "github_assignee_login_billy", "BILLY_ASANA_DOMAIN_USER_ID"
         )
 
-    @patch("src.asana.logic.SGTM_FEATURE__TASK_ASSIGNEE_IS_ALWAYS_PR_AUTHOR", False)
+    @patch("src.asana.logic.SGTM_FEATURE__ALLOW_PERSISTENT_TASK_ASSIGNEE", False)
     def test_assignee(self):
         pull_request = build(
             builder.pull_request()
@@ -391,20 +391,20 @@ class TestExtractsAssigneeFromPullRequest(BaseClass):
         )
         self.assertEqual("ANNIE_ASANA_DOMAIN_USER_ID", task_fields["assignee"])
 
-    @patch("src.asana.logic.SGTM_FEATURE__TASK_ASSIGNEE_IS_ALWAYS_PR_AUTHOR", True)
+    @patch("src.asana.logic.SGTM_FEATURE__ALLOW_PERSISTENT_TASK_ASSIGNEE", True)
     def test_assignee_persistent_owner(self):
         pull_request = build(
             builder.pull_request()
             .author(builder.user("github_test_user_login"))
             .assignee(builder.user("github_assignee_login_annie"))
-            .label(builder.label().name(asana_logic.TaskAssigneeLabel.PR_AUTHOR.value))
+            .label(builder.label().name(asana_logic.TaskAssigneeLabel.PERSISTENT.value))
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
             pull_request
         )
         self.assertEqual("TEST_USER_ASANA_DOMAIN_USER_ID", task_fields["assignee"])
 
-    @patch("src.asana.logic.SGTM_FEATURE__TASK_ASSIGNEE_IS_ALWAYS_PR_AUTHOR", False)
+    @patch("src.asana.logic.SGTM_FEATURE__ALLOW_PERSISTENT_TASK_ASSIGNEE", False)
     def test_assignee_returns_first_assignee_by_login_if_many(self):
         pull_request = build(
             builder.pull_request()
@@ -421,7 +421,7 @@ class TestExtractsAssigneeFromPullRequest(BaseClass):
         )
         self.assertEqual("ANNIE_ASANA_DOMAIN_USER_ID", task_fields["assignee"])
 
-    @patch("src.asana.logic.SGTM_FEATURE__TASK_ASSIGNEE_IS_ALWAYS_PR_AUTHOR", True)
+    @patch("src.asana.logic.SGTM_FEATURE__ALLOW_PERSISTENT_TASK_ASSIGNEE", True)
     def test_assignee_multipe_assignees_persistent_owner(self):
         pull_request = build(
             builder.pull_request()
@@ -432,7 +432,7 @@ class TestExtractsAssigneeFromPullRequest(BaseClass):
                     builder.user("github_assignee_login_annie"),
                 ]
             )
-            .label(builder.label().name(asana_logic.TaskAssigneeLabel.PR_AUTHOR.value))
+            .label(builder.label().name(asana_logic.TaskAssigneeLabel.PERSISTENT.value))
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
             pull_request
