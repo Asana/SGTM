@@ -8,6 +8,7 @@ from test.impl.builders import builder, build
 from dataclasses import dataclass
 from src.github.models import Commit
 from src.github.logic import ApprovedBeforeMergeStatus
+from src.asana import logic as asana_logic
 
 followup_bot = builder.user("follow_up").build()
 
@@ -378,18 +379,37 @@ class TestExtractsAssigneeFromPullRequest(BaseClass):
             "github_assignee_login_billy", "BILLY_ASANA_DOMAIN_USER_ID"
         )
 
+    @patch("src.asana.logic.SGTM_FEATURE__ALLOW_PERSISTENT_TASK_ASSIGNEE", False)
     def test_assignee(self):
         pull_request = build(
-            builder.pull_request().assignee(builder.user("github_test_user_login"))
+            builder.pull_request()
+            .author(builder.user("github_test_user_login"))
+            .assignee(builder.user("github_assignee_login_annie"))
+        )
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+        self.assertEqual("ANNIE_ASANA_DOMAIN_USER_ID", task_fields["assignee"])
+
+    @patch("src.asana.logic.SGTM_FEATURE__ALLOW_PERSISTENT_TASK_ASSIGNEE", True)
+    def test_assignee_persistent_owner(self):
+        pull_request = build(
+            builder.pull_request()
+            .author(builder.user("github_test_user_login"))
+            .assignee(builder.user("github_assignee_login_annie"))
+            .label(builder.label().name(asana_logic.TaskAssigneeLabel.PERSISTENT.value))
         )
         task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
             pull_request
         )
         self.assertEqual("TEST_USER_ASANA_DOMAIN_USER_ID", task_fields["assignee"])
 
+    @patch("src.asana.logic.SGTM_FEATURE__ALLOW_PERSISTENT_TASK_ASSIGNEE", False)
     def test_assignee_returns_first_assignee_by_login_if_many(self):
         pull_request = build(
-            builder.pull_request().assignees(
+            builder.pull_request()
+            .author(builder.user("github_test_user_login"))
+            .assignees(
                 [
                     builder.user("github_assignee_login_billy"),
                     builder.user("github_assignee_login_annie"),
@@ -400,6 +420,24 @@ class TestExtractsAssigneeFromPullRequest(BaseClass):
             pull_request
         )
         self.assertEqual("ANNIE_ASANA_DOMAIN_USER_ID", task_fields["assignee"])
+
+    @patch("src.asana.logic.SGTM_FEATURE__ALLOW_PERSISTENT_TASK_ASSIGNEE", True)
+    def test_assignee_multipe_assignees_persistent_owner(self):
+        pull_request = build(
+            builder.pull_request()
+            .author(builder.user("github_test_user_login"))
+            .assignees(
+                [
+                    builder.user("github_assignee_login_billy"),
+                    builder.user("github_assignee_login_annie"),
+                ]
+            )
+            .label(builder.label().name(asana_logic.TaskAssigneeLabel.PERSISTENT.value))
+        )
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+        self.assertEqual("TEST_USER_ASANA_DOMAIN_USER_ID", task_fields["assignee"])
 
     def test_assignee_returns_author_when_assignees_are_empty(self):
         pull_request = build(
