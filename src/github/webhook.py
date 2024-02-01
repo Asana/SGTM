@@ -26,7 +26,7 @@ def _handle_pull_request_webhook(payload: dict) -> HttpResponse:
 # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#issue_comment
 def _handle_issue_comment_webhook(payload: dict) -> HttpResponse:
     action, issue, comment = itemgetter("action", "issue", "comment")(payload)
-    logger.info(f"issue: {issue['node_id']}, comment: {comment['html_url']}")
+    logger.info(f"issue: {issue['node_id']}, comment: {comment['url']}")
 
     issue_id = issue["node_id"]
     comment_id = comment["node_id"]
