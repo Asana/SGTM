@@ -89,3 +89,9 @@ variable "sgtm_feature__check_rerun_base_ref_names" {
   description = "A comma-separated list of base refs that will trigger check run rerequests when stale. Must be combined with sgtm_feature__check_rerun_freshness_duration_hours."
   default     = "main,master"
 }
+
+variable "sgtm_feature__allow_check_rerun_on_approval" {
+  type        = string
+  description = "'true' if a check rerun should be rerequested when a PR is approved. Must be combined with sgtm_feature__check_rerun_base_ref_names and sgtm_feature__check_rerun_threshold_hours."
+  default     = "false"
+}
