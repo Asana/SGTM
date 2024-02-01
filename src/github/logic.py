@@ -288,7 +288,9 @@ def maybe_automerge_pull_request_and_rerun_stale_checks(
             pull_request.is_mergeable() and pull_request.is_approved()
         )
 
-    logger.info(f"Pull request status: test {pull_request.is_build_successful()}, mergeable {pull_request.is_mergeable()}, approved {pull_request.is_approved()}")
+    logger.info(
+        f"Pull request status: test {pull_request.is_build_successful()}, mergeable {pull_request.is_mergeable()}, approved {pull_request.is_approved()}"
+    )
     logger.info(
         f"{pull_request.id()} is {'' if is_pull_request_ready_for_automerge else 'not '}ready for automerge"
     )
