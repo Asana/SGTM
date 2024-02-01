@@ -11,6 +11,7 @@ from src.config import (
 
 
 def upsert_pull_request(pull_request: PullRequest):
+    logger.info("Updating/creating asana task for pull request")
     pull_request_id = pull_request.id()
     task_id = dynamodb_client.get_asana_id_from_github_node_id(pull_request_id)
     if task_id is None:
