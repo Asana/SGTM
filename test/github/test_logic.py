@@ -773,6 +773,47 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
 
         add_pr_comment_mock.assert_not_called()
 
+    def test_rerun_stale_checks_on_approved_pull_request(
+        self,
+    ):
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
+            )
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(False)
+        )
+        self.assertTrue(
+            github_logic.maybe_rerun_stale_checks_on_approved_pull_request(
+                pull_request
+            )
+        )
+
+    def test_no_rerun_stale_checks_on_unapproved_pull_request(
+        self,
+    ):
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.CHANGES_REQUESTED)
+            )
+            .mergeable(MergeableState.MERGEABLE)
+            .merged(False)
+        )
+        self.assertFalse(
+            github_logic.maybe_rerun_stale_checks_on_approved_pull_request(
+                pull_request
+            )
+        )
+
+
 
 if __name__ == "__main__":
     from unittest import main as run_tests

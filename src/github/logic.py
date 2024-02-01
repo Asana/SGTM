@@ -306,6 +306,11 @@ def maybe_automerge_pull_request_and_rerun_stale_checks(
         return True
     return False
 
+def maybe_rerun_stale_checks_on_approved_pull_request(pull_request: PullRequest) -> bool:
+    if pull_request.is_approved():
+        logger.info(f"PR-{pull_request.id()} is approved, maybe rerun stale checks")
+        return _maybe_rerun_stale_checks(pull_request)
+    return False
 
 # ----------------------------------------------------------------------------------
 # Automerge helpers
