@@ -26,10 +26,11 @@ def _handle_pull_request_webhook(payload: dict) -> HttpResponse:
 # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#issue_comment
 def _handle_issue_comment_webhook(payload: dict) -> HttpResponse:
     action, issue, comment = itemgetter("action", "issue", "comment")(payload)
-    logger.info(f"issue: {issue['node_id']}, comment: {comment['url']}")
 
     issue_id = issue["node_id"]
     comment_id = comment["node_id"]
+    logger.info(f"issue: {issue_id}, comment: {comment_id}")
+
     with dynamodb_lock(issue_id):
         if action in ("created", "edited"):
             pull_request, comment = graphql_client.get_pull_request_and_comment(
@@ -113,8 +114,7 @@ def _handle_pull_request_review_comment(payload: dict):
             # If so, we should delete the Asana comment.
             logger.info("No review found in Github. Deleting the Asana comment.")
             github_controller.delete_comment(comment_id)
-        if review is not None:
-            logger.info("Updating review comment")
+        else:
             github_controller.upsert_review(pull_request, review)
 
         return HttpResponse("200")

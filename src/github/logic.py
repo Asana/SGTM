@@ -215,6 +215,7 @@ def pull_request_participants(pull_request: PullRequest) -> List[str]:
 def maybe_add_automerge_warning_comment(pull_request: PullRequest):
     """Adds comment warnings if automerge label is enabled"""
 
+    logger.info("Running maybe add automerge warning comment")
     if SGTM_FEATURE__AUTOMERGE_ENABLED:
         owner = pull_request.repository_owner_handle()
         repo_name = pull_request.repository_name()
@@ -249,6 +250,7 @@ def maybe_automerge_pull_request_and_rerun_stale_checks(
 ) -> bool:
     is_pull_request_ready_for_automerge = False
     did_rerun_stale_required_checks = False
+    logger.info("Running maybe automerge pull request and rerun stale checks")
     if (
         not SGTM_FEATURE__AUTOMERGE_ENABLED
         or pull_request.closed()
@@ -289,7 +291,7 @@ def maybe_automerge_pull_request_and_rerun_stale_checks(
         )
 
     logger.info(
-        f"Pull request status: test {pull_request.is_build_successful()}, mergeable {pull_request.is_mergeable()}, approved {pull_request.is_approved()}"
+        f"Pull request {pull_request.id()} status: test result: {pull_request.is_build_successful()}, mergeable: {pull_request.is_mergeable()}, approved: {pull_request.is_approved()}"
     )
     logger.info(
         f"{pull_request.id()} is {'' if is_pull_request_ready_for_automerge else 'not '}ready for automerge"
