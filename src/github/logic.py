@@ -305,9 +305,13 @@ def maybe_automerge_pull_request_and_rerun_stale_checks(
 
 
 def maybe_rerun_stale_checks_on_approved_pull_request(
-    pull_request: PullRequest
+    pull_request: PullRequest,
 ) -> bool:
-    if SGTM_FEATURE__ALLOW_CHECK_RERUN_ON_APPROVAL and _pull_request_is_open(pull_request) and pull_request.is_approved():
+    if (
+        SGTM_FEATURE__ALLOW_CHECK_RERUN_ON_APPROVAL
+        and _pull_request_is_open(pull_request)
+        and pull_request.is_approved()
+    ):
         logger.info(
             f"PR-{pull_request.id()} is open and approved, maybe rerun stale checks"
         )
