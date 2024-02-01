@@ -313,6 +313,9 @@ def maybe_rerun_stale_checks_on_approved_pull_request(
         )
         return _maybe_rerun_stale_checks(pull_request)
     logger.info(
+        f"SGTM_FEATURE__ALLOW_CHECK_RERUN_ON_APPROVAL is {SGTM_FEATURE__ALLOW_CHECK_RERUN_ON_APPROVAL}"
+    )
+    logger.info(
         f"{pull_request.id()} is {'' if _pull_request_is_open(pull_request) else 'not '}open and {'' if pull_request.is_approved() else 'not '}approved"
     )
     return False
