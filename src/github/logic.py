@@ -249,11 +249,7 @@ def maybe_automerge_pull_request_and_rerun_stale_checks(
 ) -> bool:
     is_pull_request_ready_for_automerge = False
     did_rerun_stale_required_checks = False
-    if (
-        not SGTM_FEATURE__AUTOMERGE_ENABLED
-        or pull_request.closed()
-        or pull_request.merged()
-    ):
+    if not SGTM_FEATURE__AUTOMERGE_ENABLED or not _pull_request_is_open(pull_request):
         logger.info(f"Skipping automerge for {pull_request.id()} because it is closed")
         is_pull_request_ready_for_automerge = False
 
@@ -306,15 +302,28 @@ def maybe_automerge_pull_request_and_rerun_stale_checks(
         return True
     return False
 
-def maybe_rerun_stale_checks_on_approved_pull_request(pull_request: PullRequest) -> bool:
-    if pull_request.is_approved():
-        logger.info(f"PR-{pull_request.id()} is approved, maybe rerun stale checks")
+
+def maybe_rerun_stale_checks_on_approved_pull_request(
+    pull_request: PullRequest
+) -> bool:
+    if _pull_request_is_open(pull_request) and pull_request.is_approved():
+        logger.info(
+            f"PR-{pull_request.id()} is open and approved, maybe rerun stale checks"
+        )
         return _maybe_rerun_stale_checks(pull_request)
+    logger.info(
+        f"{pull_request.id()} is {'' if _pull_request_is_open(pull_request) else 'not '}open and {'' if pull_request.is_approved() else 'not '}approved"
+    )
     return False
+
 
 # ----------------------------------------------------------------------------------
 # Automerge helpers
 # ----------------------------------------------------------------------------------
+
+
+def _pull_request_is_open(pull_request: PullRequest) -> bool:
+    return not pull_request.closed() and not pull_request.merged()
 
 
 def _pull_request_has_automerge_comment(
