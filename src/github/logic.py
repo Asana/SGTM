@@ -19,7 +19,7 @@ from src.config import (
     SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS,
     SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS,
     SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES,
-    SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL,
+    SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED,
 )
 
 GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
@@ -308,7 +308,7 @@ def maybe_rerun_stale_checks_on_approved_pull_request(
     pull_request: PullRequest,
 ) -> bool:
     if (
-        SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL
+        SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED
         and _pull_request_is_open(pull_request)
         and pull_request.is_approved()
     ):

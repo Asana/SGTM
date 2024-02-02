@@ -634,7 +634,7 @@ class TestMaybeRerunStaleRequiredChecks(unittest.TestCase):
             check_run.database_id(),
         )
 
-    @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL", True)
+    @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED", True)
     @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS", 1)
     @patch(
         "src.github.logic.SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES",
@@ -668,7 +668,7 @@ class TestMaybeRerunStaleRequiredChecks(unittest.TestCase):
             check_run.database_id(),
         )
 
-    @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL", True)
+    @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED", True)
     @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS", 1)
     @patch(
         "src.github.logic.SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES",
@@ -698,7 +698,7 @@ class TestMaybeRerunStaleRequiredChecks(unittest.TestCase):
         )
         mock_rerequest_check_run.assert_not_called()
 
-    @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL", True)
+    @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED", True)
     @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS", 1)
     @patch(
         "src.github.logic.SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES",
@@ -746,7 +746,7 @@ class TestMaybeRerunStaleRequiredChecks(unittest.TestCase):
         )
         mock_merge_pull_request.assert_not_called()
 
-    @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL", False)
+    @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED", False)
     def test_noop_if_feature_not_enabled(self, mock_rerequest_check_run):
         check_run = build(builder.check_run().completed_at("2020-01-13T14:59:58Z"))
         pull_request = build(
