@@ -14,6 +14,7 @@ from src.github.models import PullRequestReviewComment, Review
 # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
 def _handle_pull_request_webhook(payload: dict) -> HttpResponse:
     pull_request_id = payload["pull_request"]["node_id"]
+    pull_request = graphql_client.get_pull_request(pull_request_id)
     with dynamodb_lock(pull_request_id):
         pull_request = graphql_client.get_pull_request(pull_request_id)
         # maybe rerun stale checks on approved PR before attempting to automerge
@@ -31,6 +32,8 @@ def _handle_issue_comment_webhook(payload: dict) -> HttpResponse:
 
     issue_id = issue["node_id"]
     comment_id = comment["node_id"]
+    logger.info(f"issue: {issue_id}, comment: {comment_id}")
+
     with dynamodb_lock(issue_id):
         if action in ("created", "edited"):
             pull_request, comment = graphql_client.get_pull_request_and_comment(
@@ -52,11 +55,10 @@ def _handle_issue_comment_webhook(payload: dict) -> HttpResponse:
 def _handle_pull_request_review_webhook(payload: dict) -> HttpResponse:
     pull_request_id = payload["pull_request"]["node_id"]
     review_id = payload["review"]["node_id"]
-
+    pull_request, review = graphql_client.get_pull_request_and_review(
+        pull_request_id, review_id
+    )
     with dynamodb_lock(pull_request_id):
-        pull_request, review = graphql_client.get_pull_request_and_review(
-            pull_request_id, review_id
-        )
         github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(pull_request)
         github_controller.upsert_review(pull_request, review)
     return HttpResponse("200")
@@ -91,31 +93,31 @@ def _handle_pull_request_review_comment(payload: dict):
     # This is NOT the node_id, but is a numeric string (the databaseId field).
     review_database_id = payload["comment"]["pull_request_review_id"]
 
-    with dynamodb_lock(pull_request_id):
-        if action in ("created", "edited"):
-            pull_request, comment = graphql_client.get_pull_request_and_comment(
-                pull_request_id, comment_id
+    if action in ("created", "edited"):
+        pull_request, comment = graphql_client.get_pull_request_and_comment(
+            pull_request_id, comment_id
+        )
+        if not isinstance(comment, PullRequestReviewComment):
+            raise Exception(
+                f"Unexpected comment type {type(PullRequestReviewComment)} for pull"
+                " request review"
             )
-            if not isinstance(comment, PullRequestReviewComment):
-                raise Exception(
-                    f"Unexpected comment type {type(PullRequestReviewComment)} for pull"
-                    " request review"
-                )
-            review: Optional[Review] = Review.from_comment(comment)
-        elif action == "deleted":
-            pull_request = graphql_client.get_pull_request(pull_request_id)
-            review = graphql_client.get_review_for_database_id(
-                pull_request_id, review_database_id
-            )
-            if review is None:
-                # If we deleted the last comment from a review, Github might have deleted the review.
-                # If so, we should delete the Asana comment.
-                logger.info("No review found in Github. Deleting the Asana comment.")
-                github_controller.delete_comment(comment_id)
-        else:
-            raise ValueError(f"Unexpected action: {action}")
+        review: Optional[Review] = Review.from_comment(comment)
+    elif action == "deleted":
+        pull_request = graphql_client.get_pull_request(pull_request_id)
+        review = graphql_client.get_review_for_database_id(
+            pull_request_id, review_database_id
+        )
+    else:
+        raise ValueError(f"Unexpected action: {action}")
 
-        if review is not None:
+    with dynamodb_lock(pull_request_id):
+        if review is None:
+            # If we deleted the last comment from a review, Github might have deleted the review.
+            # If so, we should delete the Asana comment.
+            logger.info("No review found in Github. Deleting the Asana comment.")
+            github_controller.delete_comment(comment_id)
+        else:
             github_controller.upsert_review(pull_request, review)
 
         return HttpResponse("200")
