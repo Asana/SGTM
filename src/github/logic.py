@@ -19,7 +19,7 @@ from src.config import (
     SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS,
     SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS,
     SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES,
-    SGTM_FEATURE__ALLOW_CHECK_RERUN_ON_APPROVAL,
+    SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL,
 )
 
 GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
@@ -308,7 +308,7 @@ def maybe_rerun_stale_checks_on_approved_pull_request(
     pull_request: PullRequest,
 ) -> bool:
     if (
-        SGTM_FEATURE__ALLOW_CHECK_RERUN_ON_APPROVAL
+        SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL
         and _pull_request_is_open(pull_request)
         and pull_request.is_approved()
     ):
@@ -316,9 +316,6 @@ def maybe_rerun_stale_checks_on_approved_pull_request(
             f"PR-{pull_request.id()} is open and approved, maybe rerun stale checks"
         )
         return _maybe_rerun_stale_checks(pull_request)
-    logger.info(
-        f"SGTM_FEATURE__ALLOW_CHECK_RERUN_ON_APPROVAL is {SGTM_FEATURE__ALLOW_CHECK_RERUN_ON_APPROVAL}"
-    )
     logger.info(
         f"{pull_request.id()} is {'' if _pull_request_is_open(pull_request) else 'not '}open and {'' if pull_request.is_approved() else 'not '}approved"
     )
