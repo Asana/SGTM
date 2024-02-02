@@ -251,6 +251,7 @@ def maybe_automerge_pull_request_and_rerun_stale_checks(
     is_pull_request_ready_for_automerge = False
     did_rerun_stale_required_checks = False
     logger.info("Running maybe automerge pull request and rerun stale checks")
+    logger.info(f"Pull request status: {pull_request.to_raw()}")
     if (
         not SGTM_FEATURE__AUTOMERGE_ENABLED
         or pull_request.closed()
