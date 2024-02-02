@@ -707,7 +707,7 @@ class TestMaybeRerunStaleRequiredChecks(unittest.TestCase):
     @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
     @patch.object(github_client, "merge_pull_request")
     def test_rerun_stale_checks_on_automerge_pr(
-        self, mock_rerequest_check_run, mock_merge_pull_request
+        self, mock_merge_pull_request, mock_rerequest_check_run
     ):
         check_run = build(builder.check_run().completed_at("2020-01-13T14:59:58Z"))
         pull_request = build(
