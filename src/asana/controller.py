@@ -32,6 +32,7 @@ def update_task(
     update_task_fields = asana_helpers.extract_task_fields_from_pull_request(
         pull_request
     )
+    logger.info(f"Updating task {task_id} with fields: {update_task_fields}")
     task = asana_client.get_task(task_id)
     new_due_on = (
         asana_helpers.today_str()

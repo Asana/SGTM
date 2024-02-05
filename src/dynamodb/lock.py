@@ -21,9 +21,8 @@ lock_client = DynamoDBLockClient(
 
 @contextmanager
 def dynamodb_lock(
-    lock_name: str, retry_timeout: Optional[timedelta] = timedelta(seconds=20)
+    lock_name: str, retry_timeout: Optional[timedelta] = timedelta(seconds=45)
 ):
-    # TODO: Make this match get-lock-client in the clojure code
     lock = lock_client.acquire_lock(
         lock_name, sort_key=lock_name, retry_timeout=retry_timeout
     )
