@@ -247,7 +247,7 @@ def maybe_add_automerge_warning_comment(pull_request: PullRequest):
 
 # returns True if the pull request was automerged, False if not
 def maybe_automerge_pull_request_and_rerun_stale_checks(
-    pull_request: PullRequest,
+    pull_request: PullRequest, did_rerun_checks: bool = False
 ) -> bool:
     is_pull_request_ready_for_automerge = False
     did_rerun_stale_required_checks = False
@@ -277,10 +277,14 @@ def maybe_automerge_pull_request_and_rerun_stale_checks(
             and pull_request.is_mergeable()
             and pull_request.is_approved()
         )
-        did_rerun_stale_required_checks = (
-            is_pull_request_ready_for_automerge
-            and _maybe_rerun_stale_checks(pull_request)
-        )
+        # if PR has already rerun checks, we don't need to rerun them again
+        if did_rerun_checks:
+            did_rerun_stale_required_checks = did_rerun_checks
+        else:
+            did_rerun_stale_required_checks = (
+                is_pull_request_ready_for_automerge
+                and _maybe_rerun_stale_checks(pull_request)
+            )
     elif pull_request_has_label(pull_request, AutomergeLabel.AFTER_APPROVAL.value):
         is_pull_request_ready_for_automerge = (
             pull_request.is_mergeable() and pull_request.is_approved()

@@ -18,9 +18,9 @@ def _handle_pull_request_webhook(payload: dict) -> HttpResponse:
     with dynamodb_lock(pull_request_id):
         pull_request = graphql_client.get_pull_request(pull_request_id)
         # maybe rerun stale checks on approved PR before attempting to automerge
-        github_logic.maybe_rerun_stale_checks_on_approved_pull_request(pull_request)
+        did_rerun_checks = github_logic.maybe_rerun_stale_checks_on_approved_pull_request(pull_request)
         # a label change will trigger this webhook, so it may trigger automerge
-        github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(pull_request)
+        github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(pull_request, did_rerun_checks)
         github_logic.maybe_add_automerge_warning_comment(pull_request)
         github_controller.upsert_pull_request(pull_request)
         return HttpResponse("200")
