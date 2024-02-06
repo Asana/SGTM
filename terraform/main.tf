@@ -185,6 +185,7 @@ resource "aws_lambda_function" "sgtm" {
       SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS = var.sgtm_feature__followup_review_github_users,
       SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS = var.sgtm_feature__check_rerun_threshold_hours,
       SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES = var.sgtm_feature__check_rerun_base_ref_names,
+      SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED = var.sgtm_feature__check_rerun_on_approval_enabled
     }
   }
 }

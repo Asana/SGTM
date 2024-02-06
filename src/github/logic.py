@@ -19,6 +19,7 @@ from src.config import (
     SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS,
     SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS,
     SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES,
+    SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED,
 )
 
 GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
@@ -246,17 +247,11 @@ def maybe_add_automerge_warning_comment(pull_request: PullRequest):
 
 # returns True if the pull request was automerged, False if not
 def maybe_automerge_pull_request_and_rerun_stale_checks(
-    pull_request: PullRequest,
+    pull_request: PullRequest, did_rerun_stale_required_checks: bool = False
 ) -> bool:
     is_pull_request_ready_for_automerge = False
     did_rerun_stale_required_checks = False
-    logger.info("Running maybe automerge pull request and rerun stale checks")
-    logger.info(f"Pull request status: {pull_request.to_raw()}")
-    if (
-        not SGTM_FEATURE__AUTOMERGE_ENABLED
-        or pull_request.closed()
-        or pull_request.merged()
-    ):
+    if not SGTM_FEATURE__AUTOMERGE_ENABLED or not _pull_request_is_open(pull_request):
         logger.info(f"Skipping automerge for {pull_request.id()} because it is closed")
         is_pull_request_ready_for_automerge = False
 
@@ -282,10 +277,12 @@ def maybe_automerge_pull_request_and_rerun_stale_checks(
             and pull_request.is_mergeable()
             and pull_request.is_approved()
         )
-        did_rerun_stale_required_checks = (
-            is_pull_request_ready_for_automerge
-            and _maybe_rerun_stale_checks(pull_request)
-        )
+        # if PR has already rerun checks, we don't need to rerun them again
+        if not did_rerun_stale_required_checks:
+            did_rerun_stale_required_checks = (
+                is_pull_request_ready_for_automerge
+                and _maybe_rerun_stale_checks(pull_request)
+            )
     elif pull_request_has_label(pull_request, AutomergeLabel.AFTER_APPROVAL.value):
         is_pull_request_ready_for_automerge = (
             pull_request.is_mergeable() and pull_request.is_approved()
@@ -313,9 +310,31 @@ def maybe_automerge_pull_request_and_rerun_stale_checks(
     return False
 
 
+def maybe_rerun_stale_checks_on_approved_pull_request(
+    pull_request: PullRequest,
+) -> bool:
+    if (
+        SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED
+        and _pull_request_is_open(pull_request)
+        and pull_request.is_approved()
+    ):
+        logger.info(
+            f"PR-{pull_request.id()} is open and approved, maybe rerun stale checks"
+        )
+        return _maybe_rerun_stale_checks(pull_request)
+    logger.info(
+        f"{pull_request.id()} is {'' if _pull_request_is_open(pull_request) else 'not '}open and {'' if pull_request.is_approved() else 'not '}approved"
+    )
+    return False
+
+
 # ----------------------------------------------------------------------------------
 # Automerge helpers
 # ----------------------------------------------------------------------------------
+
+
+def _pull_request_is_open(pull_request: PullRequest) -> bool:
+    return not pull_request.closed() and not pull_request.merged()
 
 
 def _pull_request_has_automerge_comment(

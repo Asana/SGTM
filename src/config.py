@@ -57,3 +57,6 @@ SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES = {
     ).split(",")
     if base_ref
 }
+SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED = is_feature_flag_enabled(
+    "SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED"
+)

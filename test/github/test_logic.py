@@ -634,6 +634,141 @@ class TestMaybeRerunStaleRequiredChecks(unittest.TestCase):
             check_run.database_id(),
         )
 
+    @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED", True)
+    @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS", 1)
+    @patch(
+        "src.github.logic.SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES",
+        ["main"],
+    )
+    def test_rerun_stale_checks_on_approved_pull_request(
+        self, mock_rerequest_check_run
+    ):
+        check_run = build(builder.check_run().completed_at("2020-01-13T14:59:58Z"))
+        pull_request = build(
+            builder.pull_request()
+            .base_ref_name("main")
+            .commit(
+                builder.commit()
+                .status(Commit.BUILD_SUCCESSFUL)
+                .check_suites([builder.check_suite().check_runs([check_run])])
+            )
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
+            )
+            .merged(False)
+        )
+        self.assertTrue(
+            github_logic.maybe_rerun_stale_checks_on_approved_pull_request(pull_request)
+        )
+        mock_rerequest_check_run.assert_called_once_with(
+            pull_request.repository_owner_handle(),
+            pull_request.repository_name(),
+            check_run.database_id(),
+        )
+
+    @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED", True)
+    @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS", 1)
+    @patch(
+        "src.github.logic.SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES",
+        ["main"],
+    )
+    def test_no_rerun_stale_checks_on_unapproved_pull_request(
+        self, mock_rerequest_check_run
+    ):
+        check_run = build(builder.check_run().completed_at("2020-01-13T14:59:58Z"))
+        pull_request = build(
+            builder.pull_request()
+            .base_ref_name("main")
+            .commit(
+                builder.commit()
+                .status(Commit.BUILD_SUCCESSFUL)
+                .check_suites([builder.check_suite().check_runs([check_run])])
+            )
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.CHANGES_REQUESTED)
+            )
+            .merged(False)
+        )
+        self.assertFalse(
+            github_logic.maybe_rerun_stale_checks_on_approved_pull_request(pull_request)
+        )
+        mock_rerequest_check_run.assert_not_called()
+
+    @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED", True)
+    @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS", 1)
+    @patch(
+        "src.github.logic.SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES",
+        ["main"],
+    )
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    @patch.object(github_client, "merge_pull_request")
+    def test_rerun_stale_checks_on_automerge_pr(
+        self, mock_merge_pull_request, mock_rerequest_check_run
+    ):
+        check_run = build(builder.check_run().completed_at("2020-01-13T14:59:58Z"))
+        pull_request = build(
+            builder.pull_request()
+            .base_ref_name("main")
+            .commit(
+                builder.commit()
+                .status(Commit.BUILD_SUCCESSFUL)
+                .check_suites([builder.check_suite().check_runs([check_run])])
+            )
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
+            )
+            .label(
+                builder.label().name(
+                    github_logic.AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+                )
+            )
+            .merged(False)
+        )
+        self.assertTrue(
+            github_logic.maybe_rerun_stale_checks_on_approved_pull_request(pull_request)
+        )
+        mock_rerequest_check_run.assert_called_once_with(
+            pull_request.repository_owner_handle(),
+            pull_request.repository_name(),
+            check_run.database_id(),
+        )
+
+        self.assertFalse(
+            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+                pull_request
+            )
+        )
+        mock_merge_pull_request.assert_not_called()
+
+    @patch("src.github.logic.SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED", False)
+    def test_noop_if_feature_not_enabled(self, mock_rerequest_check_run):
+        check_run = build(builder.check_run().completed_at("2020-01-13T14:59:58Z"))
+        pull_request = build(
+            builder.pull_request()
+            .base_ref_name("main")
+            .commit(
+                builder.commit()
+                .status(Commit.BUILD_SUCCESSFUL)
+                .check_suites([builder.check_suite().check_runs([check_run])])
+            )
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
+            )
+            .merged(False)
+        )
+        self.assertFalse(
+            github_logic.maybe_rerun_stale_checks_on_approved_pull_request(pull_request)
+        )
+        mock_rerequest_check_run.assert_not_called()
+
 
 class TestPullRequestHasLabel(unittest.TestCase):
     def test_pull_request_with_label(self):
