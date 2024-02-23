@@ -64,37 +64,47 @@ NOTE: AWS S3 Bucket names are globally unique, so you will need to choose your o
 ### Run setup script
 You'll first need to set up the [Terraform remote state](https://www.terraform.io/docs/state/remote.html) to be the source of truth for the state of your deployed infrastructure.
 
+SGTM supports both s3 and terraform cloud backend. Please select only 1 to deploy your terraform changes to.
+
+#### S3 Backend Setup
+
 1. Run `python3 ./scripts/setup.py state` (this will create  an S3 bucket and DyanmoDb lock table for Terraform)
+2. Ensure `TF_VAR_terraform_backend_use_tfc=false` and continue the setup instructions from Step #2 below.
+
+#### Terraform Cloud Setup
+You'll need to have a Terraform Cloud account have the workspace you want to deploy SGTM in already setup. Make sure you have admin/write access to the workspace
+
+1. Set `TF_VAR_terraform_backend_use_tfc=true` and make sure the dependent TF_VARs are defined as well. (`TF_VAR_terraform_backend_organization_name` and `TF_VAR_terraform_backend_workspace_name`)
 2. Initialize and apply the infrastructure:
 ```bash
 > cd ./terraform
 > terragrunt init
 > terragrunt apply
 ```
-1. Save the output of `terragrunt apply`, which should print out a `api_gateway_deployment_invoke_url`. You'll need this in the next step.
-1. Push your secrets to the ecrypted S3 bucket that Terraform just created. `cd` back to the root of your repository and run: `python3 ./scripts/setup.py secrets` and follow the prompts.
+3. Save the output of `terragrunt apply`, which should print out a `api_gateway_deployment_invoke_url`. You'll need this in the next step.
+4. Push your secrets to the ecrypted S3 bucket that Terraform just created. `cd` back to the root of your repository and run: `python3 ./scripts/setup.py secrets` and follow the prompts.
 
 ### Add Mapping of Github Repository -> Asana Project
 For each repository that you are going to sync:
 1. Find that repository's Github Graphql `node_id`:
    1. You can get this using `curl -i -u <username>:<github_personal_access_token> https://api.github.com/repos/<organization>/<repository>`
-1. Using the "SGTM tasks" project id from [Create Asana Projects](#create-asana-projects), update the sgtm-objects DynamoDb table with the mapping of `{"github-node": "<node_id>", "asana-id": "<project_id>"}`
+2. Using the "SGTM tasks" project id from [Create Asana Projects](#create-asana-projects), update the sgtm-objects DynamoDb table with the mapping of `{"github-node": "<node_id>", "asana-id": "<project_id>"}`
 
 ### Create Your Github Webhook
 For each repository that you want to sync to Asana through SGTM:
 1. Navigate to `https://github.com/<organization>/<repository>/settings/hooks`
-1. Click "Add webhook"
-1. Under "Payload URL", input the `api_gateway_deployment_invoke_url` from the previous step
-1. Under "Content Type", select "application/json"
-1. Under "Secret", input your secret token that you generated earlier
-1. Under "Which events would you like to trigger this webhook?", select "Let me select individual events."
+2. Click "Add webhook"
+3. Under "Payload URL", input the `api_gateway_deployment_invoke_url` from the previous step
+4. Under "Content Type", select "application/json"
+5. Under "Secret", input your secret token that you generated earlier
+6. Under "Which events would you like to trigger this webhook?", select "Let me select individual events."
    1. Issue comments
-   1. Pull requests
-   1. Pull request reviews
-   1. Pull request review comments
-   1. Statuses
-1. Make sure "Active" is selected
-1. Click "Add webhook"
+   2. Pull requests
+   3. Pull request reviews
+   4. Pull request review comments
+   5. Statuses
+7. Make sure "Active" is selected
+8. Click "Add webhook"
 
 ### Take it for a spin!
 At this point, you should be all set to start getting Pull Requests synced to Asana Tasks. Open up a Pull Request, and Enjoy!
