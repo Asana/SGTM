@@ -6,12 +6,22 @@ generate "backend" {
   if_exists = "overwrite_terragrunt"
   contents = <<EOF
 terraform {
+%{ if get_env("TF_VAR_terraform_backend_use_tfc", false) }
   backend "remote" {
-    organization = "asana"
+    organization = "${get_env("TF_VAR_terraform_backend_organization_name")}"
     workspaces {
-      name = "sgtm"
+      name = "${get_env("TF_VAR_terraform_backend_workspace_name")}"
     }
   }
+%{ else }
+  backend "s3" {
+    bucket = "${get_env("TF_VAR_terraform_backend_s3_bucket_name")}"
+    dynamodb_table = "sgtm_terraform_state_lock"
+    region = "us-east-1"
+
+    key = "${path_relative_to_include()}/terraform.tfstate"
+  }
+%{ endif }
 }
 EOF
 }

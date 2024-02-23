@@ -43,6 +43,22 @@ variable "terraform_backend_dynamodb_lock_table" {
   description = "The DynamoDb table to store the Terraform state lock"
 }
 
+variable "terraform_backend_use_tfc" {
+  type        = bool
+  default     = false
+  description = "Whether to use Terraform Cloud as the remote backend. Defaults to false."
+}
+
+variable "terraform_backend_tfc_organization" {
+  type        = string
+  description = "The Terraform Cloud organization to use as the remote backend. Must be provided if terraform_backend_use_tfc is true."
+}
+
+variable "terraform_backend_tfc_workspace" {
+  type        = string
+  description = "The Terraform Cloud workspace to use as the remote backend. Must be provided if terraform_backend_use_tfc is true."
+}
+
 variable "asana_users_project_id" {
   type        = string
   description = "Project ID that holds the tasks that map Github handles to Asana user ids"
