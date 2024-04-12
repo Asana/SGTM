@@ -204,10 +204,17 @@ class S3Client(object):
 
     def __init__(self):
         self.s3_client = S3Client._create_s3_client()
-        (
-            self.github_user_mapping_bucket_name,
-            self.github_user_mapping_key_name,
-        ) = GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH.split("/", 1)
+        if (
+            "/" in GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH
+            and len(GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH) > 3
+        ):
+            (
+                self.github_user_mapping_bucket_name,
+                self.github_user_mapping_key_name,
+            ) = GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH.split("/", 1)
+        else:
+            self.github_user_mapping_bucket_name = None
+            self.github_user_mapping_key_name = None
 
     # getter for the singleton
     @classmethod
@@ -241,6 +248,13 @@ class S3Client(object):
         Retrieves the Asana domain user-id associated with a specific GitHub user login, or None,
         if no such association exists.
         """
+        if (
+            not self.github_user_mapping_bucket_name
+            or not self.github_user_mapping_key_name
+        ):
+            raise ConfigurationError(
+                "Configuration error: GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH is not set"
+            )
         with closing(
             self.s3_client.get_object(
                 Bucket=self.github_user_mapping_bucket_name,
