@@ -236,6 +236,19 @@ def insert_github_node_to_asana_id_mapping(gh_node_id: str, asana_id: str):
     )
 
 
+def bulk_insert_github_node_to_asana_id_mapping(
+    gh_and_asana_ids: List[Tuple[str, str]]
+):
+    """
+    Insert multiple mappings from github node ids to Asana object ids.
+    Equivalent to calling insert_github_node_to_asana_id_mapping
+    repeatedly, but in a single request.
+    """
+    DynamoDbClient.singleton().bulk_insert_github_node_to_asana_id_mapping(
+        gh_and_asana_ids
+    )
+
+
 def get_asana_domain_user_id_from_github_handle(github_handle: str) -> Optional[str]:
     """
     Using the singleton instance of S3Client, creating it if necessary:
@@ -249,17 +262,4 @@ def get_asana_domain_user_id_from_github_handle(github_handle: str) -> Optional[
 
     return S3Client.singleton().get_asana_domain_user_id_from_github_username(
         github_handle
-    )
-
-
-def bulk_insert_github_node_to_asana_id_mapping(
-    gh_and_asana_ids: List[Tuple[str, str]]
-):
-    """
-    Insert multiple mappings from github node ids to Asana object ids.
-    Equivalent to calling insert_github_node_to_asana_id_mapping
-    repeatedly, but in a single request.
-    """
-    DynamoDbClient.singleton().bulk_insert_github_node_to_asana_id_mapping(
-        gh_and_asana_ids
     )
