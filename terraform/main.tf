@@ -219,46 +219,6 @@ resource "aws_lambda_function" "sgtm" {
   }
 }
 
-resource "aws_lambda_function" "sgtm_sync_users" {
-  # TODO delete this once we have fully tested the new pathway
-  s3_bucket        = aws_s3_bucket.lambda_code_s3_bucket.bucket
-  s3_key           = aws_s3_bucket_object.lambda_code_bundle.key
-  function_name    = "sgtm_sync_users"
-  role             = aws_iam_role.iam_for_lambda_function.arn
-  handler          = "src.sync_users.handler.handler"
-  source_code_hash = data.archive_file.create_dist_pkg.output_base64sha256
-
-  runtime = var.lambda_runtime
-
-  timeout = 900
-  environment {
-    variables = {
-      API_KEYS_S3_BUCKET     = var.api_key_s3_bucket_name,
-      API_KEYS_S3_KEY        = var.api_key_s3_object
-      ASANA_USERS_PROJECT_ID = var.asana_users_project_id
-    }
-  }
-}
-
-resource "aws_cloudwatch_event_rule" "execute_sgtm_sync_users_event_rule" {
-  name                = "execute_sgtm_sync_users"
-  description         = "Execute Lambda function sgtm_sync_users on a cron-style schedule"
-  schedule_expression = "rate(1 hour)"
-}
-
-resource "aws_lambda_permission" "lambda_permission_for_sgtm_sync_users_schedule_event" {
-  statement_id  = "AllowSGTMSyncUsersInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.sgtm_sync_users.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.execute_sgtm_sync_users_event_rule.arn
-}
-
-resource "aws_cloudwatch_event_target" "execute_sgtm_sync_users_event_target" {
-  target_id = "execute_sgtm_sync_users_event_target"
-  rule      = aws_cloudwatch_event_rule.execute_sgtm_sync_users_event_rule.name
-  arn       = aws_lambda_function.sgtm_sync_users.arn
-}
 
 ### API
 

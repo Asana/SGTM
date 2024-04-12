@@ -8,9 +8,6 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
     @classmethod
     def setUpClass(cls):
         MockDynamoDbTestCase.setUpClass()
-        cls.test_data.insert_user_into_user_table(
-            "github_test_user_login", "TEST_USER_ASANA_DOMAIN_USER_ID"
-        )
 
     def test_includes_comment_text(self):
         github_comment = build(

@@ -29,22 +29,6 @@ class DynamodbClientTest(MockDynamoDbTestCase):
             asana_user_id,
         )
 
-    def test_bulk_insert_github_handle_to_asana_user_id_mapping(self):
-        mappings = [("user1", "1"), ("user2", "2")]
-        dynamodb_client.DEPRECATED_bulk_insert_github_handle_to_asana_user_id_mapping(
-            mappings
-        )
-        self.assertEqual(
-            dynamodb_client.get_asana_domain_user_id_from_github_handle("user1"),
-            "1",
-        )
-        self.assertEqual(
-            dynamodb_client.get_asana_domain_user_id_from_github_handle("user2"),
-            "2",
-        )
-        user_items = dynamodb_client.DEPRECATED_get_all_user_items()
-        self.assertEqual(len(list(user_items)), 2)
-
 
 if __name__ == "__main__":
     from unittest import main as run_tests

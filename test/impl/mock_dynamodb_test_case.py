@@ -5,9 +5,8 @@ or other external resources.
 import os
 import boto3  # type: ignore
 from moto import mock_dynamodb  # type: ignore
-from src.config import OBJECTS_TABLE, USERS_TABLE, LOCK_TABLE
+from src.config import OBJECTS_TABLE, LOCK_TABLE
 from .base_test_case_class import BaseClass
-from .mock_dynamodb_test_data_helper import MockDynamoDbTestDataHelper
 
 # "Mock" the AWS credentials as they can't be mocked in Botocore currently
 os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
@@ -27,13 +26,11 @@ class MockDynamoDbTestCase(BaseClass):
         The test data helper, which knows how to interact with our dynamodb tables for the purpose
         of test data
     """
-    test_data = None
     READ_CAPACITY_UNITS = 123
     WRITE_CAPACITY_UNITS = 123
 
     @classmethod
     def tearDownClass(cls):
-        cls.test_data = None
         cls.client = None
         mock_dynamodb().__exit__()
 
@@ -55,26 +52,6 @@ class MockDynamoDbTestCase(BaseClass):
             KeySchema=[
                 {
                     "AttributeName": "github-node",
-                    "KeyType": "HASH",
-                }
-            ],
-            ProvisionedThroughput={
-                "ReadCapacityUnits": cls.READ_CAPACITY_UNITS,
-                "WriteCapacityUnits": cls.WRITE_CAPACITY_UNITS,
-            },
-        )
-
-        client.create_table(
-            AttributeDefinitions=[
-                {
-                    "AttributeName": "github/handle",
-                    "AttributeType": "S",
-                },
-            ],
-            TableName=USERS_TABLE,
-            KeySchema=[
-                {
-                    "AttributeName": "github/handle",
                     "KeyType": "HASH",
                 }
             ],
@@ -112,4 +89,3 @@ class MockDynamoDbTestCase(BaseClass):
             },
         )
         cls.client = client
-        cls.test_data = MockDynamoDbTestDataHelper(client)

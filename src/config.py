@@ -11,8 +11,6 @@ import json
 ENV = os.getenv("ENV", "dev")
 LOCK_TABLE = os.getenv("LOCK_TABLE", "sgtm-lock")
 OBJECTS_TABLE = os.getenv("OBJECTS_TABLE", "sgtm-objects")
-USERS_TABLE = os.getenv("USERS_TABLE", "sgtm-users")
-ASANA_USERS_PROJECT_ID = os.getenv("ASANA_USERS_PROJECT_ID", "")
 GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH = os.getenv(
     "GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH", ""
 )

@@ -82,9 +82,6 @@ class BaseClass(MockDynamoDbTestCase):
     @classmethod
     def setUpClass(cls):
         MockDynamoDbTestCase.setUpClass()
-        cls.test_data.insert_user_into_user_table(
-            "github_test_user_login", "TEST_USER_ASANA_DOMAIN_USER_ID"
-        )
 
 
 class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
@@ -372,12 +369,6 @@ class TestExtractsAssigneeFromPullRequest(BaseClass):
     @classmethod
     def setUpClass(cls):
         BaseClass.setUpClass()
-        cls.test_data.insert_user_into_user_table(
-            "github_assignee_login_annie", "ANNIE_ASANA_DOMAIN_USER_ID"
-        )
-        cls.test_data.insert_user_into_user_table(
-            "github_assignee_login_billy", "BILLY_ASANA_DOMAIN_USER_ID"
-        )
 
     @patch("src.asana.logic.SGTM_FEATURE__ALLOW_PERSISTENT_TASK_ASSIGNEE", False)
     def test_assignee(self):
