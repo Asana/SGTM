@@ -38,13 +38,25 @@ Again, you will probably want to create a new Github user in your org that is ju
    * read:org (Read org and team membership, read org projects)
 2. Generate a [secret token](https://developer.github.com/webhooks/securing/) for your Github webhook. Github suggests generating this via `ruby -rsecurerandom -e 'puts SecureRandom.hex(20)'`, but use whatever method you are comfortable with to generate a secure secret token. Save this somewhere, as you'll need it twice in the later steps.
 
-Copy this Personal Accesss Token for the next step.
+Copy this Personal Access Token for the next step.
+
+### Create a file in S3 that maps github usernames to Asana user IDs 
+
+1. Create a file in S3 that maps github usernames to Asana user IDs. This file should be in the following format:
+```
+{
+  "github_username1": "asana_user_id1",
+  "github_username2": "asana_user_id2",
+  ...
+}
+```
+1. Save the S3 bucket name and the file name in `./terraform/terraform.tfvars.json` under `"github_usernames_to_asana_gids_s3_path"`.
+2. (Optional) If the S3 bucket is not in the same AWS account as your SGTM deployment, ensure that the bucket policy on the S3 bucket allows the SGTM account to read from the bucket. Learn more about cross-account access to S3 bucket objects here: https://repost.aws/knowledge-center/cross-account-access-s3
 
 ### Create Asana Projects
-You'll need to create two Asana projects: one that will store the mapping of Github username to Asana user id, and the other where your Github sync tasks will live.
+You'll need to create an Asana project for your Github sync tasks.
 
-1. Create your "SGTM Users" project (feel free to name this whatever you want -- this is just a suggestion). The requirements of this project are two custom fields named: "Github Username" (Text field) and "user_id" (Number field). Save the `id` of this project (from the URL once created) in `./terraform/terraform.tfvars.json` under `"asana_users_project_id"`.
-2. To create your "SGTM <repo> tasks" project, use the `setup_sgtm_tasks_project.py` script. The script will prompt you for the PAT you generated earlier, and guide you through setting up a brand new project or updating an existing project with the recommended Custom Fields.
+1. To create your "SGTM <repo> tasks" project, use the `setup_sgtm_tasks_project.py` script. The script will prompt you for the PAT you generated earlier, and guide you through setting up a brand new project or updating an existing project with the recommended Custom Fields.
      ```
       >>> To setup a new project
       python3 scripts/setup_sgtm_tasks_project.py  -p "<PAT>" create -n "<PROJECT NAME>" -t "<TEAM ID>"
@@ -54,11 +66,11 @@ You'll need to create two Asana projects: one that will store the mapping of Git
       ```
     1. If you have multiple repositories you want synced to Asana, you can create several of these projects. Make sure to take note of all of the project IDs for a later step.
     2. If you are on Asana Basic and do not have access to Custom Fields, the script will skip that step - SGTM will work even without the suggested fields
-3. Make sure that the Asana user/guest that you created earlier is a member of both of these projects.
+2. Make sure that the Asana user/guest that you created earlier is a member of this projects.
 
 ### Set your Terraform variables
 NOTE: AWS S3 Bucket names are globally unique, so you will need to choose your own bucket names to be unique that no other AWS account has already created.
-1. In `./terraform/variables.tf`, any variable that is listed without a default value needs to be set. The preferred method of setting these values is through [environment variables](https://www.terraform.io/docs/cli/config/environment-variables.html#tf_var_name). For example, to se terraform variable `asana_users_project_id`, you'll want to set an environment variable `TF_VAR_asana_users_project_id`.
+1. In `./terraform/variables.tf`, any variable that is listed without a default value needs to be set. The preferred method of setting these values is through [environment variables](https://www.terraform.io/docs/cli/config/environment-variables.html#tf_var_name). For example, to se terraform variable `github_usernames_to_asana_gids_s3_path`, you'll want to set an environment variable `TF_VAR_github_usernames_to_asana_gids_s3_path`.
 2. Save these somewhere that you and others collaborating on this deployment could share (we save ours in an Asana task internally, of course) since these will need to be the same each time you apply new changes.
 
 ### Run setup script

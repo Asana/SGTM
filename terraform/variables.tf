@@ -68,6 +68,11 @@ variable "asana_users_project_id" {
   description = "Project ID that holds the tasks that map Github handles to Asana user ids"
 }
 
+variable "github_usernames_to_asana_gids_s3_path" {
+  description = "The S3 path, in the form bucket/key, to the .json file that maps Github usernames to email addresses associated with Asana users."
+  type        = string
+}
+
 variable "sgtm_feature__automerge_enabled" {
   type        = string
   description = "'true' if behavior to automerge pull requests with Github labels is enabled"
@@ -99,9 +104,9 @@ variable "sgtm_feature__followup_review_github_users" {
 }
 
 variable "sgtm_feature__check_rerun_threshold_hours" {
-  type = number
+  type        = number
   description = "Number of hours after which a check run should be rerequested. Must be combined with sgtm_feature__check_rerun_base_ref_names."
-  default = 0
+  default     = 0
 }
 
 variable "sgtm_feature__check_rerun_base_ref_names" {

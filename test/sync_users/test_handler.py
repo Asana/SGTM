@@ -12,8 +12,10 @@ USER_ID_KEY = dynamodb_client.DynamoDbClient.USER_ID_KEY
 
 
 @patch.object(asana_client, "find_all_tasks_for_project")
-@patch.object(dynamodb_client, "bulk_insert_github_handle_to_asana_user_id_mapping")
-@patch.object(dynamodb_client, "get_all_user_items")
+@patch.object(
+    dynamodb_client, "DEPRECATED_bulk_insert_github_handle_to_asana_user_id_mapping"
+)
+@patch.object(dynamodb_client, "DEPRECATED_get_all_user_items")
 class TestHandler(unittest.TestCase):
     def test_no_users_to_sync__all_already_synced(
         self, get_all_user_items_mock, bulk_insert_mock, find_tasks_mock

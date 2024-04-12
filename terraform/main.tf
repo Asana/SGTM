@@ -4,6 +4,7 @@ provider "aws" {
 
 ### LAMBDA
 
+
 # Gives the Lambda function permissions to read/write from the DynamoDb tables
 resource "aws_iam_policy" "lambda-function-dynamodb-policy" {
   policy = <<EOF
@@ -125,6 +126,33 @@ resource "aws_iam_policy" "LambdaFunctionApiKeysBucketAccess" {
 EOF
 }
 
+# Give the lambda permission to read from the users file path at
+# var.github_usernames_to_asana_gids_s3_path
+resource "aws_iam_policy" "lambda-function-github-usernames-to-emails-policy" {
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "s3:GetObject",
+        "s3:GetObjectVersion"
+      ],
+      "Resource": [
+        "arn:aws:s3:::${var.github_usernames_to_asana_gids_s3_path}"
+      ],
+      "Effect": "Allow"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "lambda-function-github-usernames-to-emails-policy-attachment" {
+  role       = aws_iam_role.iam_for_lambda_function.name
+  policy_arn = aws_iam_policy.lambda-function-github-usernames-to-emails-policy.arn
+}
+
 resource "null_resource" "install_python_dependencies" {
   triggers = {
     src_sha1 = sha1(join("", [for f in fileset(path.root, "../src/**") : filesha1(f)]))
@@ -176,21 +204,23 @@ resource "aws_lambda_function" "sgtm" {
   timeout = var.lambda_function_timeout
   environment {
     variables = {
-      API_KEYS_S3_BUCKET                 = var.api_key_s3_bucket_name,
-      API_KEYS_S3_KEY                    = var.api_key_s3_object,
-      SGTM_FEATURE__AUTOMERGE_ENABLED    = var.sgtm_feature__automerge_enabled,
-      SGTM_FEATURE__AUTOCOMPLETE_ENABLED = var.sgtm_feature__autocomplete_enabled,
+      API_KEYS_S3_BUCKET                             = var.api_key_s3_bucket_name,
+      API_KEYS_S3_KEY                                = var.api_key_s3_object,
+      SGTM_FEATURE__AUTOMERGE_ENABLED                = var.sgtm_feature__automerge_enabled,
+      SGTM_FEATURE__AUTOCOMPLETE_ENABLED             = var.sgtm_feature__autocomplete_enabled,
       SGTM_FEATURE__DISABLE_GITHUB_TEAM_SUBSCRIPTION = var.sgtm_feature__disable_github_team_subscription,
-      SGTM_FEATURE__ALLOW_PERSISTENT_TASK_ASSIGNEE = var.sgtm_feature__allow_persistent_task_assignee,
-      SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS = var.sgtm_feature__followup_review_github_users,
-      SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS = var.sgtm_feature__check_rerun_threshold_hours,
-      SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES = var.sgtm_feature__check_rerun_base_ref_names,
-      SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED = var.sgtm_feature__check_rerun_on_approval_enabled
+      SGTM_FEATURE__ALLOW_PERSISTENT_TASK_ASSIGNEE   = var.sgtm_feature__allow_persistent_task_assignee,
+      SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS     = var.sgtm_feature__followup_review_github_users,
+      SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS      = var.sgtm_feature__check_rerun_threshold_hours,
+      SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES       = var.sgtm_feature__check_rerun_base_ref_names,
+      SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED  = var.sgtm_feature__check_rerun_on_approval_enabled
+      GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH         = var.github_usernames_to_asana_gids_s3_path
     }
   }
 }
 
 resource "aws_lambda_function" "sgtm_sync_users" {
+  # TODO delete this once we have fully tested the new pathway
   s3_bucket        = aws_s3_bucket.lambda_code_s3_bucket.bucket
   s3_key           = aws_s3_bucket_object.lambda_code_bundle.key
   function_name    = "sgtm_sync_users"
