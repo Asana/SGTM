@@ -6,4 +6,4 @@ python-dynamodb-lock==0.9.1
 requests==2.25.1
 types-requests==2.25.1
 sgqlc==8.1
-typing-extensions==4.1.1
+typing-extensions~=4.6

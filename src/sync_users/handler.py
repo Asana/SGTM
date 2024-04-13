@@ -23,7 +23,7 @@ def handler(event: dict, context: dict) -> None:
     users_in_dynamodb = set(
         [
             SgtmUser.from_dynamodb_item(item)
-            for item in dynamodb_client.get_all_user_items()
+            for item in dynamodb_client.DEPRECATED_get_all_user_items()
         ]
     )
     logger.info("Found {} users in dynamodb".format(len(users_in_dynamodb)))
@@ -46,7 +46,7 @@ def handler(event: dict, context: dict) -> None:
 
     # Batch write the users
     if len(users_to_add) > 0:
-        dynamodb_client.bulk_insert_github_handle_to_asana_user_id_mapping(
+        dynamodb_client.DEPRECATED_bulk_insert_github_handle_to_asana_user_id_mapping(
             [(u.github_handle, u.domain_user_id) for u in users_to_add]
         )
         logger.info("Done writing user mappings to DynamoDb")

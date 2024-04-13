@@ -1,10 +1,17 @@
+from contextlib import closing
+import json
+import traceback
 from typing import Iterator, Optional, List, Tuple
 from typing_extensions import TypedDict
 
 import boto3  # type: ignore
 from botocore.exceptions import NoRegionError  # type: ignore
 
-from src.config import OBJECTS_TABLE, USERS_TABLE
+from src.config import (
+    OBJECTS_TABLE,
+    USERS_TABLE,
+    GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH,
+)
 from src.logger import logger
 from src.utils import memoize
 
@@ -115,10 +122,14 @@ class DynamoDbClient(object):
 
     # USERS TABLE
 
-    def bulk_insert_github_handle_to_asana_user_id_mapping(
+    def DEPRECATED_bulk_insert_github_handle_to_asana_user_id_mapping(
         self, gh_and_asana_ids: List[Tuple[str, str]]
     ):
-        """Insert multiple mappings from github handle to Asana user ids."""
+        """Insert multiple mappings from github handle to Asana user ids.
+
+        This is marked as deprecated since we'd like to read SGTM user info from S3 instead of
+        DynamoDB.
+        """
         items = [
             {
                 self.GITHUB_HANDLE_KEY: {"S": gh_handle},
@@ -129,13 +140,16 @@ class DynamoDbClient(object):
         return self.bulk_insert_items_in_batches(USERS_TABLE, items)
 
     @memoize
-    def get_asana_domain_user_id_from_github_handle(
+    def DEPRECATED_get_asana_domain_user_id_from_github_handle(
         self, github_handle: str
     ) -> Optional[str]:
         """
         Retrieves the Asana domain user-id associated with a specific GitHub user login, or None,
         if no such association exists. User-id associations are created manually via an external process.
         TODO: document this process, and create scripts to encapsulate it
+
+        This is marked as deprecated since we'd like to read SGTM user info from S3 instead of
+        DynamoDB.
         """
         response = self.client.get_item(
             TableName=USERS_TABLE,
@@ -146,9 +160,12 @@ class DynamoDbClient(object):
         else:
             return None
 
-    def get_all_user_items(self) -> Iterator[DynamoDbUserItem]:
+    def DEPRECATED_get_all_user_items(self) -> Iterator[DynamoDbUserItem]:
         """
         Get all DynamoDb items from the USERS_TABLE
+
+        This is marked as deprecated since we'd like to read SGTM user info from S3 instead of
+        DynamoDB.
         """
         response = self.client.scan(TableName=USERS_TABLE)
         yield from response["Items"]
@@ -176,6 +193,86 @@ class DynamoDbClient(object):
         )
 
 
+class S3Client(object):
+    """
+    Encapsulates S3 client interface, as exposed to the world. There is a single (singleton) instance of
+    S3Client in the process, which is lazily created upon the first request.
+    """
+
+    # the singleton instance of S3Client
+    _singleton = None
+
+    def __init__(self):
+        self.s3_client = S3Client._create_s3_client()
+        if (
+            "/" in GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH
+            and len(GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH) > 3
+        ):
+            (
+                self.github_user_mapping_bucket_name,
+                self.github_user_mapping_key_name,
+            ) = GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH.split("/", 1)
+        else:
+            self.github_user_mapping_bucket_name = None
+            self.github_user_mapping_key_name = None
+
+    # getter for the singleton
+    @classmethod
+    def singleton(cls):
+        """
+        Getter for the S3Client singleton
+        """
+        if cls._singleton is None:
+            cls._singleton = S3Client()
+        return cls._singleton
+
+    @staticmethod
+    def _create_s3_client():
+        # Encapsulates creating a boto3 client connection for S3 with a more user-friendly error case
+        try:
+            return boto3.client("s3")
+        except NoRegionError:
+            pass
+        # by raising the new error outside of the except clause, the ConfigurationError does not automatically contain
+        # the stack trace of the NoRegionError, which provides no extra value and clutters the console.
+        raise ConfigurationError(
+            "Configuration error: Please select a region, e.g. via"
+            " `AWS_DEFAULT_REGION=us-east-1`"
+        )
+
+    @memoize
+    def get_asana_domain_user_id_from_github_username(
+        self, github_username: str
+    ) -> Optional[str]:
+        """
+        Retrieves the Asana domain user-id associated with a specific GitHub user login, or None,
+        if no such association exists.
+        """
+        if (
+            not self.github_user_mapping_bucket_name
+            or not self.github_user_mapping_key_name
+        ):
+            raise ConfigurationError(
+                "Configuration error: GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH is not set"
+            )
+        with closing(
+            self.s3_client.get_object(
+                Bucket=self.github_user_mapping_bucket_name,
+                Key=self.github_user_mapping_key_name,
+            )["Body"]
+        ) as stream:
+            github_identities_to_asana_gids = json.load(stream)
+
+        if github_username in github_identities_to_asana_gids:
+            logger.info(
+                "Successfully retrieved Asana domain user id from S3 for %s",
+                github_username,
+            )
+            return github_identities_to_asana_gids[github_username]
+        else:
+            return None
+
+
 def get_asana_id_from_github_node_id(gh_node_id: str) -> Optional[str]:
     """
     Using the singleton instance of DynamoDbClient, creating it if necessary:
@@ -200,18 +297,47 @@ def insert_github_node_to_asana_id_mapping(gh_node_id: str, asana_id: str):
 
 def get_asana_domain_user_id_from_github_handle(github_handle: str) -> Optional[str]:
     """
-    Using the singleton instance of DynamoDbClient, creating it if necessary:
+    Using the singleton instance of S3Client, creating it if necessary:
 
     Retrieves the Asana domain user-id associated with a specific GitHub user login, or None,
-    if no such association exists. User-id associations are created manually via an external process.
+    if no such association exists. User-id associations are created manually via an external
+    process.
+
+    If the S3 pathway fails, we fall back to the DynamoDb pathway.
     """
-    return DynamoDbClient.singleton().get_asana_domain_user_id_from_github_handle(
-        github_handle
-    )
+
+    def fallback_to_dynamo_pathway() -> Optional[str]:
+        dynamodb_returns = DynamoDbClient.singleton().DEPRECATED_get_asana_domain_user_id_from_github_handle(
+            github_handle
+        )
+        if dynamodb_returns is not None:
+            # we only want to emit a warning about the S3 pathway if the dynamoDB lookup returns
+            # something that's not null
+            logger.warning(
+                "S3 lookup failed to find the Asana domain user id for github handle %s. The DynamoDB table returned %s. Error: %s",
+                github_handle,
+                dynamodb_returns,
+                traceback.format_exc(),
+            )
+        return dynamodb_returns
+
+    try:
+        if user_id := S3Client.singleton().get_asana_domain_user_id_from_github_username(
+            github_handle
+        ):
+            return user_id
+        else:
+            return fallback_to_dynamo_pathway()
+    except Exception:
+        return fallback_to_dynamo_pathway()
 
 
-def get_all_user_items() -> List[dict]:
-    return DynamoDbClient.singleton().get_all_user_items()
+def DEPRECATED_get_all_user_items() -> List[dict]:
+    """
+    This function is marked as deprecated since it's only used by the `sync_users` Lambda function,
+    which we are planning to deprecate in favor of reading SGTM user info from S3 instead of DynamoDB.
+    """
+    return DynamoDbClient.singleton().DEPRECATED_get_all_user_items()
 
 
 def bulk_insert_github_node_to_asana_id_mapping(
@@ -227,12 +353,16 @@ def bulk_insert_github_node_to_asana_id_mapping(
     )
 
 
-def bulk_insert_github_handle_to_asana_user_id_mapping(
+def DEPRECATED_bulk_insert_github_handle_to_asana_user_id_mapping(
     gh_and_asana_ids: List[Tuple[str, str]]
 ):
     """
+    This function is marked as deprecated since it's only used by the `sync_users` Lambda function,
+    which we are planning to deprecate in favor of reading SGTM user info from S3 instead of DynamoDB.
+
     Insert multiple mappings from github handle to Asana user ids.
     """
-    DynamoDbClient.singleton().bulk_insert_github_handle_to_asana_user_id_mapping(
+    # todo why/where lol
+    DynamoDbClient.singleton().DEPRECATED_bulk_insert_github_handle_to_asana_user_id_mapping(
         gh_and_asana_ids
     )
