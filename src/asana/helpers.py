@@ -105,7 +105,7 @@ def _build_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
 
 def _author_asana_user_id_from_pull_request(pull_request: PullRequest) -> Optional[str]:
     return dynamodb_client.get_asana_domain_user_id_from_github_handle(
-        github_handle=pull_request.author_handle()
+        pull_request.author_handle()
     )
 
 
@@ -172,9 +172,7 @@ def _task_assignee_from_pull_request(pull_request: PullRequest) -> Optional[str]
     if asana_logic.should_set_task_owner_to_pr_author(pull_request):
         return _author_asana_user_id_from_pull_request(pull_request)
     assignee = pull_request.assignee()
-    return dynamodb_client.get_asana_domain_user_id_from_github_handle(
-        github_handle=assignee.login
-    )
+    return dynamodb_client.get_asana_domain_user_id_from_github_handle(assignee.login)
 
 
 def _asana_display_name_for_github_user(github_user: User) -> str:
