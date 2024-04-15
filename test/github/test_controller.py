@@ -31,7 +31,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
             add_asana_task_to_pr_mock.assert_called_with(pull_request, new_task_id)
 
         create_task_mock.assert_called_with(pull_request.repository_id())
-        update_task_mock.assert_called_with(pull_request, new_task_id, [])
+        update_task_mock.assert_called_with(pull_request, new_task_id)
 
         # Assert that the new task id was inserted into the table
         task_id = dynamodb_client.get_asana_id_from_github_node_id(pull_request.id())
