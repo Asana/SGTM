@@ -79,16 +79,21 @@ def get_custom_fields(fields_to_disable: List[str]):
     ]
 
 
-@patch(
-    "src.dynamodb.client.get_asana_domain_user_id_from_github_handle",
-    magic_mock_with_return_type_value(
-        {"github_test_user_login": "TEST_USER_ASANA_DOMAIN_USER_ID"}
-    ),
-)
 class BaseClass(MockDynamoDbTestCase):
     @classmethod
     def setUpClass(cls):
         MockDynamoDbTestCase.setUpClass()
+
+    def setUp(self) -> None:
+        super(BaseClass, self).setUp()
+        patch_get_asana_domain_user_id_from_github_handle = patch(
+            "src.dynamodb.client.get_asana_domain_user_id_from_github_handle",
+            magic_mock_with_return_type_value(
+                {"github_test_user_login": "TEST_USER_ASANA_DOMAIN_USER_ID"}
+            ),
+        )
+        patch_get_asana_domain_user_id_from_github_handle.start()
+        self.addCleanup(patch_get_asana_domain_user_id_from_github_handle.stop)
 
 
 class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
