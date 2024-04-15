@@ -53,7 +53,7 @@ resource "aws_iam_policy" "lambda-function-cloudwatch-policy" {
         "logs:PutLogEvents"
       ],
       "Resource": [
-        "arn:aws:logs:${var.aws_region}:*:log-group:/aws/lambda/${aws_lambda_function.sgtm.function_name}:*",
+        "arn:aws:logs:${var.aws_region}:*:log-group:/aws/lambda/${aws_lambda_function.sgtm.function_name}:*"
       ],
       "Effect": "Allow"
     }
