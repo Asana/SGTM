@@ -17,7 +17,10 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
     def setUpClass(cls):
         MockDynamoDbTestCase.setUpClass()
 
-    def test_includes_comment_text(self):
+    def test_includes_comment_text(
+        self,
+        _get_asana_domain_id_mock,
+    ):
         github_comment = build(
             builder.comment()
             .author(builder.user("github_unknown_user_login"))
@@ -28,7 +31,10 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
         )
         self.assertContainsStrings(asana_comment, ["GITHUB_COMMENT_TEXT"])
 
-    def test_transforms_urls_from_comment_tect(self):
+    def test_transforms_urls_from_comment_tect(
+        self,
+        _get_asana_domain_id_mock,
+    ):
         url = "https://www.foo.bar/?a=1&b=2"
         github_comment = build(
             builder.comment()
@@ -42,7 +48,10 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
             asana_comment, ['<a href="{}">{}</a>'.format(escape(url), url)]
         )
 
-    def test_includes_asana_comment_author(self):
+    def test_includes_asana_comment_author(
+        self,
+        _get_asana_domain_id_mock,
+    ):
         github_comment = build(
             builder.comment().author(builder.user("github_test_user_login"))
         )
@@ -51,7 +60,10 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
         )
         self.assertContainsStrings(asana_comment, ["TEST_USER_ASANA_DOMAIN_USER_ID"])
 
-    def test_handles_non_asana_comment_author_gracefully(self):
+    def test_handles_non_asana_comment_author_gracefully(
+        self,
+        _get_asana_domain_id_mock,
+    ):
         github_comment = build(
             builder.comment().author(
                 builder.user("github_unknown_user_login", "GITHUB_UNKNOWN_USER_NAME")
@@ -64,7 +76,10 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
             asana_comment, ["github_unknown_user_login", "GITHUB_UNKNOWN_USER_NAME"]
         )
 
-    def test_handles_non_asana_comment_author_that_has_no_name_gracefully(self):
+    def test_handles_non_asana_comment_author_that_has_no_name_gracefully(
+        self,
+        _get_asana_domain_id_mock,
+    ):
         github_comment = build(
             builder.comment().author(builder.user("github_unknown_user_login"))
         )
@@ -73,7 +88,10 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
         )
         self.assertContainsStrings(asana_comment, ["github_unknown_user_login"])
 
-    def test_does_not_inject_unsafe_html(self):
+    def test_does_not_inject_unsafe_html(
+        self,
+        _get_asana_domain_id_mock,
+    ):
         placeholder = "💣"
         github_placeholder_comment = build(
             builder.comment()
@@ -102,7 +120,10 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
                 f"Expected the {unsafe_character} character to be escaped",
             )
 
-    def test_considers_double_quotes_safe_in_comment_text(self):
+    def test_considers_double_quotes_safe_in_comment_text(
+        self,
+        _get_asana_domain_id_mock,
+    ):
         github_author = builder.user("github_unknown_user_login")
         placeholder = "💣"
         github_placeholder_comment = build(
@@ -126,7 +147,10 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
                 f"Did not expected the {safe_character} character to be escaped",
             )
 
-    def test_transforms_github_at_mentions_to_asana_at_mentions(self):
+    def test_transforms_github_at_mentions_to_asana_at_mentions(
+        self,
+        _get_asana_domain_id_mock,
+    ):
         github_comment = build(
             builder.comment()
             .author(builder.user("github_unknown_user_login"))
@@ -137,7 +161,10 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
         )
         self.assertContainsStrings(asana_comment, ["TEST_USER_ASANA_DOMAIN_USER_ID"])
 
-    def test_handles_non_asana_comment_at_mention_gracefully(self):
+    def test_handles_non_asana_comment_at_mention_gracefully(
+        self,
+        _get_asana_domain_id_mock,
+    ):
         github_comment = build(
             builder.comment()
             .author(builder.user("github_unknown_user_login"))
@@ -148,7 +175,10 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
         )
         self.assertContainsStrings(asana_comment, ["@github_unknown_user_login"])
 
-    def test_handles_at_sign_in_comment_gracefully(self):
+    def test_handles_at_sign_in_comment_gracefully(
+        self,
+        _get_asana_domain_id_mock,
+    ):
         github_comment = build(
             builder.comment()
             .author(builder.user("github_unknown_user_login"))
@@ -159,7 +189,10 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
         )
         self.assertContainsStrings(asana_comment, ["hello@world.asana.com"])
 
-    def test_includes_url_in_comment(self):
+    def test_includes_url_in_comment(
+        self,
+        _get_asana_domain_id_mock,
+    ):
         url = "https://github.com/Asana/SGTM/pull/31#issuecomment-626850667"
         github_comment = build(builder.comment().url(url))
         asana_comment = src.asana.helpers.asana_comment_from_github_comment(
