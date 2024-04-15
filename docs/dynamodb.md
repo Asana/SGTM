@@ -5,7 +5,7 @@ This is an overview of how SGTM interacts with Dynamodb.
 ## Tables
 
 #### sgtm-lock
-A table containing all locks for current SGTM processes. Locks are a GitHub id, currently either PR id or issue comment id.
+A table containing all locks for current SGTM processes. Locks are a GitHub node id, currently either PR id or issue comment id.
 
 We can receive multiple GitHub webhooks at once for the same GitHub object. To avoid race conditions from handling the webhooks in parallel, we lock on GitHub objects with the same id.
 
@@ -18,7 +18,7 @@ with dynamodb_lock(pull_request_id):
 ```
 
 #### sgtm-objects
-A mapping of GitHub objects (github node string) to Asana objects (asana id string).
+A mapping of GitHub objects (github node id) to Asana objects (asana gid).
 
 For example:
 * GitHub repository -> Asana project
