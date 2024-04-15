@@ -40,7 +40,9 @@ class TestMemoize(unittest.TestCase):
         )
 
 
-def magic_mock_with_return_type_value(arg_to_return_values_dict: dict[Any, Any]):
+def magic_mock_with_return_type_value(
+    arg_to_return_values_dict: dict[Any, Any], return_none_if_not_found: bool = True
+):
     """
     This is a function that returns a MagicMock object that will set the return value of the function being mocked
     based on the argument passed to the function. You should pass a dictionary that maps arguments to return values.
@@ -51,6 +53,8 @@ def magic_mock_with_return_type_value(arg_to_return_values_dict: dict[Any, Any])
         try:
             return arg_to_return_values_dict[arg]
         except KeyError as exc:
+            if return_none_if_not_found:
+                return None
             raise ValueError(
                 f"Mock behavior is undefined for arg {arg}. Please provide a return value for this arg."
             ) from exc

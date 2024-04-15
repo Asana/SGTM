@@ -12,7 +12,7 @@ ENV = os.getenv("ENV", "dev")
 LOCK_TABLE = os.getenv("LOCK_TABLE", "sgtm-lock")
 OBJECTS_TABLE = os.getenv("OBJECTS_TABLE", "sgtm-objects")
 GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH = os.getenv(
-    "GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH", ""
+    "GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH",
 )
 
 # Feature flags

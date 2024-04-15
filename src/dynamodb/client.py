@@ -154,8 +154,9 @@ class S3Client(object):
                 self.github_user_mapping_key_name,
             ) = GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH.split("/", 1)
         else:
-            self.github_user_mapping_bucket_name = None
-            self.github_user_mapping_key_name = None
+            raise ConfigurationError(
+                "Configuration error: GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH is not set to a valid S3 path"
+            )
 
     # getter for the singleton
     @classmethod
