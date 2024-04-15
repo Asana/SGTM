@@ -1,6 +1,9 @@
+from typing import Any
 import unittest
+from unittest.mock import MagicMock
 
 from src.utils import memoize, parse_date_string
+from terraform.lambda_dist_pkg.setuptools._vendor.more_itertools.more import side_effect
 
 
 class TestParseDateString(unittest.TestCase):
@@ -36,6 +39,21 @@ class TestMemoize(unittest.TestCase):
             remember_me(),
             "Expected remember_me to always return 1 due to memoization",
         )
+
+
+class MapArgToReturnValueMagicMock(MagicMock):
+    """
+    This is a subclass of magic mock, that will set the return value of the function being mocked
+    based on the argument passed to the function. You should initialize this class with a dictionary
+    that maps arguments to return values. This class will handle the side_effect function for you.
+    """
+
+    def __init__(self, arg_to_return_values_dict: dict[Any, Any], *args, **kwargs):
+        self.arg_to_return_values = arg_to_return_values_dict
+        super().__init__(side_effect=self._side_effect_function, *args, **kwargs)
+
+    def _side_effect_function(self, arg):
+        return self.arg_to_return_values[arg]
 
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@ import src.dynamodb.client as dynamodb_client
 from test.impl.builders import builder
 
 
+@patch("src.dynamodb.client.get_asana_domain_user_id_from_github_handle")
 class GithubControllerTest(MockDynamoDbTestCase):
     @patch.object(asana_controller, "update_task")
     @patch.object(asana_controller, "create_task")

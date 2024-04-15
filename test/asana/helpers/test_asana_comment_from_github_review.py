@@ -1,7 +1,9 @@
+from unittest.mock import patch
 import src.asana.helpers
 from src.github.models import ReviewState
 from test.impl.builders import builder, build
 from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
+from test.test_utils import MapArgToReturnValueMagicMock
 
 """
     Extracts the GitHub author and comments from a GitHub Review, and transforms them into
@@ -11,6 +13,12 @@ from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 """
 
 
+@patch(
+    "src.dynamodb.client.get_asana_domain_user_id_from_github_handle",
+    MapArgToReturnValueMagicMock(
+        {"github_test_user_login": "TEST_USER_ASANA_DOMAIN_USER_ID"}
+    ),
+)
 class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
     @classmethod
     def setUpClass(cls):

@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from src.github.models import Commit
 from src.github.logic import ApprovedBeforeMergeStatus
 from src.asana import logic as asana_logic
+from test.test_utils import MapArgToReturnValueMagicMock
 
 followup_bot = builder.user("follow_up").build()
 
@@ -78,6 +79,12 @@ def get_custom_fields(fields_to_disable: List[str]):
     ]
 
 
+@patch(
+    "src.dynamodb.client.get_asana_domain_user_id_from_github_handle",
+    MapArgToReturnValueMagicMock(
+        {"github_test_user_login": "TEST_USER_ASANA_DOMAIN_USER_ID"}
+    ),
+)
 class BaseClass(MockDynamoDbTestCase):
     @classmethod
     def setUpClass(cls):
@@ -365,6 +372,16 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
         self.assertContainsStrings(actual, expected_strings)
 
 
+@patch(
+    "src.dynamodb.client.get_asana_domain_user_id_from_github_handle",
+    MapArgToReturnValueMagicMock(
+        {
+            "github_assignee_login_annie": "ANNIE_ASANA_DOMAIN_USER_ID",
+            "github_assignee_login_billy": "BILLY_ASANA_DOMAIN_USER_ID",
+            "github_test_user_login": "TEST_USER_ASANA_DOMAIN_USER_ID",
+        }
+    ),
+)
 class TestExtractsAssigneeFromPullRequest(BaseClass):
     @classmethod
     def setUpClass(cls):
