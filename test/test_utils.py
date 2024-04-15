@@ -3,7 +3,6 @@ import unittest
 from unittest.mock import MagicMock
 
 from src.utils import memoize, parse_date_string
-from terraform.lambda_dist_pkg.setuptools._vendor.more_itertools.more import side_effect
 
 
 class TestParseDateString(unittest.TestCase):
