@@ -1,5 +1,7 @@
+from unittest.mock import patch
 from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 import src.dynamodb.client as dynamodb_client
+from test.test_utils import magic_mock_with_return_type_value
 
 
 class DynamodbClientTest(MockDynamoDbTestCase):
@@ -18,15 +20,6 @@ class DynamodbClientTest(MockDynamoDbTestCase):
         # Now we get the asana_id
         self.assertEqual(
             dynamodb_client.get_asana_id_from_github_node_id(gh_node_id), asana_id
-        )
-
-    def test_get_asana_domain_user_id_from_github_handle(self):
-        gh_handle = "Elaine Benes"
-        asana_user_id = "12345"
-        self.test_data.insert_user_into_user_table(gh_handle, asana_user_id)
-        self.assertEqual(
-            dynamodb_client.get_asana_domain_user_id_from_github_handle(gh_handle),
-            asana_user_id,
         )
 
 

@@ -100,7 +100,9 @@ class GithubControllerTest(MockDynamoDbTestCase):
         github_controller.upsert_comment(pull_request, comment)
 
         add_comment_mock.assert_called_with(comment, existing_task_id)
-        update_task_mock.assert_called_with(pull_request, existing_task_id, [])
+        update_task_mock.assert_called_with(
+            pull_request, existing_task_id, [], _get_asana_domain_id_mock
+        )
 
     @patch.object(asana_controller, "update_task")
     @patch.object(asana_controller, "upsert_github_comment_to_task")
