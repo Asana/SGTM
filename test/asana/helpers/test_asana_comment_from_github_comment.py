@@ -19,7 +19,6 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
 
     def test_includes_comment_text(
         self,
-        _get_asana_domain_id_mock,
     ):
         github_comment = build(
             builder.comment()
@@ -33,7 +32,6 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
 
     def test_transforms_urls_from_comment_tect(
         self,
-        _get_asana_domain_id_mock,
     ):
         url = "https://www.foo.bar/?a=1&b=2"
         github_comment = build(
@@ -50,7 +48,6 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
 
     def test_includes_asana_comment_author(
         self,
-        _get_asana_domain_id_mock,
     ):
         github_comment = build(
             builder.comment().author(builder.user("github_test_user_login"))
@@ -62,7 +59,6 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
 
     def test_handles_non_asana_comment_author_gracefully(
         self,
-        _get_asana_domain_id_mock,
     ):
         github_comment = build(
             builder.comment().author(
@@ -78,7 +74,6 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
 
     def test_handles_non_asana_comment_author_that_has_no_name_gracefully(
         self,
-        _get_asana_domain_id_mock,
     ):
         github_comment = build(
             builder.comment().author(builder.user("github_unknown_user_login"))
@@ -90,7 +85,6 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
 
     def test_does_not_inject_unsafe_html(
         self,
-        _get_asana_domain_id_mock,
     ):
         placeholder = "💣"
         github_placeholder_comment = build(
@@ -122,7 +116,6 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
 
     def test_considers_double_quotes_safe_in_comment_text(
         self,
-        _get_asana_domain_id_mock,
     ):
         github_author = builder.user("github_unknown_user_login")
         placeholder = "💣"
@@ -149,7 +142,6 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
 
     def test_transforms_github_at_mentions_to_asana_at_mentions(
         self,
-        _get_asana_domain_id_mock,
     ):
         github_comment = build(
             builder.comment()
@@ -163,7 +155,6 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
 
     def test_handles_non_asana_comment_at_mention_gracefully(
         self,
-        _get_asana_domain_id_mock,
     ):
         github_comment = build(
             builder.comment()
@@ -177,7 +168,6 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
 
     def test_handles_at_sign_in_comment_gracefully(
         self,
-        _get_asana_domain_id_mock,
     ):
         github_comment = build(
             builder.comment()
@@ -191,7 +181,6 @@ class TestAsanaCommentFromGitHubComment(MockDynamoDbTestCase):
 
     def test_includes_url_in_comment(
         self,
-        _get_asana_domain_id_mock,
     ):
         url = "https://github.com/Asana/SGTM/pull/31#issuecomment-626850667"
         github_comment = build(builder.comment().url(url))
