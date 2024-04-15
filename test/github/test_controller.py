@@ -32,7 +32,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
 
         create_task_mock.assert_called_with(pull_request.repository_id())
         update_task_mock.assert_called_with(
-            pull_request, new_task_id, _get_asana_domain_id_mock
+            pull_request, new_task_id, [_get_asana_domain_id_mock]
         )
 
         # Assert that the new task id was inserted into the table
@@ -61,7 +61,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
 
         create_task_mock.assert_not_called()
         update_task_mock.assert_called_with(
-            pull_request, existing_task_id, _get_asana_domain_id_mock
+            pull_request, existing_task_id, [_get_asana_domain_id_mock]
         )
 
     @patch.object(github_client, "edit_pr_description")
@@ -105,7 +105,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
 
         add_comment_mock.assert_called_with(comment, existing_task_id)
         update_task_mock.assert_called_with(
-            pull_request, existing_task_id, _get_asana_domain_id_mock
+            pull_request, existing_task_id, [_get_asana_domain_id_mock]
         )
 
     @patch.object(asana_controller, "update_task")
