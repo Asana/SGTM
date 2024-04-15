@@ -40,19 +40,22 @@ class TestMemoize(unittest.TestCase):
         )
 
 
-class MapArgToReturnValueMagicMock(MagicMock):
+def magic_mock_with_return_type_value(arg_to_return_values_dict: dict[Any, Any]):
     """
-    This is a subclass of magic mock, that will set the return value of the function being mocked
-    based on the argument passed to the function. You should initialize this class with a dictionary
-    that maps arguments to return values. This class will handle the side_effect function for you.
+    This is a function that returns a MagicMock object that will set the return value of the function being mocked
+    based on the argument passed to the function. You should pass a dictionary that maps arguments to return values.
+    This function will handle the side_effect function for you.
     """
 
-    def __init__(self, arg_to_return_values_dict: dict[Any, Any], *args, **kwargs):
-        self.arg_to_return_values = arg_to_return_values_dict
-        super().__init__(side_effect=self._side_effect_function, *args, **kwargs)
+    def _side_effect_function(arg):
+        try:
+            return arg_to_return_values_dict[arg]
+        except KeyError as exc:
+            raise ValueError(
+                f"Mock behavior is undefined for arg {arg}. Please provide a return value for this arg."
+            ) from exc
 
-    def _side_effect_function(self, arg):
-        return self.arg_to_return_values[arg]
+    return MagicMock(side_effect=_side_effect_function)
 
 
 if __name__ == "__main__":

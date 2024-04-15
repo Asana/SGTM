@@ -3,12 +3,12 @@ from unittest.mock import MagicMock, patch
 import src.asana.helpers
 from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 from test.impl.builders import builder, build
-from test.test_utils import MapArgToReturnValueMagicMock
+from test.test_utils import magic_mock_with_return_type_value
 
 
 @patch(
     "src.dynamodb.client.get_asana_domain_user_id_from_github_handle",
-    MapArgToReturnValueMagicMock(
+    magic_mock_with_return_type_value(
         {"github_test_user_login": "TEST_USER_ASANA_DOMAIN_USER_ID"}
     ),
 )
