@@ -284,6 +284,59 @@ resource "aws_lambda_permission" "lambda_permission_for_sgtm_rest_api" {
 }
 
 
+resource "aws_sqs_queue" "sgtm-webhooks-fifo" {
+  name                        = "sgtm-webhooks.fifo"
+  fifo_queue                  = true
+  content_based_deduplication = true
+}
+
+# Gives the Lambda function permissions to read from SQS queue
+resource "aws_iam_policy" "lambda-function-sqs-policy" {
+policy = <<EOF
+{
+"Version" : "2012-10-17",
+  "Statement" : [
+    {
+      "Effect" : "Allow",
+      "Action" : [
+        "sqs:ReceiveMessage",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes",
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource" : ["${aws_sqs_queue.sgtm-webhooks-fifo.arn}"]
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "lambda-function-sqs" {
+  role       = aws_iam_role.iam_for_lambda_function.name
+  policy_arn = aws_iam_policy.lambda-function-sqs-policy.arn
+}
+
+# Gives the API Gateway permissions to send messages to the SQS queue
+resource "aws_iam_policy" "api-gateway-sqs-policy" {
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Resource": ["${aws_sqs_queue.sgtm-webhooks-fifo.arn}"],
+      "Action": [
+        "sqs:SendMessage"
+      ]
+    }
+  ]
+}
+EOF
+}
+
+
 ### DYNAMODB
 # ##DynamoDbSchema The DynamoDbSchema's source of truth is to be found here, in the sgtm/terraform/main.tf, except for
 # the sgtm_terraform_state_lock table, which has it's source of truth in scripts/setup.py
