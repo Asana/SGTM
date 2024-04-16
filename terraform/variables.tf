@@ -63,11 +63,6 @@ variable "terraform_backend_tfc_workspace" {
   description = "The Terraform Cloud workspace to use as the remote backend. Must be provided if terraform_backend_use_tfc is true."
 }
 
-variable "asana_users_project_id" {
-  type        = string
-  description = "Project ID that holds the tasks that map Github handles to Asana user ids"
-}
-
 variable "github_usernames_to_asana_gids_s3_path" {
   description = "The S3 path, in the form bucket/key, to the .json file that maps Github usernames to email addresses associated with Asana users."
   type        = string

@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from src.github.models import Commit
 from src.github.logic import ApprovedBeforeMergeStatus
 from src.asana import logic as asana_logic
+from test.test_utils import magic_mock_with_return_type_value
 
 followup_bot = builder.user("follow_up").build()
 
@@ -82,9 +83,17 @@ class BaseClass(MockDynamoDbTestCase):
     @classmethod
     def setUpClass(cls):
         MockDynamoDbTestCase.setUpClass()
-        cls.test_data.insert_user_into_user_table(
-            "github_test_user_login", "TEST_USER_ASANA_DOMAIN_USER_ID"
+
+    def setUp(self) -> None:
+        super(BaseClass, self).setUp()
+        patch_get_asana_domain_user_id_from_github_handle = patch(
+            "src.dynamodb.client.get_asana_domain_user_id_from_github_handle",
+            magic_mock_with_return_type_value(
+                {"github_test_user_login": "TEST_USER_ASANA_DOMAIN_USER_ID"}
+            ),
         )
+        patch_get_asana_domain_user_id_from_github_handle.start()
+        self.addCleanup(patch_get_asana_domain_user_id_from_github_handle.stop)
 
 
 class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
@@ -368,16 +377,20 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
         self.assertContainsStrings(actual, expected_strings)
 
 
+@patch(
+    "src.dynamodb.client.get_asana_domain_user_id_from_github_handle",
+    magic_mock_with_return_type_value(
+        {
+            "github_assignee_login_annie": "ANNIE_ASANA_DOMAIN_USER_ID",
+            "github_assignee_login_billy": "BILLY_ASANA_DOMAIN_USER_ID",
+            "github_test_user_login": "TEST_USER_ASANA_DOMAIN_USER_ID",
+        }
+    ),
+)
 class TestExtractsAssigneeFromPullRequest(BaseClass):
     @classmethod
     def setUpClass(cls):
         BaseClass.setUpClass()
-        cls.test_data.insert_user_into_user_table(
-            "github_assignee_login_annie", "ANNIE_ASANA_DOMAIN_USER_ID"
-        )
-        cls.test_data.insert_user_into_user_table(
-            "github_assignee_login_billy", "BILLY_ASANA_DOMAIN_USER_ID"
-        )
 
     @patch("src.asana.logic.SGTM_FEATURE__ALLOW_PERSISTENT_TASK_ASSIGNEE", False)
     def test_assignee(self):

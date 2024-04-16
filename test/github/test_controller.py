@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import patch, ANY
 from uuid import uuid4
 from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 import src.github.client as github_client
@@ -8,11 +8,15 @@ import src.dynamodb.client as dynamodb_client
 from test.impl.builders import builder
 
 
+@patch("src.dynamodb.client.get_asana_domain_user_id_from_github_handle")
 class GithubControllerTest(MockDynamoDbTestCase):
     @patch.object(asana_controller, "update_task")
     @patch.object(asana_controller, "create_task")
     def test_upsert_pull_request_when_task_id_not_found_in_dynamodb(
-        self, create_task_mock, update_task_mock
+        self,
+        create_task_mock,
+        update_task_mock,
+        _get_asana_domain_id_mock,
     ):
         # If the task id is not found in dynamodb, then we assume the task
         # doesn't exist and create a new task
@@ -27,7 +31,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
             add_asana_task_to_pr_mock.assert_called_with(pull_request, new_task_id)
 
         create_task_mock.assert_called_with(pull_request.repository_id())
-        update_task_mock.assert_called_with(pull_request, new_task_id, [])
+        update_task_mock.assert_called_with(pull_request, new_task_id, ANY)
 
         # Assert that the new task id was inserted into the table
         task_id = dynamodb_client.get_asana_id_from_github_node_id(pull_request.id())
@@ -36,7 +40,10 @@ class GithubControllerTest(MockDynamoDbTestCase):
     @patch.object(asana_controller, "update_task")
     @patch.object(asana_controller, "create_task")
     def test_upsert_pull_request_when_task_id_already_found_in_dynamodb(
-        self, create_task_mock, update_task_mock
+        self,
+        create_task_mock,
+        update_task_mock,
+        _get_asana_domain_id_mock,
     ):
         # If the task id is found in dynamodb, then we just update (don't
         # attempt to create)
@@ -51,10 +58,14 @@ class GithubControllerTest(MockDynamoDbTestCase):
         github_controller.upsert_pull_request(pull_request)
 
         create_task_mock.assert_not_called()
-        update_task_mock.assert_called_with(pull_request, existing_task_id, [])
+        update_task_mock.assert_called_with(pull_request, existing_task_id, ANY)
 
     @patch.object(github_client, "edit_pr_description")
-    def test_add_asana_task_to_pull_request(self, edit_pr_mock):
+    def test_add_asana_task_to_pull_request(
+        self,
+        edit_pr_mock,
+        _get_asana_domain_id_mock,
+    ):
         pull_request = builder.pull_request("original body").build()
         task_id = uuid4().hex
 
@@ -70,7 +81,10 @@ class GithubControllerTest(MockDynamoDbTestCase):
     @patch.object(asana_controller, "update_task")
     @patch.object(asana_controller, "upsert_github_comment_to_task")
     def test_upsert_comment_when_task_id_already_found_in_dynamodb(
-        self, add_comment_mock, update_task_mock
+        self,
+        add_comment_mock,
+        update_task_mock,
+        _get_asana_domain_id_mock,
     ):
         # If the task id is found in dynamodb, then we just update (don't
         # attempt to create)
@@ -86,12 +100,15 @@ class GithubControllerTest(MockDynamoDbTestCase):
         github_controller.upsert_comment(pull_request, comment)
 
         add_comment_mock.assert_called_with(comment, existing_task_id)
-        update_task_mock.assert_called_with(pull_request, existing_task_id, [])
+        update_task_mock.assert_called_with(pull_request, existing_task_id, ANY)
 
     @patch.object(asana_controller, "update_task")
     @patch.object(asana_controller, "upsert_github_comment_to_task")
     def test_upsert_comment_when_task_id_not_found_in_dynamodb(
-        self, add_comment_mock, update_task_mock
+        self,
+        add_comment_mock,
+        update_task_mock,
+        _get_asana_domain_id_mock,
     ):
         pull_request = builder.pull_request().build()
         comment = builder.comment().build()
@@ -100,7 +117,9 @@ class GithubControllerTest(MockDynamoDbTestCase):
         # TODO: Test that a full sync was performed
 
     @patch.object(github_client, "set_pull_request_assignee")
-    def test_assign_pull_request_to_author(self, set_pr_assignee_mock):
+    def test_assign_pull_request_to_author(
+        self, set_pr_assignee_mock, _get_asana_domain_id_mock
+    ):
         user = builder.user().login("the_author").name("dont-care")
         pull_request = builder.pull_request().author(user).build()
         with patch.object(pull_request, "set_assignees") as set_assignees_mock:

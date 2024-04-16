@@ -1,4 +1,6 @@
+from typing import Any
 import unittest
+from unittest.mock import MagicMock
 
 from src.utils import memoize, parse_date_string
 
@@ -36,6 +38,28 @@ class TestMemoize(unittest.TestCase):
             remember_me(),
             "Expected remember_me to always return 1 due to memoization",
         )
+
+
+def magic_mock_with_return_type_value(
+    arg_to_return_values_dict: dict[Any, Any], return_none_if_not_found: bool = True
+):
+    """
+    This is a function that returns a MagicMock object that will set the return value of the function being mocked
+    based on the argument passed to the function. You should pass a dictionary that maps arguments to return values.
+    This function will handle the side_effect function for you.
+    """
+
+    def _side_effect_function(arg):
+        try:
+            return arg_to_return_values_dict[arg]
+        except KeyError as exc:
+            if return_none_if_not_found:
+                return None
+            raise ValueError(
+                f"Mock behavior is undefined for arg {arg}. Please provide a return value for this arg."
+            ) from exc
+
+    return MagicMock(side_effect=_side_effect_function)
 
 
 if __name__ == "__main__":
