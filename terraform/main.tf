@@ -284,10 +284,37 @@ resource "aws_lambda_permission" "lambda_permission_for_sgtm_rest_api" {
 }
 
 
+### API + SQS
+resource "aws_api_gateway_deployment" "sgtm_deployment_with_sqs" {
+  depends_on  = [aws_api_gateway_integration.sgtm_sqs_integration]
+  rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api.id
+  stage_name  = "sqs"
+}
+
+resource "aws_api_gateway_integration" "sgtm_sqs_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.sgtm_rest_api.id
+  resource_id             = aws_api_gateway_resource.sgtm_resource.id
+  http_method             = aws_api_gateway_method.sgtm_post.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_sqs_queue.sgtm-webhooks-fifo.arn
+}
+
+resource "aws_api_gateway_integration_response" "sgtm_proxy_response_sqs" {
+  depends_on  = [aws_api_gateway_integration.sgtm_sqs_integration]
+  rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api_with_sqs.id
+  resource_id = aws_api_gateway_resource.sgtm_resource.id
+  http_method = aws_api_gateway_method.sgtm_post.http_method
+  status_code = aws_api_gateway_method_response.proxy.status_code
+}
+
+
 resource "aws_sqs_queue" "sgtm-webhooks-fifo" {
   name                        = "sgtm-webhooks.fifo"
   fifo_queue                  = true
   content_based_deduplication = true
+  visibility_timeout_seconds  = 720 # 12 minutes
+  message_retention_seconds   = 3600 # 1 hr
 }
 
 # Gives the Lambda function permissions to read from SQS queue
@@ -328,12 +355,37 @@ resource "aws_iam_policy" "api-gateway-sqs-policy" {
       "Effect": "Allow",
       "Resource": ["${aws_sqs_queue.sgtm-webhooks-fifo.arn}"],
       "Action": [
-        "sqs:SendMessage"
+        "sqs:SendMessageBatch",
+        "sqs:SendMessage",
       ]
     }
   ]
 }
 EOF
+}
+
+resource "aws_iam_role" "iam_for_api_gateway" {
+  name = "iam_for_api_gateway"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "apigateway.amazonaws.com"
+      },
+      "Effect": "Allow"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "api-gateway-sqs-policy-attachment" {
+  role       = aws_iam_role.iam_for_api_gateway.name
+  policy_arn = aws_iam_policy.api-gateway-sqs-policy
 }
 
 
