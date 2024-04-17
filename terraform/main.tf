@@ -198,7 +198,6 @@ resource "aws_lambda_function" "sgtm" {
   role             = aws_iam_role.iam_for_lambda_function.arn
   handler          = "src.handler.handler"
   source_code_hash = data.archive_file.create_dist_pkg.output_base64sha256
-  version          = 2
 
   runtime = var.lambda_runtime
 
@@ -223,7 +222,7 @@ resource "aws_lambda_function" "sgtm" {
 resource "aws_lambda_alias" "sgtm_lambda_alias" {
   name             = "sgtm_alias"
   description      = "alias for sgtm with sqs"
-  function_name    = aws_lambda_function.lambda_function_test.arn
+  function_name    = aws_lambda_function.sgtm.arn
   function_version = "2"
 
   routing_config {
