@@ -10,7 +10,7 @@ from src.logger import logger
 import src.github.webhook as github_webhook
 
 
-def parse_github_event(event: dict) -> HttpResponseDict:
+def parse_github_event(event: dict) -> tuple[str, dict]:
     if "headers" not in event:
         return HttpResponse(
             "400",

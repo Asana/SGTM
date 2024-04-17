@@ -223,11 +223,12 @@ resource "aws_lambda_alias" "sgtm_lambda_alias" {
   name             = "sgtm_alias"
   description      = "alias for sgtm with sqs"
   function_name    = aws_lambda_function.sgtm.arn
-  function_version = "2"
+  function_version = "3"
 
   routing_config {
     additional_version_weights = {
-      "2" = 0.01
+      "2" = 0.99,
+      "3" = 0.01,
     }
   }
 }
@@ -352,6 +353,12 @@ policy = <<EOF
 EOF
 }
 
+resource "aws_lambda_event_source_mapping" "event_source_mapping" {
+  event_source_arn = aws_sqs_queue.sgtm-webhooks-fifo.arn
+  enabled          = true
+  function_name    = aws_lambda_function.sgtm.function_name
+}
+
 resource "aws_iam_role_policy_attachment" "lambda-function-sqs" {
   role       = aws_iam_role.iam_for_lambda_function.name
   policy_arn = aws_iam_policy.lambda-function-sqs-policy.arn
@@ -397,7 +404,7 @@ EOF
 
 resource "aws_iam_role_policy_attachment" "api-gateway-sqs-policy-attachment" {
   role       = aws_iam_role.iam_for_api_gateway.name
-  policy_arn = aws_iam_policy.api-gateway-sqs-policy
+  policy_arn = aws_iam_policy.api-gateway-sqs-policy.arn
 }
 
 ### DYNAMODB
