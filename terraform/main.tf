@@ -198,6 +198,7 @@ resource "aws_lambda_function" "sgtm" {
   role             = aws_iam_role.iam_for_lambda_function.arn
   handler          = "src.handler.handler"
   source_code_hash = data.archive_file.create_dist_pkg.output_base64sha256
+  version          = 2
 
   runtime = var.lambda_runtime
 
@@ -215,6 +216,19 @@ resource "aws_lambda_function" "sgtm" {
       SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES       = var.sgtm_feature__check_rerun_base_ref_names,
       SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED  = var.sgtm_feature__check_rerun_on_approval_enabled
       GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH         = var.github_usernames_to_asana_gids_s3_path
+    }
+  }
+}
+
+resource "aws_lambda_alias" "sgtm_lambda_alias" {
+  name             = "sgtm_alias"
+  description      = "alias for sgtm with sqs"
+  function_name    = aws_lambda_function.lambda_function_test.arn
+  function_version = "2"
+
+  routing_config {
+    additional_version_weights = {
+      "2" = 0.01
     }
   }
 }
@@ -281,111 +295,6 @@ resource "aws_lambda_permission" "lambda_permission_for_sgtm_rest_api" {
 
   # More: http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-control-access-using-iam-policies-to-invoke-api.html
   source_arn = "${aws_api_gateway_rest_api.sgtm_rest_api.execution_arn}/*/${aws_api_gateway_method.sgtm_post.http_method}${aws_api_gateway_resource.sgtm_resource.path}"
-}
-
-
-### API + SQS
-resource "aws_api_gateway_deployment" "sgtm_deployment_with_sqs" {
-  depends_on  = [aws_api_gateway_integration.sgtm_sqs_integration]
-  rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api.id
-  stage_name  = "sqs"
-}
-
-resource "aws_api_gateway_integration" "sgtm_sqs_integration" {
-  rest_api_id             = aws_api_gateway_rest_api.sgtm_rest_api.id
-  resource_id             = aws_api_gateway_resource.sgtm_resource.id
-  http_method             = aws_api_gateway_method.sgtm_post.http_method
-  integration_http_method = "POST"
-  type                    = "AWS_PROXY"
-  uri                     = aws_sqs_queue.sgtm-webhooks-fifo.arn
-}
-
-resource "aws_api_gateway_integration_response" "sgtm_proxy_response_sqs" {
-  depends_on  = [aws_api_gateway_integration.sgtm_sqs_integration]
-  rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api_with_sqs.id
-  resource_id = aws_api_gateway_resource.sgtm_resource.id
-  http_method = aws_api_gateway_method.sgtm_post.http_method
-  status_code = aws_api_gateway_method_response.proxy.status_code
-}
-
-
-resource "aws_sqs_queue" "sgtm-webhooks-fifo" {
-  name                        = "sgtm-webhooks.fifo"
-  fifo_queue                  = true
-  content_based_deduplication = true
-  visibility_timeout_seconds  = 720 # 12 minutes
-  message_retention_seconds   = 3600 # 1 hr
-}
-
-# Gives the Lambda function permissions to read from SQS queue
-resource "aws_iam_policy" "lambda-function-sqs-policy" {
-policy = <<EOF
-{
-"Version" : "2012-10-17",
-  "Statement" : [
-    {
-      "Effect" : "Allow",
-      "Action" : [
-        "sqs:ReceiveMessage",
-        "sqs:DeleteMessage",
-        "sqs:GetQueueAttributes",
-        "logs:CreateLogGroup",
-        "logs:CreateLogStream",
-        "logs:PutLogEvents"
-      ],
-      "Resource" : ["${aws_sqs_queue.sgtm-webhooks-fifo.arn}"]
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_role_policy_attachment" "lambda-function-sqs" {
-  role       = aws_iam_role.iam_for_lambda_function.name
-  policy_arn = aws_iam_policy.lambda-function-sqs-policy.arn
-}
-
-# Gives the API Gateway permissions to send messages to the SQS queue
-resource "aws_iam_policy" "api-gateway-sqs-policy" {
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Resource": ["${aws_sqs_queue.sgtm-webhooks-fifo.arn}"],
-      "Action": [
-        "sqs:SendMessageBatch",
-        "sqs:SendMessage",
-      ]
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_role" "iam_for_api_gateway" {
-  name = "iam_for_api_gateway"
-
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "apigateway.amazonaws.com"
-      },
-      "Effect": "Allow"
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_role_policy_attachment" "api-gateway-sqs-policy-attachment" {
-  role       = aws_iam_role.iam_for_api_gateway.name
-  policy_arn = aws_iam_policy.api-gateway-sqs-policy
 }
 
 
