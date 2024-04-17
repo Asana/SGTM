@@ -10,7 +10,7 @@ from src.logger import logger
 import src.github.webhook as github_webhook
 
 
-def handler(event: dict, context: dict) -> HttpResponseDict:
+def parse_github_event(event: dict) -> HttpResponseDict:
     if "headers" not in event:
         return HttpResponse(
             "400",
@@ -45,9 +45,34 @@ def handler(event: dict, context: dict) -> HttpResponseDict:
         ).to_dict()
 
     github_event = json.loads(event["body"])
-    try:
-        http_response = github_webhook.handle_github_webhook(event_type, github_event)
-        return http_response.to_dict()
-    except Exception as error:
-        logger.error(traceback.format_exc())
-        return HttpResponse("500", str(error)).to_dict()
+    return event_type, github_event
+
+
+def handler(event: dict, context: dict) -> HttpResponseDict:
+    if "Records" in event:
+        # SQS event
+        batch_item_failures = []
+        sqs_batch_response = {}
+        for record in event["Records"]:
+            try:
+                webhook_event = json.loads(record["body"])
+                event_type, github_event = parse_github_event(webhook_event)
+                http_response = github_webhook.handle_github_webhook(event_type, github_event)
+                return http_response.to_dict()
+            except Exception as _:
+                # retry failures
+                logger.error(traceback.format_exc())
+                batch_item_failures.append({"itemIdentifier": record["messageId"]})
+                sqs_batch_response["batchItemFailures"] = batch_item_failures
+                return sqs_batch_response
+    if "headers" in event:
+        # HTTP event
+        try:
+            event_type, github_event = parse_github_event(event)
+            http_response = github_webhook.handle_github_webhook(event_type, github_event)
+            return http_response.to_dict()
+        except Exception as error:
+            logger.error(traceback.format_exc())
+            return HttpResponse("500", str(error)).to_dict()
+
+    return HttpResponse("400", "Unknown event type, event: {}".format(event)).to_dict()
