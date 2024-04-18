@@ -223,12 +223,11 @@ resource "aws_lambda_alias" "sgtm_lambda_alias" {
   name             = "sgtm_alias"
   description      = "alias for sgtm with sqs"
   function_name    = aws_lambda_function.sgtm.arn
-  function_version = "3"
+  function_version = aws_lambda_function.sgtm.version
 
   routing_config {
     additional_version_weights = {
       "2" = 0.99,
-      "3" = 0.01,
     }
   }
 }
@@ -298,29 +297,57 @@ resource "aws_lambda_permission" "lambda_permission_for_sgtm_rest_api" {
 }
 
 ### API + SQS
-resource "aws_api_gateway_deployment" "sgtm_deployment_with_sqs" {
+resource "aws_api_gateway_rest_api" "sgtm_rest_api_for_sqs" {
+  name        = "SgtmRestApiV2"
+  description = "The API gateway for SGTM lambda function with SQS"
+  endpoint_configuration {
+    types = ["REGIONAL"]
+  }
+}
+
+resource "aws_api_gateway_resource" "sgtm_resource_for_sqs" {
+  rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api_for_sqs.id
+  parent_id   = aws_api_gateway_rest_api.sgtm_rest_api_for_sqs.root_resource_id
+  path_part   = "sgtm"
+}
+
+resource "aws_api_gateway_method" "sgtm_post_for_sqs" {
+  rest_api_id   = aws_api_gateway_rest_api.sgtm_rest_api_for_sqs.id
+  resource_id   = aws_api_gateway_resource.sgtm_resource_for_sqs.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_deployment" "sgtm_deployment_for_sqs" {
   depends_on  = [aws_api_gateway_integration.sgtm_sqs_integration]
-  rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api.id
-  stage_name  = "sqs"
+  rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api_for_sqs.id
+  stage_name  = "default"
+}
+
+resource "aws_api_gateway_method_response" "proxy_for_sqs" {
+  rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api_for_sqs.id
+  resource_id = aws_api_gateway_resource.sgtm_resource_for_sqs.id
+  http_method = aws_api_gateway_method.sgtm_post_for_sqs.http_method
+  status_code = "200"
 }
 
 resource "aws_api_gateway_integration" "sgtm_sqs_integration" {
-  rest_api_id             = aws_api_gateway_rest_api.sgtm_rest_api.id
-  resource_id             = aws_api_gateway_resource.sgtm_resource.id
-  http_method             = aws_api_gateway_method.sgtm_post.http_method
+  rest_api_id             = aws_api_gateway_rest_api.sgtm_rest_api_for_sqs.id
+  resource_id             = aws_api_gateway_resource.sgtm_resource_for_sqs.id
+  http_method             = aws_api_gateway_method.sgtm_post_for_sqs.http_method
   integration_http_method = "POST"
-  type                    = "AWS_PROXY"
-  uri                     = aws_sqs_queue.sgtm-webhooks-fifo.arn
+  type                    = "AWS"
+  credentials             = "${aws_iam_role.iam_for_api_gateway.arn}"
+  uri                     = "arn:aws:apigateway:${var.aws_region}:sqs:path/${aws_sqs_queue.sgtm-webhooks-fifo.name}"
 }
 
-resource "aws_api_gateway_integration_response" "sgtm_proxy_response_sqs" {
+resource "aws_api_gateway_integration_response" "sgtm_proxy_response_for_sqs" {
   depends_on  = [aws_api_gateway_integration.sgtm_sqs_integration]
-  rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api.id
-  resource_id = aws_api_gateway_resource.sgtm_resource.id
-  http_method = aws_api_gateway_method.sgtm_post.http_method
-  status_code = aws_api_gateway_method_response.proxy.status_code
+  rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api_for_sqs.id
+  resource_id = aws_api_gateway_resource.sgtm_resource_for_sqs.id
+  http_method = aws_api_gateway_method.sgtm_post_for_sqs.http_method
+  status_code = aws_api_gateway_method_response.proxy_for_sqs.status_code
 }
-
 
 resource "aws_sqs_queue" "sgtm-webhooks-fifo" {
   name                        = "sgtm-webhooks.fifo"
@@ -375,7 +402,7 @@ resource "aws_iam_policy" "api-gateway-sqs-policy" {
       "Resource": ["${aws_sqs_queue.sgtm-webhooks-fifo.arn}"],
       "Action": [
         "sqs:SendMessageBatch",
-        "sqs:SendMessage",
+        "sqs:SendMessage"
       ]
     }
   ]
