@@ -224,12 +224,6 @@ resource "aws_lambda_alias" "sgtm_lambda_alias" {
   description      = "alias for sgtm with sqs"
   function_name    = aws_lambda_function.sgtm.arn
   function_version = aws_lambda_function.sgtm.version
-
-  routing_config {
-    additional_version_weights = {
-      "2" = 0.99,
-    }
-  }
 }
 
 
@@ -337,8 +331,23 @@ resource "aws_api_gateway_integration" "sgtm_sqs_integration" {
   http_method             = aws_api_gateway_method.sgtm_post_for_sqs.http_method
   integration_http_method = "POST"
   type                    = "AWS"
+  passthrough_behavior    = "NEVER"
   credentials             = "${aws_iam_role.iam_for_api_gateway.arn}"
   uri                     = "arn:aws:apigateway:${var.aws_region}:sqs:path/${aws_sqs_queue.sgtm-webhooks-fifo.name}"
+
+  request_parameters = {
+    "integration.request.header.Content-Type" = "'application/x-www-form-urlencoded'"
+  }
+
+  request_templates = {
+    "application/json" = <<EOT
+#set($id=$input.params().header.get("X-GitHub-Hook-ID"))
+Action=SendMessage&MessageGroupId=$id&MessageDeduplicationId=$id&MessageBody={
+  "headers":{#foreach($header in $input.params().header.keySet())"$header":"$util.escapeJavaScript($params.get($header))"#if($foreach.hasNext),#end#end},
+  "body":$input.json('$')
+}
+EOT
+  }
 }
 
 resource "aws_api_gateway_integration_response" "sgtm_proxy_response_for_sqs" {
@@ -397,6 +406,17 @@ resource "aws_iam_policy" "api-gateway-sqs-policy" {
 {
   "Version": "2012-10-17",
   "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": [
+        "arn:aws:logs:${var.aws_region}:*:log-group:/aws/apigateway/${aws_api_gateway_rest_api.sgtm_rest_api_for_sqs.name}:*"
+      ]
+    },
     {
       "Effect": "Allow",
       "Resource": ["${aws_sqs_queue.sgtm-webhooks-fifo.arn}"],
