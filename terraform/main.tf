@@ -342,10 +342,7 @@ resource "aws_api_gateway_integration" "sgtm_sqs_integration" {
   request_templates = {
     "application/json" = <<EOT
 #set($id=$input.params().header.get("X-GitHub-Hook-ID"))
-Action=SendMessage&MessageGroupId=$id&MessageDeduplicationId=$id&MessageBody={
-  "headers":{#foreach($header in $input.params().header.keySet())"$header":"$util.escapeJavaScript($params.get($header))"#if($foreach.hasNext),#end#end},
-  "body":$input.json('$')
-}
+Action=SendMessage&MessageGroupId=$id&MessageDeduplicationId=$id&MessageBody={"headers":{#foreach($header in $input.params().header.keySet())"$header":"$util.escapeJavaScript($input.params().header.get($header))"#if($foreach.hasNext),#end#end},"body":$input.json('$')}
 EOT
   }
 }
@@ -391,7 +388,7 @@ EOF
 
 resource "aws_lambda_event_source_mapping" "event_source_mapping" {
   event_source_arn = aws_sqs_queue.sgtm-webhooks-fifo.arn
-  enabled          = true
+  enabled          = false
   function_name    = aws_lambda_function.sgtm.function_name
 }
 
