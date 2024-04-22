@@ -260,7 +260,6 @@ resource "aws_iam_policy" "lambda-function-cloudwatch-policy" {
 EOF
 }
 
-
 resource "aws_iam_role" "iam_for_lambda_function" {
   name = "iam_for_lambda${local.suffix}"
 
@@ -294,7 +293,6 @@ resource "aws_iam_role_policy_attachment" "lambda-function-api-keys" {
   role       = aws_iam_role.iam_for_lambda_function.name
   policy_arn = aws_iam_policy.LambdaFunctionApiKeysBucketAccess.arn
 }
-
 
 resource "aws_iam_policy" "LambdaFunctionApiKeysBucketAccess" {
   policy = <<EOF

@@ -64,7 +64,6 @@ resource "aws_api_gateway_rest_api" "sgtm_rest_api" {
   }
 }
 
-
 ### DYNAMODB
 # ##DynamoDbSchema The DynamoDbSchema's source of truth is to be found here, in the sgtm/terraform/main.tf, except for
 # the sgtm_terraform_state_lock table, which has it's source of truth in scripts/setup.py
