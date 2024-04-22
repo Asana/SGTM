@@ -325,6 +325,17 @@ resource "aws_api_gateway_method_response" "proxy_for_sqs" {
   status_code = "200"
 }
 
+resource "aws_api_gateway_method_settings" "sgtm_api_settings_for_sqs" {
+  rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api_for_sqs.id
+  stage_name  = aws_api_gateway_deployment.sgtm_deployment_for_sqs.stage_name
+  method_path = "*/*"
+  settings {
+    logging_level = "INFO"
+    data_trace_enabled = true
+    metrics_enabled = true
+  }
+}
+
 resource "aws_api_gateway_integration" "sgtm_sqs_integration" {
   rest_api_id             = aws_api_gateway_rest_api.sgtm_rest_api_for_sqs.id
   resource_id             = aws_api_gateway_resource.sgtm_resource_for_sqs.id
@@ -334,15 +345,28 @@ resource "aws_api_gateway_integration" "sgtm_sqs_integration" {
   passthrough_behavior    = "NEVER"
   credentials             = "${aws_iam_role.iam_for_api_gateway.arn}"
   uri                     = "arn:aws:apigateway:${var.aws_region}:sqs:path/${aws_sqs_queue.sgtm-webhooks-fifo.name}"
-
+  content_handling        = "CONVERT_TO_TEXT"
   request_parameters = {
     "integration.request.header.Content-Type" = "'application/x-www-form-urlencoded'"
   }
 
   request_templates = {
     "application/json" = <<EOT
-#set($id=$input.params().header.get("X-GitHub-Hook-ID"))
-Action=SendMessage&MessageGroupId=$id&MessageDeduplicationId=$id&MessageBody={"headers":{#foreach($header in $input.params().header.keySet())"$header":"$util.escapeJavaScript($input.params().header.get($header))"#if($foreach.hasNext),#end#end},"body":$input.json('$')}
+#set($headers=$input.params().header)
+#set($id=$headers.get("X-GitHub-Hook-ID"))
+Action=SendMessage##
+&MessageGroupId=$id##
+&MessageDeduplicationId=$id##
+&MessageBody=$input.body##
+&MessageAttributes.1.Name=X-GitHub-Event##
+&MessageAttributes.1.Value.DataType=String##
+&MessageAttributes.1.Value.StringValue=$util.urlEncode($headers.get("X-GitHub-Event"))##
+&MessageAttributes.2.Name=X-Hub-Signature##
+&MessageAttributes.2.Value.DataType=String##
+&MessageAttributes.2.Value.StringValue=$util.urlEncode($headers.get("X-Hub-Signature"))##
+&MessageAttributes.3.Name=X-GitHub-Delivery##
+&MessageAttributes.3.Value.DataType=String##
+&MessageAttributes.3.Value.StringValue=$util.urlEncode($headers.get("X-GitHub-Delivery"))##
 EOT
   }
 }
@@ -375,6 +399,7 @@ policy = <<EOF
         "sqs:ReceiveMessage",
         "sqs:DeleteMessage",
         "sqs:GetQueueAttributes",
+        "kms:Decrypt",
         "logs:CreateLogGroup",
         "logs:CreateLogStream",
         "logs:PutLogEvents"
@@ -403,16 +428,18 @@ resource "aws_iam_policy" "api-gateway-sqs-policy" {
 {
   "Version": "2012-10-17",
   "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
+     {
+      "Effect" : "Allow",
+      "Action" : [
         "logs:CreateLogGroup",
         "logs:CreateLogStream",
-        "logs:PutLogEvents"
+        "logs:DescribeLogGroups",
+        "logs:DescribeLogStreams",
+        "logs:PutLogEvents",
+        "logs:GetLogEvents",
+        "logs:FilterLogEvents"
       ],
-      "Resource": [
-        "arn:aws:logs:${var.aws_region}:*:log-group:/aws/apigateway/${aws_api_gateway_rest_api.sgtm_rest_api_for_sqs.name}:*"
-      ]
+      "Resource" : "*"
     },
     {
       "Effect": "Allow",

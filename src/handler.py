@@ -16,20 +16,16 @@ def handler(event: dict, context: dict) -> HttpResponseDict:
         batch_item_failures = []
         sqs_batch_response = {}
         for record in event["Records"]:
-            webhook_event = json.loads(record["body"])
-            if "headers" not in webhook_event:
-                return HttpResponse(
-                    "400",
-                    "Expected there to be headers in the event. Keys were: {}".format(
-                        webhook_event.keys()
-                    ),
-                ).to_dict()
+            webhook_headers = record["messageAttributes"]
+            webhook_body = record["body"]
+            logger.info(f"Webhook body: {webhook_body}")
 
-            event_type = webhook_event["headers"].get("X-GitHub-Event")
-            signature = webhook_event["headers"].get("X-Hub-Signature")
-            delivery_id = webhook_event["headers"].get("X-GitHub-Delivery")
+            event_type = webhook_headers.get("X-GitHub-Event").get("stringValue")
+            signature = webhook_headers.get("X-Hub-Signature").get("stringValue")
+            delivery_id = webhook_headers.get("X-GitHub-Delivery").get("stringValue")
             logger.info(f"Webhook delivery id: {delivery_id}")
             if not event_type:
+                logger.error("X-GitHub-Event header not found")
                 return HttpResponse(
                     "400", "Expected a X-GitHub-Event header, but none found"
                 ).to_dict()
@@ -43,17 +39,17 @@ def handler(event: dict, context: dict) -> HttpResponseDict:
                 "sha1="
                 + hmac.new(
                     bytes(secret, "utf-8"),
-                    msg=json.dumps(webhook_event["body"]).encode('utf-8'),
+                    msg=bytes(webhook_body, "utf-8"),
                     digestmod=hashlib.sha1,
                 ).hexdigest()
             )
             if not hmac.compare_digest(generated_signature, signature):
-                logger.error("HMAC signature mismatch")
+                logger.error("HMAC signature mismatch, generated {}  expected {}". format(generated_signature, signature))
                 return HttpResponse("501").to_dict()
 
             try:
-                logger.info(f"Handling {event_type}!")
-                http_response = github_webhook.handle_github_webhook(event_type, webhook_event["body"])
+                webhook_body_json = json.loads(webhook_body)
+                http_response = github_webhook.handle_github_webhook(event_type, webhook_body_json)
                 return http_response.to_dict()
             except Exception as _:
                 # retry failures
