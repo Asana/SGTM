@@ -2,176 +2,30 @@ provider "aws" {
   region = var.aws_region
 }
 
-### LAMBDA
-
-
-# Gives the Lambda function permissions to read/write from the DynamoDb tables
-resource "aws_iam_policy" "lambda-function-dynamodb-policy" {
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": [
-        "dynamodb:GetItem",
-        "dynamodb:Scan",
-        "dynamodb:PutItem",
-        "dynamodb:BatchWriteItem"
-      ],
-      "Resource": [
-        "${aws_dynamodb_table.sgtm-lock.arn}",
-        "${aws_dynamodb_table.sgtm-objects.arn}",
-        "${aws_dynamodb_table.sgtm-users.arn}"
-      ],
-      "Effect": "Allow"
-    },
-    {
-      "Action": [
-        "dynamodb:DeleteItem",
-        "dynamodb:UpdateItem"
-      ],
-      "Resource": [
-        "${aws_dynamodb_table.sgtm-lock.arn}"
-      ],
-      "Effect": "Allow"
-    }
-  ]
-}
-EOF
+module "sgtm-prod" {
+  source = "./sgtm-cluster"
 }
 
-# Gives the Lambda function permissions to create cloudwatch logs
-resource "aws_iam_policy" "lambda-function-cloudwatch-policy" {
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": [
-        "logs:CreateLogGroup",
-        "logs:CreateLogStream",
-        "logs:PutLogEvents"
-      ],
-      "Resource": [
-        "arn:aws:logs:${var.aws_region}:*:log-group:/aws/lambda/${aws_lambda_function.sgtm.function_name}:*"
-      ],
-      "Effect": "Allow"
-    }
-  ]
-}
-EOF
+moved {
+  from = aws_iam_policy.lambda-function-dynamodb-policy
+  to   = module.sgtm-prod.aws_iam_policy.lambda-function-dynamodb-policy
 }
 
-data "aws_iam_policy_document" "lambda-function-github-token-retrieval-lambda-policy" {
-  count = var.token_retrieval_lambda_arn != null ? 1 : 0
-  statement {
-    actions = ["lambda:InvokeFunction"]
-    resources = [var.token_retrieval_lambda_arn]
-  }
+moved {
+  from = aws_iam_policy.lambda-function-cloudwatch-policy
+  to   = module.sgtm-prod.aws_iam_policy.lambda-function-cloudwatch-policy
 }
 
-# Gives the lambda function permissions to invoke the function URL for the
-# custom github token retrieval lambda function
-resource "aws_iam_policy" "lambda-function-github-token-retrieval-lambda-policy" {
-  count  = var.token_retrieval_lambda_arn != null ? 1 : 0
-  policy = data.aws_iam_policy_document.lambda-function-github-token-retrieval-lambda-policy[0].json
+moved {
+  from = aws_iam_role.iam_for_lambda_function
+  to   = module.sgtm-prod.aws_iam_role.iam_for_lambda_function
 }
 
-resource "aws_iam_role" "iam_for_lambda_function" {
-  name = "iam_for_lambda"
-
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "lambda.amazonaws.com"
-      },
-      "Effect": "Allow"
-    }
-  ]
-}
-EOF
+moved {
+  from = aws_lambda_function.sgtm
+  to   = module.sgtm-prod.aws_lambda_function.sgtm
 }
 
-resource "aws_iam_role_policy_attachment" "lambda-function-dynamo-db-access-policy-attachment" {
-  role       = aws_iam_role.iam_for_lambda_function.name
-  policy_arn = aws_iam_policy.lambda-function-dynamodb-policy.arn
-}
-
-resource "aws_iam_role_policy_attachment" "lambda-function-cloudwatch-policy-attachment" {
-  role       = aws_iam_role.iam_for_lambda_function.name
-  policy_arn = aws_iam_policy.lambda-function-cloudwatch-policy.arn
-}
-
-resource "aws_iam_role_policy_attachment" "lambda-function-api-keys" {
-  role       = aws_iam_role.iam_for_lambda_function.name
-  policy_arn = aws_iam_policy.LambdaFunctionApiKeysBucketAccess.arn
-}
-
-resource "aws_iam_role_policy_attachment" "lambda-function-github-token_retrieval_lambda" {
-  count  = var.token_retrieval_lambda_arn != null ? 1 : 0
-  role       = aws_iam_role.iam_for_lambda_function.name
-  policy_arn = aws_iam_policy.lambda-function-github-token-retrieval-lambda-policy[0].arn
-}
-
-resource "aws_iam_policy" "LambdaFunctionApiKeysBucketAccess" {
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": [
-        "s3:GetObject",
-        "s3:GetObjectVersion"
-      ],
-      "Resource": [
-        "${aws_s3_bucket.api_key_bucket.arn}/*"
-      ],
-      "Effect": "Allow"
-    },
-    {
-      "Action": [
-        "kms:Decrypt"
-      ],
-      "Resource": [
-        "${aws_kms_key.api_encryption_key.arn}"
-      ],
-      "Effect": "Allow"
-    }
-  ]
-}
-EOF
-}
-
-# Give the lambda permission to read from the users file path at
-# var.github_usernames_to_asana_gids_s3_path
-resource "aws_iam_policy" "lambda-function-github-usernames-to-emails-policy" {
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": [
-        "s3:GetObject",
-        "s3:GetObjectVersion"
-      ],
-      "Resource": [
-        "arn:aws:s3:::${var.github_usernames_to_asana_gids_s3_path}"
-      ],
-      "Effect": "Allow"
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_role_policy_attachment" "lambda-function-github-usernames-to-emails-policy-attachment" {
-  role       = aws_iam_role.iam_for_lambda_function.name
-  policy_arn = aws_iam_policy.lambda-function-github-usernames-to-emails-policy.arn
-}
 
 resource "null_resource" "install_python_dependencies" {
   triggers = {
