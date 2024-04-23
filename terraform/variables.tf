@@ -68,6 +68,12 @@ variable "github_usernames_to_asana_gids_s3_path" {
   type        = string
 }
 
+variable "token_retrieval_lambda_arn" {
+  description = "The ARN of the Lambda function that retrieves the GitHub token"
+  default     = null
+  type        = string
+}
+
 variable "sgtm_feature__automerge_enabled" {
   type        = string
   description = "'true' if behavior to automerge pull requests with Github labels is enabled"

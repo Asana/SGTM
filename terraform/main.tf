@@ -62,6 +62,21 @@ resource "aws_iam_policy" "lambda-function-cloudwatch-policy" {
 EOF
 }
 
+data "aws_iam_policy_document" "lambda-function-github-token-retrieval-lambda-policy" {
+  count = var.token_retrieval_lambda_arn != null ? 1 : 0
+  statement {
+    actions = ["lambda:InvokeFunction"]
+    resources = [var.token_retrieval_lambda_arn]
+  }
+}
+
+# Gives the lambda function permissions to invoke the function URL for the
+# custom github token retrieval lambda function
+resource "aws_iam_policy" "lambda-function-github-token-retrieval-lambda-policy" {
+  count  = var.token_retrieval_lambda_arn != null ? 1 : 0
+  policy = data.aws_iam_policy_document.lambda-function-github-token-retrieval-lambda-policy[0].json
+}
+
 resource "aws_iam_role" "iam_for_lambda_function" {
   name = "iam_for_lambda"
 
@@ -94,6 +109,12 @@ resource "aws_iam_role_policy_attachment" "lambda-function-cloudwatch-policy-att
 resource "aws_iam_role_policy_attachment" "lambda-function-api-keys" {
   role       = aws_iam_role.iam_for_lambda_function.name
   policy_arn = aws_iam_policy.LambdaFunctionApiKeysBucketAccess.arn
+}
+
+resource "aws_iam_role_policy_attachment" "lambda-function-github-token_retrieval_lambda" {
+  count  = var.token_retrieval_lambda_arn != null ? 1 : 0
+  role       = aws_iam_role.iam_for_lambda_function.name
+  policy_arn = aws_iam_policy.lambda-function-github-token-retrieval-lambda-policy[0].arn
 }
 
 resource "aws_iam_policy" "LambdaFunctionApiKeysBucketAccess" {
@@ -381,4 +402,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "api_key_bucket_se
       sse_algorithm     = "aws:kms"
     }
   }
+}
+
+output "test" {
+  value = var.token_retrieval_lambda_arn
 }

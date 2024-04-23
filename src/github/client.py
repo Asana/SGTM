@@ -3,8 +3,9 @@ from requests.auth import HTTPBasicAuth
 
 from github import Github, PullRequest  # type: ignore
 from src.config import GITHUB_API_KEY
+from src.github.get_app_token import sgtm_github_auth
 
-gh_client = Github(GITHUB_API_KEY)
+gh_client = sgtm_github_auth.get_client()
 
 
 def _get_pull_request(owner: str, repository: str, number: int) -> PullRequest:
