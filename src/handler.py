@@ -18,10 +18,10 @@ def handler(event: dict, context: dict) -> HttpResponseDict:
         for record in event["Records"]:
             webhook_headers = record["messageAttributes"]
             webhook_body = record["body"]
-            logger.info(f"Webhook body: {webhook_body}")
+            logger.info(r"body:{}".format(webhook_body))
 
             event_type = webhook_headers.get("X-GitHub-Event").get("stringValue")
-            signature = webhook_headers.get("X-Hub-Signature").get("stringValue")
+            signature = webhook_headers.get("X-Hub-Signature-256").get("stringValue")
             delivery_id = webhook_headers.get("X-GitHub-Delivery").get("stringValue")
             logger.info(f"Webhook delivery id: {delivery_id}")
             if not event_type:
@@ -36,11 +36,11 @@ def handler(event: dict, context: dict) -> HttpResponseDict:
             secret: str = GITHUB_HMAC_SECRET
 
             generated_signature = (
-                "sha1="
+                "sha256="
                 + hmac.new(
                     bytes(secret, "utf-8"),
                     msg=bytes(webhook_body, "utf-8"),
-                    digestmod=hashlib.sha1,
+                    digestmod=hashlib.sha256,
                 ).hexdigest()
             )
             if not hmac.compare_digest(generated_signature, signature):
@@ -60,6 +60,7 @@ def handler(event: dict, context: dict) -> HttpResponseDict:
 
     if "headers" in event:
         # HTTP event
+        logger.info(r"body:{}".format(event["body"] ))
         event_type = event["headers"].get("X-GitHub-Event")
         signature = event["headers"].get("X-Hub-Signature")
         delivery_id = event["headers"].get("X-GitHub-Delivery")

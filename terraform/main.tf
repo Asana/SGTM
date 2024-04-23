@@ -345,7 +345,7 @@ resource "aws_api_gateway_integration" "sgtm_sqs_integration" {
   passthrough_behavior    = "NEVER"
   credentials             = "${aws_iam_role.iam_for_api_gateway.arn}"
   uri                     = "arn:aws:apigateway:${var.aws_region}:sqs:path/${aws_sqs_queue.sgtm-webhooks-fifo.name}"
-  content_handling        = "CONVERT_TO_TEXT"
+  # content_handling        = "CONVERT_TO_BINARY"
   request_parameters = {
     "integration.request.header.Content-Type" = "'application/x-www-form-urlencoded'"
   }
@@ -357,16 +357,17 @@ resource "aws_api_gateway_integration" "sgtm_sqs_integration" {
 Action=SendMessage##
 &MessageGroupId=$id##
 &MessageDeduplicationId=$id##
-&MessageBody=$input.body##
 &MessageAttributes.1.Name=X-GitHub-Event##
 &MessageAttributes.1.Value.DataType=String##
 &MessageAttributes.1.Value.StringValue=$util.urlEncode($headers.get("X-GitHub-Event"))##
-&MessageAttributes.2.Name=X-Hub-Signature##
+&MessageAttributes.2.Name=X-Hub-Signature-256##
 &MessageAttributes.2.Value.DataType=String##
-&MessageAttributes.2.Value.StringValue=$util.urlEncode($headers.get("X-Hub-Signature"))##
+&MessageAttributes.2.Value.StringValue=$util.urlEncode($headers.get("X-Hub-Signature-256"))##
 &MessageAttributes.3.Name=X-GitHub-Delivery##
 &MessageAttributes.3.Value.DataType=String##
 &MessageAttributes.3.Value.StringValue=$util.urlEncode($headers.get("X-GitHub-Delivery"))##
+&MessageBody=$input.body
+
 EOT
   }
 }
