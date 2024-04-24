@@ -1,3 +1,9 @@
+<!-- #CodeAorBannerStart Auto-generated. Please do not edit -->
+
+This file is missing an owner. Please add one (`git aor --add 'README.md'`) or [file a report](https://go/report-missing-code-aor).
+
+<!-- #CodeAorBannerEnd -->
+
 # SGTM
 One-way sync of GitHub pull requests to Asana tasks so engineers can track all of their work in Asana. To see a more detailed explanation of the functionality of SGTM, see the [code_reviews](docs/code_reviews.md) docs.
 
