@@ -4,6 +4,56 @@ provider "aws" {
 
 module "sgtm-prod" {
   source = "./sgtm-cluster"
+  api_encryption_key_arn = aws_kms_key.api_encryption_key.arn
+  api_key_s3_bucket_name = var.api_key_s3_bucket_name
+  api_key_s3_object = var.api_key_s3_object
+  dynamodb-sgtm-lock-arn = aws_dynamodb_table.sgtm-lock.arn
+  dynamodb-sgtm-objects-arn = aws_dynamodb_table.sgtm-objects.arn
+  github_usernames_to_asana_gids_s3_path = var.github_usernames_to_asana_gids_s3_path
+  lambda_code_s3_bucket_name = var.lambda_code_s3_bucket_name
+  lambda_function_timeout = var.lambda_function_timeout
+  lambda_runtime = var.lambda_runtime
+  s3_api_key_bucket_arn = aws_s3_bucket.api_key_bucket.arn
+  sgtm_feature__allow_persistent_task_assignee = var.sgtm_feature__allow_persistent_task_assignee
+  sgtm_feature__autocomplete_enabled = var.sgtm_feature__autocomplete_enabled
+  sgtm_feature__automerge_enabled = var.sgtm_feature__automerge_enabled
+  sgtm_feature__check_rerun_base_ref_names = var.sgtm_feature__check_rerun_base_ref_names
+  sgtm_feature__check_rerun_on_approval_enabled = var.sgtm_feature__check_rerun_on_approval_enabled
+  sgtm_feature__check_rerun_threshold_hours = var.sgtm_feature__check_rerun_threshold_hours
+  sgtm_feature__disable_github_team_subscription = var.sgtm_feature__disable_github_team_subscription
+  sgtm_feature__followup_review_github_users = var.sgtm_feature__followup_review_github_users
+  sgtm_rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api.id
+  sgtm_rest_api_root_resource_id = aws_api_gateway_rest_api.sgtm_rest_api.root_resource_id
+  token_retrieval_lambda_arn = var.token_retrieval_lambda_arn
+  sgtm_rest_api_execution_arn = aws_api_gateway_rest_api.sgtm_rest_api.execution_arn
+}
+
+
+module "sgtm-staging" {
+  source = "./sgtm-cluster"
+  naming_suffix = "staging"
+  api_encryption_key_arn = aws_kms_key.api_encryption_key.arn
+  api_key_s3_bucket_name = var.api_key_s3_bucket_name
+  api_key_s3_object = var.api_key_s3_object
+  dynamodb-sgtm-lock-arn = aws_dynamodb_table.sgtm-lock.arn
+  dynamodb-sgtm-objects-arn = aws_dynamodb_table.sgtm-objects.arn
+  github_usernames_to_asana_gids_s3_path = var.github_usernames_to_asana_gids_s3_path
+  lambda_code_s3_bucket_name = var.lambda_code_s3_bucket_name
+  lambda_function_timeout = var.lambda_function_timeout
+  lambda_runtime = var.lambda_runtime
+  s3_api_key_bucket_arn = aws_s3_bucket.api_key_bucket.arn
+  sgtm_feature__allow_persistent_task_assignee = var.sgtm_feature__allow_persistent_task_assignee
+  sgtm_feature__autocomplete_enabled = var.sgtm_feature__autocomplete_enabled
+  sgtm_feature__automerge_enabled = var.sgtm_feature__automerge_enabled
+  sgtm_feature__check_rerun_base_ref_names = var.sgtm_feature__check_rerun_base_ref_names
+  sgtm_feature__check_rerun_on_approval_enabled = var.sgtm_feature__check_rerun_on_approval_enabled
+  sgtm_feature__check_rerun_threshold_hours = var.sgtm_feature__check_rerun_threshold_hours
+  sgtm_feature__disable_github_team_subscription = var.sgtm_feature__disable_github_team_subscription
+  sgtm_feature__followup_review_github_users = var.sgtm_feature__followup_review_github_users
+  sgtm_rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api.id
+  sgtm_rest_api_root_resource_id = aws_api_gateway_rest_api.sgtm_rest_api.root_resource_id
+  token_retrieval_lambda_arn = var.token_retrieval_lambda_arn
+  sgtm_rest_api_execution_arn = aws_api_gateway_rest_api.sgtm_rest_api.execution_arn
 }
 
 moved {
@@ -26,71 +76,102 @@ moved {
   to   = module.sgtm-prod.aws_lambda_function.sgtm
 }
 
-
-resource "null_resource" "install_python_dependencies" {
-  triggers = {
-    src_sha1 = sha1(join("", [for f in fileset(path.root, "../src/**") : filesha1(f)]))
-  }
-
-  provisioner "local-exec" {
-    command = "bash ${path.module}/../scripts/create_pkg.sh"
-
-    environment = {
-      source_code_path = "../src"
-      function_name    = "sgtm"
-      runtime          = var.lambda_runtime
-      path_cwd         = path.cwd
-    }
-  }
+moved {
+  from = null_resource.install_python_dependencies
+  to   = module.sgtm-prod.null_resource.install_python_dependencies
 }
 
-
-data "archive_file" "create_dist_pkg" {
-  depends_on  = [null_resource.install_python_dependencies]
-  source_dir  = "${path.cwd}/lambda_dist_pkg/"
-  output_path = "build/function.zip"
-  type        = "zip"
+moved {
+  from = data.archive_file.create_dist_pkg
+  to   = module.sgtm-prod.data.archive_file.create_dist_pkg
 }
 
+moved {
+  from = aws_s3_bucket_object.lambda_code_s3_bucket_object
+  to   = module.sgtm-prod.aws_s3_bucket_object.lambda_code_s3_bucket_object
+}
 
+moved {
+  from = aws_iam_policy_document.lambda-function-github-token-retrieval-lambda-policy
+  to   = module.sgtm-prod.aws_iam_policy_document.lambda-function-github-token-retrieval-lambda-policy
+}
+
+moved {
+  from = aws_iam_policy.lambda-function-github-token-retrieval-lambda-policy
+  to   = module.sgtm-prod.aws_iam_policy.lambda-function-github-token-retrieval-lambda-policy
+}
+
+moved {
+  from = aws_api_gateway_deployment.sgtm_deployment
+  to   = module.sgtm-prod.aws_api_gateway_deployment.sgtm_deployment
+}
+
+moved {
+  from = aws_api_gateway_integration.sgtm_lambda_integration
+  to   = module.sgtm-prod.aws_api_gateway_integration.sgtm_lambda_integration
+}
+
+moved {
+  from = aws_api_gateway_integration_response.sgtm_proxy_response
+  to   = module.sgtm-prod.aws_api_gateway_integration_response.sgtm_proxy_response
+}
+
+moved {
+  from = aws_api_gateway_method.sgtm_post
+  to   = module.sgtm-prod.aws_api_gateway_method.sgtm_post
+}
+
+moved {
+  from = aws_api_gateway_method_response.proxy
+  to   = module.sgtm-prod.aws_api_gateway_method_response.proxy
+}
+
+moved {
+  from = aws_api_gateway_resource.sgtm_resource
+  to  = module.sgtm-prod.aws_api_gateway_resource.sgtm_resource
+}
+
+moved {
+  from = aws_iam_policy.LambdaFunctionApiKeysBucketAccess
+  to   = module.sgtm-prod.aws_iam_policy.LambdaFunctionApiKeysBucketAccess
+}
+
+moved {
+  from = aws_iam_policy.lambda-function-github-usernames-to-emails-policy
+  to   = module.sgtm-prod.aws_iam_policy.lambda-function-github-usernames-to-emails-policy
+}
+
+moved {
+  from = aws_iam_role_policy_attachment.lambda-function-api-keys
+  to   = module.sgtm-prod.aws_iam_role_policy_attachment.lambda-function-api-keys
+}
+
+moved {
+  from = aws_iam_role_policy_attachment.lambda-function-cloudwatch-policy-attachment
+  to   = module.sgtm-prod.aws_iam_role_policy_attachment.lambda-function-cloudwatch-policy-attachment
+}
+
+moved {
+  from = aws_iam_role_policy_attachment.lambda-function-dynamo-db-access-policy-attachment
+  to   = module.sgtm-prod.aws_iam_role_policy_attachment.lambda-function-dynamo-db-access-policy-attachment
+}
+
+moved {
+  from = aws_iam_role_policy_attachment.lambda-function-github-usernames-to-emails-policy-attachment
+  to  = module.sgtm-prod.aws_iam_role_policy_attachment.lambda-function-github-usernames-to-emails-policy-attachment
+}
+
+moved  {
+  from = aws_lambda_permission.lambda_permission_for_sgtm_rest_api
+  to   = module.sgtm-prod.aws_lambda_permission.lambda_permission_for_sgtm_rest_api
+}
+
+moved {
+  from = aws_s3_bucket_object.lambda_code_bundle
+  to   = module.sgtm-prod.aws_s3_bucket_object.lambda_code_bundle
+}
 resource "aws_s3_bucket" "lambda_code_s3_bucket" {
   bucket = var.lambda_code_s3_bucket_name
-}
-
-resource "aws_s3_bucket_object" "lambda_code_bundle" {
-  depends_on  = [null_resource.install_python_dependencies]
-  bucket      = aws_s3_bucket.lambda_code_s3_bucket.bucket
-  key         = "sgtm_bundle.zip"
-  source      = data.archive_file.create_dist_pkg.output_path
-  source_hash = data.archive_file.create_dist_pkg.output_base64sha256
-}
-
-resource "aws_lambda_function" "sgtm" {
-  s3_bucket        = aws_s3_bucket.lambda_code_s3_bucket.bucket
-  s3_key           = aws_s3_bucket_object.lambda_code_bundle.key
-  function_name    = "sgtm"
-  role             = aws_iam_role.iam_for_lambda_function.arn
-  handler          = "src.handler.handler"
-  source_code_hash = data.archive_file.create_dist_pkg.output_base64sha256
-
-  runtime = var.lambda_runtime
-
-  timeout = var.lambda_function_timeout
-  environment {
-    variables = {
-      API_KEYS_S3_BUCKET                             = var.api_key_s3_bucket_name,
-      API_KEYS_S3_KEY                                = var.api_key_s3_object,
-      SGTM_FEATURE__AUTOMERGE_ENABLED                = var.sgtm_feature__automerge_enabled,
-      SGTM_FEATURE__AUTOCOMPLETE_ENABLED             = var.sgtm_feature__autocomplete_enabled,
-      SGTM_FEATURE__DISABLE_GITHUB_TEAM_SUBSCRIPTION = var.sgtm_feature__disable_github_team_subscription,
-      SGTM_FEATURE__ALLOW_PERSISTENT_TASK_ASSIGNEE   = var.sgtm_feature__allow_persistent_task_assignee,
-      SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS     = var.sgtm_feature__followup_review_github_users,
-      SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS      = var.sgtm_feature__check_rerun_threshold_hours,
-      SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES       = var.sgtm_feature__check_rerun_base_ref_names,
-      SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED  = var.sgtm_feature__check_rerun_on_approval_enabled
-      GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH         = var.github_usernames_to_asana_gids_s3_path
-    }
-  }
 }
 
 
@@ -103,60 +184,6 @@ resource "aws_api_gateway_rest_api" "sgtm_rest_api" {
     types = ["REGIONAL"]
   }
 }
-
-resource "aws_api_gateway_resource" "sgtm_resource" {
-  rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api.id
-  parent_id   = aws_api_gateway_rest_api.sgtm_rest_api.root_resource_id
-  path_part   = "sgtm"
-}
-
-resource "aws_api_gateway_method" "sgtm_post" {
-  rest_api_id   = aws_api_gateway_rest_api.sgtm_rest_api.id
-  resource_id   = aws_api_gateway_resource.sgtm_resource.id
-  http_method   = "POST"
-  authorization = "NONE"
-}
-
-resource "aws_api_gateway_deployment" "sgtm_deployment" {
-  depends_on  = [aws_api_gateway_integration.sgtm_lambda_integration]
-  rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api.id
-  stage_name  = "default"
-}
-
-resource "aws_api_gateway_method_response" "proxy" {
-  rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api.id
-  resource_id = aws_api_gateway_resource.sgtm_resource.id
-  http_method = aws_api_gateway_method.sgtm_post.http_method
-  status_code = "200"
-}
-
-resource "aws_api_gateway_integration" "sgtm_lambda_integration" {
-  rest_api_id             = aws_api_gateway_rest_api.sgtm_rest_api.id
-  resource_id             = aws_api_gateway_resource.sgtm_resource.id
-  http_method             = aws_api_gateway_method.sgtm_post.http_method
-  integration_http_method = "POST"
-  type                    = "AWS_PROXY"
-  uri                     = aws_lambda_function.sgtm.invoke_arn
-}
-
-resource "aws_api_gateway_integration_response" "sgtm_proxy_response" {
-  depends_on  = [aws_api_gateway_integration.sgtm_lambda_integration]
-  rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api.id
-  resource_id = aws_api_gateway_resource.sgtm_resource.id
-  http_method = aws_api_gateway_method.sgtm_post.http_method
-  status_code = aws_api_gateway_method_response.proxy.status_code
-}
-
-resource "aws_lambda_permission" "lambda_permission_for_sgtm_rest_api" {
-  statement_id  = "AllowSGTMAPIInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.sgtm.function_name
-  principal     = "apigateway.amazonaws.com"
-
-  # More: http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-control-access-using-iam-policies-to-invoke-api.html
-  source_arn = "${aws_api_gateway_rest_api.sgtm_rest_api.execution_arn}/*/${aws_api_gateway_method.sgtm_post.http_method}${aws_api_gateway_resource.sgtm_resource.path}"
-}
-
 
 ### DYNAMODB
 # ##DynamoDbSchema The DynamoDbSchema's source of truth is to be found here, in the sgtm/terraform/main.tf, except for
@@ -193,25 +220,6 @@ resource "aws_dynamodb_table" "sgtm-objects" {
 
   attribute {
     name = "github-node"
-    type = "S"
-  }
-
-  # Since this is a table that contains important data that we can't recover,
-  # adding prevent_destroy saves us from accidental updates that would destroy
-  # this resource
-  lifecycle {
-    prevent_destroy = true
-  }
-}
-
-resource "aws_dynamodb_table" "sgtm-users" {
-  name           = "sgtm-users"
-  read_capacity  = 5
-  write_capacity = 5
-  hash_key       = "github/handle"
-
-  attribute {
-    name = "github/handle"
     type = "S"
   }
 
