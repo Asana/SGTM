@@ -1,0 +1,28 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+asana = "==0.9.1"
+boto3 = "==1.26.110"
+mistune = "==2.0.3"
+pygithub = "==1.44.1"
+python-dynamodb-lock = "==0.9.1"
+requests = "==2.25.1"
+types-requests = "==2.25.1"
+sgqlc = "==8.1"
+typing-extensions = "~=4.6"
+
+[dev-packages]
+black = "==22.3.0"
+moto = "==4.1.7"
+mypy = "==1.1.1"
+types-mock = "==4.0.12"
+typeguard = ">=4"
+mypy-boto3-s3 = "~=1.34.0"
+mypy-boto3-sso = "*"
+
+[requires]
+python_version = "3.9"
+python_full_version = "3.9.19"
