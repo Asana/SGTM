@@ -2,44 +2,29 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
-import subprocess
 import sys
-from typing import Literal, Optional, Protocol, cast
+from typing import Optional, Protocol, cast
 
 import boto3
 from botocore.auth import SigV4Auth
 from botocore.awsrequest import AWSRequest
-from github import Github, GithubIntegration
+from github import Github
 from github.Auth import Auth as GithubAuthABC, TOKEN_REFRESH_THRESHOLD_TIMEDELTA
 from github.NamedUser import NamedUser
 import requests
-from typing_extensions import NotRequired, TypedDict
+from typing_extensions import TypedDict
 
-from datetime import datetime, timedelta
-import functools
+from datetime import datetime
 import json
-from pathlib import Path
-import random
 import sys
-import threading
-import time
+
 from typing import (
-    Any,
-    Callable,
-    Generic,
     Hashable,
-    MutableMapping,
     Optional,
     Protocol,
-    TextIO,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
     cast,
 )
-from typing_extensions import Concatenate, ParamSpec, TypeAlias
-import weakref
+from typing_extensions import TypeAlias
 
 from src.config import GITHUB_API_KEY
 
