@@ -177,7 +177,7 @@ resource "null_resource" "install_python_dependencies" {
   }
 
   provisioner "local-exec" {
-    command = "bash ${path.module}/../scripts/create_pkg.sh"
+    command = "bash ${path.module}/../../scripts/create_pkg.sh"
 
     environment = {
       source_code_path = "../src"
