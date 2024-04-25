@@ -11,6 +11,7 @@ import src.github.webhook as github_webhook
 
 def handler(event: dict, context: dict) -> HttpResponseDict:
     if "Records" in event:
+        # SQS event
         batch_item_failures = []
         sqs_batch_response = {}
         for record in event["Records"]:
