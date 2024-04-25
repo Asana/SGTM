@@ -187,6 +187,7 @@ resource "null_resource" "install_python_dependencies" {
       path_cwd         = path.cwd
     }
   }
+}
 
 data "archive_file" "create_dist_pkg" {
   depends_on  = [null_resource.install_python_dependencies]
