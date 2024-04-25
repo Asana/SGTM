@@ -363,8 +363,34 @@ resource "aws_api_gateway_integration" "sgtm_lambda_integration" {
   resource_id             = aws_api_gateway_resource.sgtm_resource.id
   http_method             = aws_api_gateway_method.sgtm_post.http_method
   integration_http_method = "POST"
-  type                    = "AWS_PROXY"
-  uri                     = aws_lambda_function.sgtm.invoke_arn
+  type                    = "AWS"
+  passthrough_behavior    = "NEVER"
+  credentials             = "${aws_iam_role.iam_for_api_gateway.arn}"
+  uri                     = "arn:aws:apigateway:${var.aws_region}:sqs:path/${aws_sqs_queue.sgtm-webhooks-fifo.name}"
+  request_parameters = {
+    "integration.request.header.Content-Type" = "'application/x-www-form-urlencoded'"
+  }
+
+  request_templates = {
+    "application/x-www-form-urlencoded" = <<EOT
+#set($headers=$input.params().header)
+#set($id=$headers.get("X-GitHub-Hook-ID"))
+Action=SendMessage##
+&MessageGroupId=$id##
+&MessageDeduplicationId=$id##
+&MessageAttributes.1.Name=X-GitHub-Event##
+&MessageAttributes.1.Value.DataType=String##
+&MessageAttributes.1.Value.StringValue=$util.urlEncode($headers.get("X-GitHub-Event"))##
+&MessageAttributes.2.Name=X-Hub-Signature-256##
+&MessageAttributes.2.Value.DataType=String##
+&MessageAttributes.2.Value.StringValue=$util.urlEncode($headers.get("X-Hub-Signature-256"))##
+&MessageAttributes.3.Name=X-GitHub-Delivery##
+&MessageAttributes.3.Value.DataType=String##
+&MessageAttributes.3.Value.StringValue=$util.urlEncode($headers.get("X-GitHub-Delivery"))##
+&MessageBody=$input.body
+
+EOT
+  }
 }
 
 resource "aws_api_gateway_integration_response" "sgtm_proxy_response" {
