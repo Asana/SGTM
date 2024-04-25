@@ -79,11 +79,6 @@ module "sgtm-staging-sqs" {
   sgtm_rest_api_execution_arn = aws_api_gateway_rest_api.sgtm_rest_api.execution_arn
 }
 
-moved {
-  from = aws_sqs_queue.sgtm-webhooks-fifo
-  to = module.sgtm-staging-sqs.aws_sqs_queue.sgtm-webhooks-fifo
-}
-
 resource "aws_s3_bucket" "lambda_code_s3_bucket" {
   bucket = var.lambda_code_s3_bucket_name
 }

@@ -175,7 +175,7 @@ resource "null_resource" "install_python_dependencies" {
 
     environment = {
       source_code_path = "../src"
-      function_name    = "sgtm"
+      function_name    = "sgtm${local.suffix}"
       runtime          = var.lambda_runtime
       path_cwd         = path.cwd
     }

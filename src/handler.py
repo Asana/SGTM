@@ -3,7 +3,6 @@ import hmac
 import json
 import traceback
 
-from typing import Dict
 from src.http import HttpResponse, HttpResponseDict
 from src.config import GITHUB_HMAC_SECRET
 from src.logger import logger
@@ -12,7 +11,6 @@ import src.github.webhook as github_webhook
 
 def handler(event: dict, context: dict) -> HttpResponseDict:
     if "Records" in event:
-        # SQS event
         batch_item_failures = []
         sqs_batch_response = {}
         for record in event["Records"]:
@@ -43,6 +41,7 @@ def handler(event: dict, context: dict) -> HttpResponseDict:
                     digestmod=hashlib.sha256,
                 ).hexdigest()
             )
+
             if not hmac.compare_digest(generated_signature, signature):
                 logger.error("HMAC signature mismatch, generated {}  expected {}". format(generated_signature, signature))
                 return HttpResponse("501").to_dict()
@@ -52,10 +51,11 @@ def handler(event: dict, context: dict) -> HttpResponseDict:
                 http_response = github_webhook.handle_github_webhook(event_type, webhook_body_json)
                 return http_response.to_dict()
             except Exception as _:
-                # retry failures
                 logger.error(traceback.format_exc())
+                # retry failures
                 batch_item_failures.append({"itemIdentifier": record["messageId"]})
                 sqs_batch_response["batchItemFailures"] = batch_item_failures
                 return sqs_batch_response
+
         logger.error("No valid records found in the event")
         return HttpResponse("400", "Unknown event type, event: {}".format(event)).to_dict()
