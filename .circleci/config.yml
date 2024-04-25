@@ -8,8 +8,8 @@ commands:
     steps:
       - checkout
       - python/install-packages:
-          pkg-manager: pip
-          args: -r requirements-dev.txt
+          pkg-manager: pipenv
+          args: --dev
 
 jobs:
   black:
