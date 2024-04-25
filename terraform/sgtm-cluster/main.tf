@@ -474,7 +474,7 @@ EOF
 
 resource "aws_lambda_event_source_mapping" "event_source_mapping" {
   event_source_arn = aws_sqs_queue.sgtm-webhooks-fifo.arn
-  enabled          = false
+  enabled          = true
   function_name    = aws_lambda_function.sgtm.function_name
 }
 
