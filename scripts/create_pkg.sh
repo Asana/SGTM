@@ -36,6 +36,4 @@ fi
 # Copy source code to the deployment package directory
 cp -R "$path_cwd"/"$source_code_path" "$path_cwd"/$dist_dir_name
 
-# Deactivate virtual environment...
-deactivate
 echo "Finished script execution!"
