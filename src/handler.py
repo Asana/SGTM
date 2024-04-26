@@ -17,8 +17,7 @@ def handler(event: dict, context: dict) -> HttpResponseDict:
         for record in event["Records"]:
             webhook_headers = record["messageAttributes"]
             webhook_body = record["body"]
-            logger.info(r"body:{}".format(webhook_body))
-
+            print(r"{}".format(webhook_body))
             event_type = webhook_headers.get("X-GitHub-Event").get("stringValue")
             signature = webhook_headers.get("X-Hub-Signature-256").get("stringValue")
             delivery_id = webhook_headers.get("X-GitHub-Delivery").get("stringValue")
@@ -38,7 +37,7 @@ def handler(event: dict, context: dict) -> HttpResponseDict:
                 "sha256="
                 + hmac.new(
                     bytes(secret, "utf-8"),
-                    msg=bytes(webhook_body, "utf-8"),
+                    msg=bytes(webhook_body.strip(), "utf-8"),
                     digestmod=hashlib.sha256,
                 ).hexdigest()
             )
