@@ -173,7 +173,7 @@ resource "aws_lambda_function" "sgtm" {
 
 resource "null_resource" "install_python_dependencies" {
   triggers = {
-    src_sha1 = sha1(join("", [for f in fileset(path.root, "../../src/**") : filesha1(f)]))
+    src_sha1 = sha1(join("", [for f in fileset(path.root, "../src/**") : filesha1(f)]))
   }
 
   provisioner "local-exec" {
@@ -181,7 +181,7 @@ resource "null_resource" "install_python_dependencies" {
 
     environment = {
       source_code_path = "../src"
-      PIPENV_PIPFILE   = "../src/Pipfile"
+      PIPENV_PIPFILE = replace(path.cwd, "/terraform", "/Pipfile")
       function_name    = "sgtm"
       runtime          = var.lambda_runtime
       path_cwd         = path.cwd
