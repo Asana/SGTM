@@ -22,18 +22,24 @@ pipenv install
 # Create deployment package...
 echo "Creating deployment package..."
 
-# Install dependencies to the deployment package directory
-pipenv run pip install -r <(pipenv requirements) --target $dist_dir_name
-pipenv run pip freeze | grep cryptography
-if [ $? -ne 0 ]; then
-  echo "cryptography isn't installed; will skip retrieving linux version of cryptography"
-else
-  echo "cryptography is installed; will retrieve linux version of cryptography"
-  # Install cryptography package for manylinux2014_x86_64 to the package directory
-  pipenv run pip install --platform manylinux2014_x86_64 --implementation cp --only-binary=:all: --upgrade --target $dist_dir_name cryptography
-fi
+# install dependencies into a temporary directory other than $dist_dir_name
+mkdir -p tmp
+pipenv run pip install -r <(pipenv requirements) --platform manylinux2014_x86_64 --target tmp
+# pipenv run pip freeze | grep cryptography
+# if [ $? -ne 0 ]; then
+#   echo "cryptography isn't installed; will skip retrieving linux version of cryptography"
+# else
+#   echo "cryptography is installed; will retrieve linux version of cryptography"
+#   # Install cryptography package for manylinux2014_x86_64 to the package directory
+#   pipenv run pip install --platform manylinux2014_x86_64 --implementation cp --only-binary=:all: --upgrade --target tmp cryptography
+# fi
 
 # Copy source code to the deployment package directory
 cp -R "$path_cwd"/"$source_code_path" "$path_cwd"/$dist_dir_name
+# Copy the dependencies to the deployment package directory
+cp -R tmp/* "$path_cwd"/$dist_dir_name
+
+# Remove the temporary directory
+rm -rf tmp
 
 echo "Finished script execution!"
