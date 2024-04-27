@@ -3,83 +3,81 @@ provider "aws" {
 }
 
 module "sgtm-prod" {
-  source = "./sgtm-cluster"
-  api_encryption_key_arn = aws_kms_key.api_encryption_key.arn
-  api_key_s3_bucket_name = var.api_key_s3_bucket_name
-  api_key_s3_object = var.api_key_s3_object
-  dynamodb-sgtm-lock-arn = aws_dynamodb_table.sgtm-lock.arn
-  dynamodb-sgtm-objects-arn = aws_dynamodb_table.sgtm-objects.arn
-  github_usernames_to_asana_gids_s3_path = var.github_usernames_to_asana_gids_s3_path
-  lambda_code_s3_bucket_name = var.lambda_code_s3_bucket_name
-  lambda_function_timeout = var.lambda_function_timeout
-  lambda_runtime = var.lambda_runtime
-  s3_api_key_bucket_arn = aws_s3_bucket.api_key_bucket.arn
-  sgtm_feature__allow_persistent_task_assignee = var.sgtm_feature__allow_persistent_task_assignee
-  sgtm_feature__autocomplete_enabled = var.sgtm_feature__autocomplete_enabled
-  sgtm_feature__automerge_enabled = var.sgtm_feature__automerge_enabled
-  sgtm_feature__check_rerun_base_ref_names = var.sgtm_feature__check_rerun_base_ref_names
-  sgtm_feature__check_rerun_on_approval_enabled = var.sgtm_feature__check_rerun_on_approval_enabled
-  sgtm_feature__check_rerun_threshold_hours = var.sgtm_feature__check_rerun_threshold_hours
+  source                                         = "./sgtm-cluster"
+  api_encryption_key_arn                         = aws_kms_key.api_encryption_key.arn
+  api_key_s3_bucket_name                         = var.api_key_s3_bucket_name
+  api_key_s3_object                              = var.api_key_s3_object
+  dynamodb-sgtm-lock-arn                         = aws_dynamodb_table.sgtm-lock.arn
+  dynamodb-sgtm-objects-arn                      = aws_dynamodb_table.sgtm-objects.arn
+  github_usernames_to_asana_gids_s3_path         = var.github_usernames_to_asana_gids_s3_path
+  lambda_code_s3_bucket_name                     = var.lambda_code_s3_bucket_name
+  lambda_function_timeout                        = var.lambda_function_timeout
+  lambda_runtime                                 = var.lambda_runtime
+  s3_api_key_bucket_arn                          = aws_s3_bucket.api_key_bucket.arn
+  sgtm_feature__allow_persistent_task_assignee   = var.sgtm_feature__allow_persistent_task_assignee
+  sgtm_feature__autocomplete_enabled             = var.sgtm_feature__autocomplete_enabled
+  sgtm_feature__automerge_enabled                = var.sgtm_feature__automerge_enabled
+  sgtm_feature__check_rerun_base_ref_names       = var.sgtm_feature__check_rerun_base_ref_names
+  sgtm_feature__check_rerun_on_approval_enabled  = var.sgtm_feature__check_rerun_on_approval_enabled
+  sgtm_feature__check_rerun_threshold_hours      = var.sgtm_feature__check_rerun_threshold_hours
   sgtm_feature__disable_github_team_subscription = var.sgtm_feature__disable_github_team_subscription
-  sgtm_feature__followup_review_github_users = var.sgtm_feature__followup_review_github_users
-  sgtm_rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api.id
-  sgtm_rest_api_root_resource_id = aws_api_gateway_rest_api.sgtm_rest_api.root_resource_id
-  token_retrieval_lambda_arn = var.token_retrieval_lambda_arn
-  sgtm_rest_api_execution_arn = aws_api_gateway_rest_api.sgtm_rest_api.execution_arn
+  sgtm_feature__followup_review_github_users     = var.sgtm_feature__followup_review_github_users
+  sgtm_rest_api_id                               = aws_api_gateway_rest_api.sgtm_rest_api.id
+  sgtm_rest_api_root_resource_id                 = aws_api_gateway_rest_api.sgtm_rest_api.root_resource_id
+  sgtm_rest_api_execution_arn                    = aws_api_gateway_rest_api.sgtm_rest_api.execution_arn
 }
 
 
 module "sgtm-staging" {
-  source = "./sgtm-cluster"
-  naming_suffix = "staging"
-  api_encryption_key_arn = aws_kms_key.api_encryption_key.arn
-  api_key_s3_bucket_name = var.api_key_s3_bucket_name
-  api_key_s3_object = var.api_key_s3_object
-  dynamodb-sgtm-lock-arn = aws_dynamodb_table.sgtm-lock.arn
-  dynamodb-sgtm-objects-arn = aws_dynamodb_table.sgtm-objects.arn
-  github_usernames_to_asana_gids_s3_path = var.github_usernames_to_asana_gids_s3_path
-  lambda_code_s3_bucket_name = var.lambda_code_s3_bucket_name
-  lambda_function_timeout = var.lambda_function_timeout
-  lambda_runtime = var.lambda_runtime
-  s3_api_key_bucket_arn = aws_s3_bucket.api_key_bucket.arn
-  sgtm_feature__allow_persistent_task_assignee = var.sgtm_feature__allow_persistent_task_assignee
-  sgtm_feature__autocomplete_enabled = var.sgtm_feature__autocomplete_enabled
-  sgtm_feature__automerge_enabled = var.sgtm_feature__automerge_enabled
-  sgtm_feature__check_rerun_base_ref_names = var.sgtm_feature__check_rerun_base_ref_names
-  sgtm_feature__check_rerun_on_approval_enabled = var.sgtm_feature__check_rerun_on_approval_enabled
-  sgtm_feature__check_rerun_threshold_hours = var.sgtm_feature__check_rerun_threshold_hours
+  source                                         = "./sgtm-cluster"
+  naming_suffix                                  = "staging"
+  api_encryption_key_arn                         = aws_kms_key.api_encryption_key.arn
+  api_key_s3_bucket_name                         = var.api_key_s3_bucket_name
+  api_key_s3_object                              = var.api_key_s3_object
+  dynamodb-sgtm-lock-arn                         = aws_dynamodb_table.sgtm-lock.arn
+  dynamodb-sgtm-objects-arn                      = aws_dynamodb_table.sgtm-objects.arn
+  github_usernames_to_asana_gids_s3_path         = var.github_usernames_to_asana_gids_s3_path
+  lambda_code_s3_bucket_name                     = var.lambda_code_s3_bucket_name
+  lambda_function_timeout                        = var.lambda_function_timeout
+  lambda_runtime                                 = var.lambda_runtime
+  s3_api_key_bucket_arn                          = aws_s3_bucket.api_key_bucket.arn
+  sgtm_feature__allow_persistent_task_assignee   = var.sgtm_feature__allow_persistent_task_assignee
+  sgtm_feature__autocomplete_enabled             = var.sgtm_feature__autocomplete_enabled
+  sgtm_feature__automerge_enabled                = var.sgtm_feature__automerge_enabled
+  sgtm_feature__check_rerun_base_ref_names       = var.sgtm_feature__check_rerun_base_ref_names
+  sgtm_feature__check_rerun_on_approval_enabled  = var.sgtm_feature__check_rerun_on_approval_enabled
+  sgtm_feature__check_rerun_threshold_hours      = var.sgtm_feature__check_rerun_threshold_hours
   sgtm_feature__disable_github_team_subscription = var.sgtm_feature__disable_github_team_subscription
-  sgtm_feature__followup_review_github_users = var.sgtm_feature__followup_review_github_users
-  sgtm_rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api.id
-  sgtm_rest_api_root_resource_id = aws_api_gateway_rest_api.sgtm_rest_api.root_resource_id
-  token_retrieval_lambda_arn = var.token_retrieval_lambda_arn
-  sgtm_rest_api_execution_arn = aws_api_gateway_rest_api.sgtm_rest_api.execution_arn
+  sgtm_feature__followup_review_github_users     = var.sgtm_feature__followup_review_github_users
+  sgtm_rest_api_id                               = aws_api_gateway_rest_api.sgtm_rest_api.id
+  sgtm_rest_api_root_resource_id                 = aws_api_gateway_rest_api.sgtm_rest_api.root_resource_id
+  sgtm_rest_api_execution_arn                    = aws_api_gateway_rest_api.sgtm_rest_api.execution_arn
 }
 
 module "sgtm-staging-sqs" {
-  source = "./sgtm-cluster"
-  naming_suffix = "staging_sqs"
-  api_encryption_key_arn = aws_kms_key.api_encryption_key.arn
-  api_key_s3_bucket_name = var.api_key_s3_bucket_name
-  api_key_s3_object = var.api_key_s3_object
-  dynamodb-sgtm-lock-arn = aws_dynamodb_table.sgtm-lock.arn
-  dynamodb-sgtm-objects-arn = aws_dynamodb_table.sgtm-objects.arn
-  github_usernames_to_asana_gids_s3_path = var.github_usernames_to_asana_gids_s3_path
-  lambda_code_s3_bucket_name = var.lambda_code_s3_bucket_name
-  lambda_function_timeout = var.lambda_function_timeout
-  lambda_runtime = var.lambda_runtime
-  s3_api_key_bucket_arn = aws_s3_bucket.api_key_bucket.arn
-  sgtm_feature__allow_persistent_task_assignee = var.sgtm_feature__allow_persistent_task_assignee
-  sgtm_feature__autocomplete_enabled = var.sgtm_feature__autocomplete_enabled
-  sgtm_feature__automerge_enabled = var.sgtm_feature__automerge_enabled
-  sgtm_feature__check_rerun_base_ref_names = var.sgtm_feature__check_rerun_base_ref_names
-  sgtm_feature__check_rerun_on_approval_enabled = var.sgtm_feature__check_rerun_on_approval_enabled
-  sgtm_feature__check_rerun_threshold_hours = var.sgtm_feature__check_rerun_threshold_hours
+  source                                         = "./sgtm-cluster"
+  naming_suffix                                  = "staging_sqs"
+  api_encryption_key_arn                         = aws_kms_key.api_encryption_key.arn
+  api_key_s3_bucket_name                         = var.api_key_s3_bucket_name
+  api_key_s3_object                              = var.api_key_s3_object
+  dynamodb-sgtm-lock-arn                         = aws_dynamodb_table.sgtm-lock.arn
+  dynamodb-sgtm-objects-arn                      = aws_dynamodb_table.sgtm-objects.arn
+  github_usernames_to_asana_gids_s3_path         = var.github_usernames_to_asana_gids_s3_path
+  lambda_code_s3_bucket_name                     = var.lambda_code_s3_bucket_name
+  lambda_function_timeout                        = var.lambda_function_timeout
+  lambda_runtime                                 = var.lambda_runtime
+  s3_api_key_bucket_arn                          = aws_s3_bucket.api_key_bucket.arn
+  sgtm_feature__allow_persistent_task_assignee   = var.sgtm_feature__allow_persistent_task_assignee
+  sgtm_feature__autocomplete_enabled             = var.sgtm_feature__autocomplete_enabled
+  sgtm_feature__automerge_enabled                = var.sgtm_feature__automerge_enabled
+  sgtm_feature__check_rerun_base_ref_names       = var.sgtm_feature__check_rerun_base_ref_names
+  sgtm_feature__check_rerun_on_approval_enabled  = var.sgtm_feature__check_rerun_on_approval_enabled
+  sgtm_feature__check_rerun_threshold_hours      = var.sgtm_feature__check_rerun_threshold_hours
   sgtm_feature__disable_github_team_subscription = var.sgtm_feature__disable_github_team_subscription
-  sgtm_feature__followup_review_github_users = var.sgtm_feature__followup_review_github_users
-  sgtm_rest_api_id = aws_api_gateway_rest_api.sgtm_rest_api.id
-  sgtm_rest_api_root_resource_id = aws_api_gateway_rest_api.sgtm_rest_api.root_resource_id
-  sgtm_rest_api_execution_arn = aws_api_gateway_rest_api.sgtm_rest_api.execution_arn
+  sgtm_feature__followup_review_github_users     = var.sgtm_feature__followup_review_github_users
+  sgtm_rest_api_id                               = aws_api_gateway_rest_api.sgtm_rest_api.id
+  sgtm_rest_api_root_resource_id                 = aws_api_gateway_rest_api.sgtm_rest_api.root_resource_id
+  sgtm_rest_api_execution_arn                    = aws_api_gateway_rest_api.sgtm_rest_api.execution_arn
 }
 
 moved {
@@ -154,7 +152,7 @@ moved {
 
 moved {
   from = aws_api_gateway_resource.sgtm_resource
-  to  = module.sgtm-prod.aws_api_gateway_resource.sgtm_resource
+  to   = module.sgtm-prod.aws_api_gateway_resource.sgtm_resource
 }
 
 moved {
@@ -184,10 +182,10 @@ moved {
 
 moved {
   from = aws_iam_role_policy_attachment.lambda-function-github-usernames-to-emails-policy-attachment
-  to  = module.sgtm-prod.aws_iam_role_policy_attachment.lambda-function-github-usernames-to-emails-policy-attachment
+  to   = module.sgtm-prod.aws_iam_role_policy_attachment.lambda-function-github-usernames-to-emails-policy-attachment
 }
 
-moved  {
+moved {
   from = aws_lambda_permission.lambda_permission_for_sgtm_rest_api
   to   = module.sgtm-prod.aws_lambda_permission.lambda_permission_for_sgtm_rest_api
 }

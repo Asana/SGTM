@@ -171,6 +171,10 @@ resource "aws_lambda_function" "sgtm" {
   }
 }
 
+locals {
+  dist_dir_name = "lambda_dist_pkg/${var.naming_suffix}"
+}
+
 resource "null_resource" "install_python_dependencies" {
   triggers = {
     src_sha1 = sha1(join("", [for f in fileset(path.root, "../src/**") : filesha1(f)]))
@@ -181,18 +185,19 @@ resource "null_resource" "install_python_dependencies" {
 
     environment = {
       source_code_path = "../src"
-      PIPENV_PIPFILE = replace(path.cwd, "/terraform", "/Pipfile")
+      PIPENV_PIPFILE   = replace(path.cwd, "/terraform", "/Pipfile")
       function_name    = "sgtm"
       runtime          = var.lambda_runtime
       path_cwd         = path.cwd
+      dist_dir_name    = local.dist_dir_name
     }
   }
 }
 
 data "archive_file" "create_dist_pkg" {
   depends_on  = [null_resource.install_python_dependencies]
-  source_dir  = "${path.cwd}/lambda_dist_pkg/"
-  output_path = "build/function.zip"
+  source_dir  = "${path.cwd}/${local.dist_dir_name}"
+  output_path = "build/${var.naming_suffix}/function.zip"
   type        = "zip"
 }
 
@@ -261,20 +266,6 @@ resource "aws_iam_policy" "lambda-function-cloudwatch-policy" {
 EOF
 }
 
-data "aws_iam_policy_document" "lambda-function-github-token-retrieval-lambda-policy" {
-  count = var.token_retrieval_lambda_arn != null ? 1 : 0
-  statement {
-    actions = ["lambda:InvokeFunction"]
-    resources = [var.token_retrieval_lambda_arn]
-  }
-}
-
-# Gives the lambda function permissions to invoke the function URL for the
-# custom github token retrieval lambda function
-resource "aws_iam_policy" "lambda-function-github-token-retrieval-lambda-policy" {
-  count  = var.token_retrieval_lambda_arn != null ? 1 : 0
-  policy = data.aws_iam_policy_document.lambda-function-github-token-retrieval-lambda-policy[0].json
-}
 
 resource "aws_iam_role" "iam_for_lambda_function" {
   name = "iam_for_lambda${local.suffix}"
@@ -310,11 +301,6 @@ resource "aws_iam_role_policy_attachment" "lambda-function-api-keys" {
   policy_arn = aws_iam_policy.LambdaFunctionApiKeysBucketAccess.arn
 }
 
-resource "aws_iam_role_policy_attachment" "lambda-function-github-token_retrieval_lambda" {
-  count  = var.token_retrieval_lambda_arn != null ? 1 : 0
-  role       = aws_iam_role.iam_for_lambda_function.name
-  policy_arn = aws_iam_policy.lambda-function-github-token-retrieval-lambda-policy[0].arn
-}
 
 resource "aws_iam_policy" "LambdaFunctionApiKeysBucketAccess" {
   policy = <<EOF
