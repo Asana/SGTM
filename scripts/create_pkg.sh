@@ -24,7 +24,7 @@ echo "Creating deployment package..."
 
 # install dependencies into a temporary directory other than $dist_dir_name
 mkdir -p tmp
-pipenv run pip install -r <(pipenv requirements) --platform manylinux2014_x86_64 --target tmp
+pipenv run pip install -r <(pipenv requirements) --platform manylinux2014_x86_64 --only-binary=:all: --target tmp
 # pipenv run pip freeze | grep cryptography
 # if [ $? -ne 0 ]; then
 #   echo "cryptography isn't installed; will skip retrieving linux version of cryptography"
