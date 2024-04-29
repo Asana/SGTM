@@ -4,12 +4,6 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
-variable "token_retrieval_lambda_arn" {
-  description = "The ARN of the Lambda function that retrieves the GitHub token"
-  default     = null
-  type        = string
-}
-
 variable "dynamodb-sgtm-lock-arn" {
   description = "The ARN of the DynamoDB table to store SGTM locks"
   type        = string
