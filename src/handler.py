@@ -81,5 +81,6 @@ def handler(event: dict, context: dict) -> HttpResponseDict:
         handle_github_webhook(event_type, delivery_id, github_event, should_retry=True)
 
 
-    logger.error("Unknown event type")
-    return HttpResponse("400", "Unknown event type, event: {}".format(event)).to_dict()
+    error_message = "Unknown event type, event: {}".format(event)
+    logger.error(error_message)
+    return HttpResponse("400", error_message).to_dict()
