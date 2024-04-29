@@ -14,6 +14,7 @@ OBJECTS_TABLE = os.getenv("OBJECTS_TABLE", "sgtm-objects")
 GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH = os.getenv(
     "GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH",
 )
+SQS_URL = os.getenv("SQS_URL")
 
 # Feature flags
 def is_feature_flag_enabled(flag_name: str) -> bool:
