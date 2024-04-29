@@ -362,7 +362,9 @@ def _maybe_rerun_stale_checks(pull_request: PullRequest) -> bool:
     logger.info(f"Looking for check runs older than {freshness_date}")
     for check_suite in pull_request.commits()[0].check_suites():
         for check_run in check_suite.check_runs():
-            is_check_run_stale = check_run.completed_at() < freshness_date
+            check_run_completion_time = check_run.completed_at()
+            # if check run hasn't completed yet, it is still running so is not stale
+            is_check_run_stale = (check_run_completion_time < freshness_date) if check_run_completion_time else False
             logger.info(
                 f"Check Run {check_run.database_id()} is {'' if is_check_run_stale else 'not '}stale"
             )
