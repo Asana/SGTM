@@ -1,3 +1,4 @@
+# pyright: basic
 from typing import Tuple, FrozenSet, Optional
 from sgqlc.endpoint.http import HTTPEndpoint  # type: ignore
 from src.github.get_app_token import sgtm_github_auth
