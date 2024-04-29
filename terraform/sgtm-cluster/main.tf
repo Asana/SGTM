@@ -349,19 +349,27 @@ EOF
 }
 
 data "aws_iam_policy_document" "token-retrieval-lambda-policy-doc" {
+  count = var.token_retrieval_lambda_arn != null ? 1 : 0
   statement {
     actions = ["lambda:InvokeFunctionUrl"]
     resources = [var.token_retrieval_lambda_arn]
   }
 }
 
-resource "aws_iam_policy" "lambda-function-token-retrieval-policy" {
-  policy = data.aws_iam_policy_document.token-retrieval-lambda-policy-doc.json
+resource "aws_iam_policy" "lambda-function-github-token-retrieval-lambda-policy" {
+  count = var.token_retrieval_lambda_arn != null ? 1 : 0
+  policy = data.aws_iam_policy_document.token-retrieval-lambda-policy-doc[0].json
 }
 
 resource "aws_iam_role_policy_attachment" "lambda-function-token-retrieval-policy-attachment" {
+  count = var.token_retrieval_lambda_arn != null ? 1 : 0
   role       = aws_iam_role.iam_for_lambda_function.name
-  policy_arn = aws_iam_policy.lambda-function-token-retrieval-policy.arn
+  policy_arn = aws_iam_policy.lambda-function-github-token-retrieval-lambda-policy[0].arn
+}
+
+resource "aws_iam_role_policy_attachment" "lambda-function-github-token_retrieval_lambda" {
+  role       = aws_iam_role.iam_for_lambda_function.name
+  policy_arn = aws_iam_policy.lambda-function-github-usernames-to-emails-policy.arn
 }
 
 resource "aws_iam_role_policy_attachment" "lambda-function-github-usernames-to-emails-policy-attachment" {
