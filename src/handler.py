@@ -11,7 +11,7 @@ import src.github.webhook as github_webhook
 
 
 def handle_github_webhook(
-    event_type: str, delivery_id: str, github_event: dict, should_retry: bool = False
+    event_type: str, delivery_id: str, webhook_body: str, should_retry: bool = False
 ) -> HttpResponseDict:
     logger.info(f"Webhook delivery id: {delivery_id}")
 
@@ -22,6 +22,7 @@ def handle_github_webhook(
         ).to_dict()
 
     try:
+        github_event = json.loads(webhook_body)
         http_response = github_webhook.handle_github_webhook(event_type, github_event)
         # testing
         if should_retry:
@@ -35,7 +36,7 @@ def handle_github_webhook(
             sqs = boto3.client("sqs")
             sqs.send_message(
                 QueueUrl=SQS_URL,
-                MessageBody=github_event,
+                MessageBody=webhook_body,
                 MessageGroupId=delivery_id,
                 MessageAttributes={
                     "X-GitHub-Event": {"DataType": "String", "StringValue": event_type},
@@ -56,8 +57,7 @@ def handler(event: dict, context: dict) -> HttpResponseDict:
             webhook_headers = record["messageAttributes"]
             event_type = webhook_headers.get("X-GitHub-Event").get("stringValue")
             delivery_id = webhook_headers.get("X-GitHub-Delivery").get("stringValue")
-            github_event = json.loads(record["body"])
-            handle_github_webhook(event_type, delivery_id, github_event)
+            handle_github_webhook(event_type, delivery_id, record["body"])
         return HttpResponse("200").to_dict()
 
     if "headers" in event:
@@ -81,9 +81,8 @@ def handler(event: dict, context: dict) -> HttpResponseDict:
         if not hmac.compare_digest(generated_signature, signature):
             return HttpResponse("501").to_dict()
 
-        github_event = json.loads(event["body"])
         return handle_github_webhook(
-            event_type, delivery_id, github_event, should_retry=True
+            event_type, delivery_id, record["body"], should_retry=True
         )
 
     error_message = "Unknown event type, event: {}".format(event)
