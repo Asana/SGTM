@@ -1,4 +1,5 @@
 from html import escape
+import os
 from unittest.mock import MagicMock, patch
 import src.asana.helpers
 from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
@@ -6,6 +7,7 @@ from test.impl.builders import builder, build
 from test.test_utils import magic_mock_with_return_type_value
 
 
+@patch.dict(os.environ, {"GITHUB_API_KEY": "test_key"}, clear=True)
 @patch(
     "src.dynamodb.client.get_asana_domain_user_id_from_github_handle",
     magic_mock_with_return_type_value(
