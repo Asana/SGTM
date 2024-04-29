@@ -1,6 +1,5 @@
 from html import escape
-import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from src.asana.helpers import asana_comment_from_github_comment
 from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 from test.impl.builders import builder, build
