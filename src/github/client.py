@@ -1,7 +1,7 @@
 import requests
 from requests.auth import HTTPBasicAuth
 
-from github import Github, PullRequest  # type: ignore
+from github import PullRequest  # type: ignore
 from src.github.get_app_token import sgtm_github_auth
 
 gh_client = sgtm_github_auth.get_client()
