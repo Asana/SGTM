@@ -413,7 +413,8 @@ resource "aws_sqs_queue" "sgtm-webhooks-queue-fifo" {
   name = "sgtm-webhooks-queue${local.suffix}.fifo"
   fifo_queue = true
   content_based_deduplication = true
-  visibility_timeout_seconds = 720
+  visibility_timeout_seconds = 720  # 12 minutes
+  message_retention_seconds = 1800  # 30 minutes
 }
 
 data "aws_iam_policy_document" "lambda_permissions_for_sqs" {
@@ -426,6 +427,11 @@ data "aws_iam_policy_document" "lambda_permissions_for_sqs" {
       aws_sqs_queue.sgtm-webhooks-queue-fifo.arn
     ]
   }
+}
+
+resource "aws_lambda_event_source_mapping" "sgtm-sqs-source" {
+  event_source_arn = aws_sqs_queue.sgtm-webhooks-queue-fifo.arn
+  function_name    = aws_lambda_function.sgtm.function_name
 }
 
 resource "aws_iam_policy" "lambda_permissions_for_sqs" {

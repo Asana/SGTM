@@ -22,11 +22,11 @@ def handle_github_webhook(
         ).to_dict()
 
     try:
-        github_event = json.loads(webhook_body)
-        http_response = github_webhook.handle_github_webhook(event_type, github_event)
         # testing
         if should_retry:
             raise Exception("testing")
+        github_event = json.loads(webhook_body)
+        http_response = github_webhook.handle_github_webhook(event_type, github_event)
         return http_response.to_dict()
     except Exception as error:
         logger.error(traceback.format_exc())
@@ -82,7 +82,7 @@ def handler(event: dict, context: dict) -> HttpResponseDict:
             return HttpResponse("501").to_dict()
 
         return handle_github_webhook(
-            event_type, delivery_id, record["body"], should_retry=True
+            event_type, delivery_id, event["body"], should_retry=True
         )
 
     error_message = "Unknown event type, event: {}".format(event)
