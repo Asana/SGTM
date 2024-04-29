@@ -10,7 +10,6 @@ commands:
       - python/install-packages:
           pkg-manager: pipenv
           args: --dev
-          pypi-cache: false
 
 jobs:
   black:
