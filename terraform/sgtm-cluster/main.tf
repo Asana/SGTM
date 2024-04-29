@@ -127,6 +127,11 @@ variable "sgtm_rest_api_execution_arn" {
 
 }
 
+variable "token_retrieval_lambda_arn" {
+  type        = string
+  description = "ARN of the Lambda function that retrieves Github token"
+}
+
 locals {
   suffix = var.naming_suffix != null ? "_${var.naming_suffix}" : ""
 }
