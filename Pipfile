@@ -22,7 +22,7 @@ types-mock = "==4.0.12"
 typeguard = ">=4"
 mypy-boto3-s3 = "~=1.34.0"
 mypy-boto3-sso = "*"
-boto3-stubs[sqs] = "*"
+boto3-stubs = "*"
 
 [requires]
 python_version = "3.9"
