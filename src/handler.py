@@ -12,7 +12,7 @@ import src.github.webhook as github_webhook
 
 def handle_github_webhook(
     event_type: str, delivery_id: str, github_event: dict, should_retry: bool = False
-) -> HttpResponse:
+) -> HttpResponseDict:
     logger.info(f"Webhook delivery id: {delivery_id}")
 
     if not event_type:
@@ -79,8 +79,9 @@ def handler(event: dict, context: dict) -> HttpResponseDict:
             return HttpResponse("501").to_dict()
 
         github_event = json.loads(event["body"])
-        response = handle_github_webhook(event_type, delivery_id, github_event, should_retry=True)
-        return response.to_dict()
+        return handle_github_webhook(
+            event_type, delivery_id, github_event, should_retry=True
+        )
 
     error_message = "Unknown event type, event: {}".format(event)
     logger.error(error_message)
