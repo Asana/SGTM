@@ -23,6 +23,9 @@ def handle_github_webhook(
 
     try:
         http_response = github_webhook.handle_github_webhook(event_type, github_event)
+        # testing
+        if should_retry:
+            raise Exception("testing")
         return http_response.to_dict()
     except Exception as error:
         logger.error(traceback.format_exc())
