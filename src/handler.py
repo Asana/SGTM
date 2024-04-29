@@ -9,7 +9,10 @@ from src.config import GITHUB_HMAC_SECRET, SQS_URL
 from src.logger import logger
 import src.github.webhook as github_webhook
 
-def handle_github_webhook(event_type: str, delivery_id: str, github_event: dict, should_retry: bool = False) -> HttpResponse:
+
+def handle_github_webhook(
+    event_type: str, delivery_id: str, github_event: dict, should_retry: bool = False
+) -> HttpResponse:
     logger.info(f"Webhook delivery id: {delivery_id}")
 
     if not event_type:
@@ -26,23 +29,21 @@ def handle_github_webhook(event_type: str, delivery_id: str, github_event: dict,
         if should_retry:
             logger.info("Sending webhook to SQS")
             # retry failures
-            sqs = boto3.client('sqs')
+            sqs = boto3.client("sqs")
             sqs.send_message(
                 QueueUrl=SQS_URL,
                 MessageBody=github_event,
                 MessageGroupId=delivery_id,
                 MessageAttributes={
-                    "X-GitHub-Event": {
-                        "DataType": "String",
-                        "StringValue": event_type
-                    },
+                    "X-GitHub-Event": {"DataType": "String", "StringValue": event_type},
                     "X-GitHub-Delivery": {
                         "DataType": "String",
-                        "StringValue": delivery_id
-                    }
-                }
+                        "StringValue": delivery_id,
+                    },
+                },
             )
         return HttpResponse("500", str(error)).to_dict()
+
 
 def handler(event: dict, context: dict) -> HttpResponseDict:
     if "Records" in event:
@@ -78,8 +79,8 @@ def handler(event: dict, context: dict) -> HttpResponseDict:
             return HttpResponse("501").to_dict()
 
         github_event = json.loads(event["body"])
-        handle_github_webhook(event_type, delivery_id, github_event, should_retry=True)
-
+        response = handle_github_webhook(event_type, delivery_id, github_event, should_retry=True)
+        return response.to_dict()
 
     error_message = "Unknown event type, event: {}".format(event)
     logger.error(error_message)
