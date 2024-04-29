@@ -348,6 +348,22 @@ resource "aws_iam_policy" "lambda-function-github-usernames-to-emails-policy" {
 EOF
 }
 
+data "aws_iam_policy_document" "token-retrieval-lambda-policy-doc" {
+  statement {
+    actions = ["lambda:InvokeFunctionUrl"]
+    resources = [var.token_retrieval_lambda_arn]
+  }
+}
+
+resource "aws_iam_policy" "lambda-function-token-retrieval-policy" {
+  policy = data.aws_iam_policy_document.token-retrieval-lambda-policy-doc.json
+}
+
+resource "aws_iam_role_policy_attachment" "lambda-function-token-retrieval-policy-attachment" {
+  role       = aws_iam_role.iam_for_lambda_function.name
+  policy_arn = aws_iam_policy.lambda-function-token-retrieval-policy.arn
+}
+
 resource "aws_iam_role_policy_attachment" "lambda-function-github-usernames-to-emails-policy-attachment" {
   role       = aws_iam_role.iam_for_lambda_function.name
   policy_arn = aws_iam_policy.lambda-function-github-usernames-to-emails-policy.arn

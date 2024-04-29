@@ -115,3 +115,8 @@ variable "sgtm_feature__check_rerun_on_approval_enabled" {
   description = "'true' if a check rerun should be rerequested when a PR is approved. Must be combined with sgtm_feature__check_rerun_base_ref_names and sgtm_feature__check_rerun_threshold_hours."
   default     = "false"
 }
+
+variable "token_retrieval_lambda_arn" {
+  type        = string
+  description = "ARN of the Lambda function that retrieves Github token"
+}

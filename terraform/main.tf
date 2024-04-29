@@ -25,6 +25,7 @@ module "sgtm-prod" {
   sgtm_rest_api_id                               = aws_api_gateway_rest_api.sgtm_rest_api.id
   sgtm_rest_api_root_resource_id                 = aws_api_gateway_rest_api.sgtm_rest_api.root_resource_id
   sgtm_rest_api_execution_arn                    = aws_api_gateway_rest_api.sgtm_rest_api.execution_arn
+  token_retrieval_lambda_arn                     = var.token_retrieval_lambda_arn
 }
 
 
@@ -52,6 +53,7 @@ module "sgtm-staging" {
   sgtm_rest_api_id                               = aws_api_gateway_rest_api.sgtm_rest_api.id
   sgtm_rest_api_root_resource_id                 = aws_api_gateway_rest_api.sgtm_rest_api.root_resource_id
   sgtm_rest_api_execution_arn                    = aws_api_gateway_rest_api.sgtm_rest_api.execution_arn
+  token_retrieval_lambda_arn                     = var.token_retrieval_lambda_arn
 }
 
 resource "aws_s3_bucket" "lambda_code_s3_bucket" {
