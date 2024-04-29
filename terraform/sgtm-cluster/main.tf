@@ -422,6 +422,8 @@ data "aws_iam_policy_document" "lambda_permissions_for_sqs" {
     actions = [
       "sqs:SendMessage",
       "sqs:ReceiveMessage",
+      "sqs:DeleteMessage",
+      "sqs:GetQueueAttributes"
     ]
     resources = [
       aws_sqs_queue.sgtm-webhooks-queue-fifo.arn

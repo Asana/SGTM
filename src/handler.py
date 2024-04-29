@@ -22,9 +22,6 @@ def handle_github_webhook(
         ).to_dict()
 
     try:
-        # testing
-        if should_retry:
-            raise Exception("testing")
         github_event = json.loads(webhook_body)
         http_response = github_webhook.handle_github_webhook(event_type, github_event)
         return http_response.to_dict()
