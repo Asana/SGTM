@@ -6,37 +6,32 @@ set -e # Exit immediately if a command exits with a non-zero status.
 
 echo "Executing create_pkg.sh..."
 
+echo "Source code path is set to $source_code_path"
 cd $path_cwd
-dir_name=lambda_dist_pkg/
-mkdir -p $dir_name
+# PIPENV_PIPFILE=$path_cwd/Pipfile
+dist_dir_name=lambda_dist_pkg/
+echo "$PIPENV_PIPFILE"
 
-# Create and activate virtual environment...
-$runtime -m venv env_$function_name
-source $path_cwd/env_$function_name/bin/activate
+echo "Creating directory $dist_dir_name within $path_cwd..."
+mkdir -p $dist_dir_name
 
-# Installing python dependencies...
-FILE=$path_cwd/../requirements.txt
-
-if [ -f "$FILE" ]; then
-  echo "Installing dependencies..."
-  echo "From: requirements.txt file exists..."
-  pip3 install -r "$FILE"
-
-else
-  echo "Error: requirements.txt does not exist!"
-fi
-
-# Deactivate virtual environment...
-deactivate
+# Create and activate virtual environment, and install python dependencies...
+# echo "Creating and activating virtual environment..."
+pipenv install
 
 # Create deployment package...
 echo "Creating deployment package..."
-cd env_$function_name/lib/$runtime/site-packages/
-cp -r . $path_cwd/$dir_name
-cp -r $path_cwd/$source_code_path $path_cwd/$dir_name
 
-# Removing virtual environment folder...
-echo "Removing virtual environment folder..."
-rm -rf $path_cwd/env_$function_name
+# install dependencies into a temporary directory other than $dist_dir_name
+mkdir -p tmp
+pipenv run pip install -r <(pipenv requirements) --platform manylinux2014_x86_64 --only-binary=:all: --target tmp
+
+# Copy source code to the deployment package directory
+cp -R "$path_cwd"/"$source_code_path" "$path_cwd"/$dist_dir_name
+# Copy the dependencies to the deployment package directory
+cp -R tmp/* "$path_cwd"/$dist_dir_name
+
+# Remove the temporary directory
+rm -rf tmp
 
 echo "Finished script execution!"

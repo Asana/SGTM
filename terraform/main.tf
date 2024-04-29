@@ -162,6 +162,7 @@ resource "null_resource" "install_python_dependencies" {
 
     environment = {
       source_code_path = "../src"
+      PIPENV_PIPFILE   = replace(path.cwd, "/terraform", "/Pipfile")
       function_name    = "sgtm"
       runtime          = var.lambda_runtime
       path_cwd         = path.cwd

@@ -10,8 +10,8 @@ You will need to set some overrides specific to your deployment -- mostly due to
 ### Installation
 We recommend setting up a virtual environment to install and run your python environment. By doing so, you can eliminate
 the risk that SGTM's python dependencies and settings will be mixed up with any such dependencies and settings that you
-may be using in other projects. Once you have that activated (see [Installing a Virtual Environment for Python](#installing-a-virtual-environment-for-python) below),
-you should install all required python dependencies using `pip3 install -r requirements.txt -r requirements-dev.txt`.
+may be using in other projects. Once you install `pipenv` (see [Installing a Virtual Environment for Python](#installing-a-virtual-environment-for-python) below),
+you should install all required python dependencies using `pipenv install`.
 
 ### Install Terraform
 You'll need to [install Terraform](https://learn.hashicorp.com/tutorials/terraform/install-cli) to launch the infrastructure for SGTM.
@@ -178,27 +178,25 @@ SGTM can use Github API to rerun Check Runs on pull requests with a specified ba
 
 ## Installing a Virtual Environment for Python
 
-See [these instructions](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) for help in
-setting up a virtual environment for Python, or use the following TL;DR version:
+We recommend using `pipenv` to manage your python environment for SGTM. We've checked in a `Pipfile` and `Pipfile.lock` to make this easier for you. If you have `pipenv` installed, `cd` into the SGTM directory, and run `pipenv install` to install all dependencies. If you don't have `pipenv` installed, you can install it via `pip install pipenv`.
 
-* run `python3 -m venv v-env` to create a virtual environment
-* run `source v-env/bin/activate` to activate and enter your virtual environment
-* once activated, run `deactivate` to deactivate and leave your virtual environment
+You can then run `pipenv shell` to enter the virtual environment from a specific shell session. Run `exit` to leave it.
+Alternatively, you don't have to 'enter' the virtual environment - you can instead run a command inside the virtual environment by prefixing the command with `pipenv run`.
 
 ## Manual Testing
 Because SGTM doesn't currently support a "staging" deployment to test changes, manual testing is still recommended for changes you will be making. Here are step-by-step instructions on how to test manually/locally:
 
 1. Create a [Personal Access Token](https://developers.asana.com/docs/personal-access-token) in Asana. Copy that token and export it in your shell environment (`export ASANA_API_KEY=<your_asana_personal_access_token>`)
 1. Create a Github Personal Access Token as per the instrucitons in the [Github](#github) section above. Export that token in your shell environment (`export GITHUB_API_KEY=<your_github_personal_access_token>`)
-1. Follow the instructions in [Installing a Virtual Environment for Python](#installing-a-virtual-environment-for-python), and then after activating the virtual environment, `pip install -r requirements.txt -r requirements-dev.txt`
-1. Open up a `python` REPL in the `SGTM` root directory (or use `ipython`, but you'll have to `pip install ipython` first)
-1. Run the function you want to test. It's usually fine / recommended to skip the DynamoDb locking when testing locally, since you usually won't be needing to test that. Here's an example of how to test updating a pull request:
+2. Follow the instructions in [Installing a Virtual Environment for Python](#installing-a-virtual-environment-for-python) to install necessary requirements.
+3. Open up a `python` REPL in the `SGTM` root directory (or use `ipython`, but you'll have to `pipenv install ipython` first)
+4. Run the function you want to test. It's usually fine / recommended to skip the DynamoDb locking when testing locally, since you usually won't be needing to test that. Here's an example of how to test updating a pull request:
     1. Note what code you want to test. In this case, we want to go to [src/github/webhook.py](/src/github/webhook.py) and look at `_handle_pull_request_webhook`. It looks like we need an `pull_request_id`.
-    1. Get the `pull_request_id`. One easy way to do this is to run a command like this `curl -i -u <github_username>:$GITHUB_API_KEY https://api.github.com/repos/asana/sgtm/pulls/123` and then grab the `node_id` from that response.
-    1. Open up your REPL. Import the function you want to test (in this case: `import src.github.controller as github_controller; import src.github.graphql.client as graphql_client`)
-    1. Run the code! In this case:
+    2. Get the `pull_request_id`. One easy way to do this is to run a command like this `curl -i -u <github_username>:$GITHUB_API_KEY https://api.github.com/repos/asana/sgtm/pulls/123` and then grab the `node_id` from that response.
+    3. Open up your REPL. Import the function you want to test (in this case: `import src.github.controller as github_controller; import src.github.graphql.client as graphql_client`)
+    4. Run the code! In this case:
         1. `pull_request = graphql_client.get_pull_request(<pull_request_id>)`
-        1. `github_controller.upsert_pull_request(pull_request)`
+        2. `github_controller.upsert_pull_request(pull_request)`
 
 ## Running Tests
 

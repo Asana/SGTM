@@ -8,8 +8,8 @@ commands:
     steps:
       - checkout
       - python/install-packages:
-          pkg-manager: pip
-          args: -r requirements-dev.txt
+          pkg-manager: pipenv
+          args: --dev
 
 jobs:
   black:
@@ -18,7 +18,7 @@ jobs:
     steps:
       - setup
       - run:
-          command: black --check src test scripts
+          command: pipenv run black --check src test scripts
 
   mypy:
     docker:
@@ -26,7 +26,7 @@ jobs:
     steps:
       - setup
       - run:
-          command: mypy src test scripts
+          command: pipenv run mypy src test scripts
 
   test:
     docker:
@@ -34,10 +34,11 @@ jobs:
     steps:
       - setup
       - run:
-          command: python3 -m unittest discover
+          command: pipenv run python3 -m unittest discover
           name: Test
           environment:
             AWS_DEFAULT_REGION: us-east-1
+            GITHUB_API_KEY: test-key
 
 workflows:
   main:
