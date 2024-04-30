@@ -17,7 +17,7 @@ class CheckRunBuilder(BuilderBaseClass):
     def completed_at(
         self, completed_at: Union[str, datetime]
     ) -> Union["CheckRunBuilder", CheckRun]:
-        self.raw_check_run["completedAt"] = transform_datetime(completed_at)
+        self.raw_check_run["completedAt"] = transform_datetime(completed_at) if completed_at else completed_at
         return self
 
     def build(self) -> CheckRun:
