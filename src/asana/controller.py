@@ -5,7 +5,6 @@ from . import logic as asana_logic
 from src.github.models import Comment, PullRequest, Review
 from src.logger import logger
 from src.dynamodb import client as dynamodb_client
-from src.github import helpers as github_helpers
 
 
 def create_task(repository_id: str) -> Optional[str]:
@@ -43,16 +42,14 @@ def update_task(
         update_task_fields["due_on"] = new_due_on
     asana_client.update_task(task_id, update_task_fields)
     # Add followers is optional because Asana should automatically add followers
-    # if the body contains well-formatted data-asana-gid fields
-    try:
+    # if the body contains well-formatted data-asana-gid fields. Also bots can sometimes create comments,
+    # reviews, and PRs which may or may not be included in the github handle to asana id mappings
+    if len(followers) > 0:
         asana_client.add_followers(task_id, followers)
-    except Exception as e:
-        logger.error(f"Failed to add followers to task {task_id}: {e}")
     maybe_complete_tasks_on_merge(pull_request)
 
 
 def _new_due_on_or_none(task: dict, update_task_fields: dict) -> Optional[str]:
-    due_on = None
     today = asana_helpers.today_str()
 
     if task["due_on"] >= today:
