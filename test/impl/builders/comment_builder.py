@@ -23,7 +23,7 @@ class CommentBuilder(BuilderBaseClass):
         self.raw_comment["author"] = user.to_raw()
         return self
 
-    def published_at(self, published_at: Union[str, datetime, None]):
+    def published_at(self, published_at: Union[str, datetime]):
         self.raw_comment["publishedAt"] = transform_datetime(published_at)
         return self
 
