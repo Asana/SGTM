@@ -230,4 +230,4 @@ Please perform the following checks prior to pushing code
 
 * run `black .` to autoformat your code
 * run `mypy` on each file that you have changed
-* run tests, as described in the previous section
+* run tests, as described in the [previous section](#running-tests)
