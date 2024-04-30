@@ -1,4 +1,4 @@
-from typing import List, Union, Tuple, Optional, Dict, Any
+from typing import Union, Dict, Any
 from datetime import datetime
 from .helpers import transform_datetime, create_uuid
 from src.github.models import Comment, User
@@ -23,7 +23,7 @@ class CommentBuilder(BuilderBaseClass):
         self.raw_comment["author"] = user.to_raw()
         return self
 
-    def published_at(self, published_at: Union[str, datetime]):
+    def published_at(self, published_at: Union[str, datetime, None]):
         self.raw_comment["publishedAt"] = transform_datetime(published_at)
         return self
 
