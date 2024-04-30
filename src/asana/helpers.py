@@ -496,7 +496,7 @@ def _task_followers_from_gh_handles(gh_handles: List[str]) -> List[str]:
     ]
     if not len(followers):
         logger.warn(
-            f"No followers found for {gh_handles}. This list likely includes bots or users that are not in your {GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH}. Consider adding them to silence this warning."
+            f"No asana followers found for github users {gh_handles}. This list likely includes bots or users that are not in your {GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH}. Consider adding them to silence this warning."
         )
     return followers
 
