@@ -54,6 +54,10 @@ module "sgtm-staging" {
   sgtm_rest_api_execution_arn                    = aws_api_gateway_rest_api.sgtm_rest_api.execution_arn
 }
 
+resource "aws_s3_bucket" "lambda_code_s3_bucket" {
+  bucket = var.lambda_code_s3_bucket_name
+}
+
 ### API
 
 resource "aws_api_gateway_rest_api" "sgtm_rest_api" {
