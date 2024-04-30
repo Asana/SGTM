@@ -161,12 +161,13 @@ resource "aws_lambda_function" "sgtm" {
       SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES       = var.sgtm_feature__check_rerun_base_ref_names,
       SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED  = var.sgtm_feature__check_rerun_on_approval_enabled
       GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH         = var.github_usernames_to_asana_gids_s3_path
+      SQS_URL                                        = aws_sqs_queue.sgtm-webhooks-queue-fifo.url
     }
   }
 }
 
 locals {
-  dist_dir_name = "lambda_dist_pkg/${local.suffix}"
+  dist_dir_name = "lambda_dist_pkg/pkg${local.suffix}"
 }
 
 resource "null_resource" "install_python_dependencies" {
@@ -191,7 +192,7 @@ resource "null_resource" "install_python_dependencies" {
 data "archive_file" "create_dist_pkg" {
   depends_on  = [null_resource.install_python_dependencies]
   source_dir  = "${path.cwd}/${local.dist_dir_name}"
-  output_path = "build/${local.suffix}/function.zip"
+  output_path = "build/pkg${local.suffix}/function.zip"
   type        = "zip"
 }
 
@@ -405,6 +406,43 @@ resource "aws_lambda_permission" "lambda_permission_for_sgtm_rest_api" {
 
   # More: http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-control-access-using-iam-policies-to-invoke-api.html
   source_arn = "${var.sgtm_rest_api_execution_arn}/*/${aws_api_gateway_method.sgtm_post.http_method}${aws_api_gateway_resource.sgtm_resource.path}"
+}
+
+## SQS
+resource "aws_sqs_queue" "sgtm-webhooks-queue-fifo" {
+  name = "sgtm-webhooks-queue${local.suffix}.fifo"
+  fifo_queue = true
+  content_based_deduplication = true
+  visibility_timeout_seconds = 240  # 4 minutes
+  message_retention_seconds = 1800  # 30 minutes
+}
+
+data "aws_iam_policy_document" "lambda_permissions_for_sqs" {
+  statement {
+    actions = [
+      "sqs:SendMessage",
+      "sqs:ReceiveMessage",
+      "sqs:DeleteMessage",
+      "sqs:GetQueueAttributes"
+    ]
+    resources = [
+      aws_sqs_queue.sgtm-webhooks-queue-fifo.arn
+    ]
+  }
+}
+
+resource "aws_lambda_event_source_mapping" "sgtm-sqs-source" {
+  event_source_arn = aws_sqs_queue.sgtm-webhooks-queue-fifo.arn
+  function_name    = aws_lambda_function.sgtm.function_name
+}
+
+resource "aws_iam_policy" "lambda_permissions_for_sqs" {
+  policy = data.aws_iam_policy_document.lambda_permissions_for_sqs.json
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_permissions_for_sqs" {
+  policy_arn = aws_iam_policy.lambda_permissions_for_sqs.arn
+  role = aws_iam_role.iam_for_lambda_function.name
 }
 
 output "api_gateway_deployment_invoke_url" {
