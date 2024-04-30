@@ -753,7 +753,7 @@ class TestMaybeRerunStaleRequiredChecks(unittest.TestCase):
         ["main"],
     )
     def test_no_rerun_when_check_run_not_complete(self, mock_rerequest_check_run):
-        check_run = build(builder.check_run().completed_at(""))
+        check_run = build(builder.check_run().completed_at(None))
         pull_request = build(
             builder.pull_request()
             .base_ref_name("main")

@@ -10,7 +10,8 @@ class CheckRun(object):
         self._raw = copy.deepcopy(raw_check_run)
 
     def completed_at(self) -> datetime:
-        return parse_date_string(self._raw["completedAt"])
+        completion_time = self._raw.get("completedAt")
+        return parse_date_string(completion_time) if completion_time else None
 
     def database_id(self) -> int:
         return self._raw["databaseId"]
