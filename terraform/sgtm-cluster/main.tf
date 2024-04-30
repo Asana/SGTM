@@ -167,7 +167,7 @@ resource "aws_lambda_function" "sgtm" {
 }
 
 locals {
-  dist_dir_name = "lambda_dist_pkg/${local.suffix}"
+  dist_dir_name = "lambda_dist_pkg/pkg${local.suffix}"
 }
 
 resource "null_resource" "install_python_dependencies" {
@@ -192,7 +192,7 @@ resource "null_resource" "install_python_dependencies" {
 data "archive_file" "create_dist_pkg" {
   depends_on  = [null_resource.install_python_dependencies]
   source_dir  = "${path.cwd}/${local.dist_dir_name}"
-  output_path = "build/${local.suffix}/function.zip"
+  output_path = "build/pkg${local.suffix}/function.zip"
   type        = "zip"
 }
 

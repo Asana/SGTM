@@ -3,7 +3,6 @@ import hmac
 import json
 import traceback
 import boto3
-
 from src.http import HttpResponse, HttpResponseDict
 from src.config import GITHUB_HMAC_SECRET, SQS_URL
 from src.logger import logger
