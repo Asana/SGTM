@@ -184,7 +184,7 @@ You can then run `pipenv shell` to enter the virtual environment from a specific
 Alternatively, you don't have to 'enter' the virtual environment - you can instead run a command inside the virtual environment by prefixing the command with `pipenv run`.
 
 ## Testing on Staging
-SGTM's terraform configuration will also spin up a staging cluster that you can ues for manual testing. To only deploy changes to staging, run `terragrunt apply --target=module.sgtm-staging`. To direct webhook events to your staging cluster, use API gateway endpoint `/sgtm_staging` instead of `/sgtm`.
+SGTM's terraform configuration will also spin up a staging cluster that you can use for manual testing. To only deploy changes to staging, run `terragrunt apply --target=module.sgtm-staging`. To direct webhook events to your staging cluster, use API gateway endpoint `/sgtm_staging` instead of `/sgtm`.
 
 You can also choose to create new staging clusters, by copying the `module "sgtm-staging"` in `main.tf`. Be sure to choose a new name for your staging cluster and update the `naming_suffix` parameter so that terraform deosn't override existing resources.
 
