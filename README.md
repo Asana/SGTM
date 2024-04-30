@@ -40,7 +40,7 @@ Again, you will probably want to create a new Github user in your org that is ju
 
 Copy this Personal Access Token for the next step.
 
-### Create a file in S3 that maps github usernames to Asana user IDs 
+### Create a file in S3 that maps github usernames to Asana user IDs
 
 1. Create a file in S3 that maps github usernames to Asana user IDs. This file should be in the following format:
 ```
@@ -170,7 +170,7 @@ By default SGTM will assign the task corresponding to the PR to the assignee on 
 ### Rerun required checks on pull requests that are older than N hours with a specific base ref
 SGTM can use Github API to rerun Check Runs on pull requests with a specified base ref if the results of those check runs exceeds a set number of hours. This is useful for keeping the status of your check runs "fresh" especially if the base ref is updated frequently. It will ignore pull requests that do not match the specified base ref.
 
-*Note*: This does not use Github's check conclusion state `stale`. 
+*Note*: This does not use Github's check conclusion state `stale`.
 
 **How to configure**:
 * Set an env variable of `TF_VAR_sgtm_feature__check_rerun_base_ref_names` to contain a comma-separated list of ref names (e.g. `master`, `main`) that pull requests must be based off of to have their check runs rerequested. The default is `"main,master"`.
@@ -183,14 +183,19 @@ We recommend using `pipenv` to manage your python environment for SGTM. We've ch
 You can then run `pipenv shell` to enter the virtual environment from a specific shell session. Run `exit` to leave it.
 Alternatively, you don't have to 'enter' the virtual environment - you can instead run a command inside the virtual environment by prefixing the command with `pipenv run`.
 
-## Manual Testing
-Because SGTM doesn't currently support a "staging" deployment to test changes, manual testing is still recommended for changes you will be making. Here are step-by-step instructions on how to test manually/locally:
+## Testing on Staging
+SGTM's terraform configuration will also spin up a staging cluster that you can use for manual testing. To only deploy changes to staging, run `terragrunt apply --target=module.sgtm-staging`. To direct webhook events to your staging cluster, use API gateway endpoint `/sgtm_staging` instead of `/sgtm`.
+
+You can also choose to create new staging clusters, by copying the `module "sgtm-staging"` in `main.tf`. Be sure to choose a new name for your staging cluster and update the `naming_suffix` parameter so that terraform doesn't override existing resources.
+
+## Testing Locally
+You can also choose to test your changes locally. Here are step-by-step instructions on how to test manually/locally:
 
 1. Create a [Personal Access Token](https://developers.asana.com/docs/personal-access-token) in Asana. Copy that token and export it in your shell environment (`export ASANA_API_KEY=<your_asana_personal_access_token>`)
-1. Create a Github Personal Access Token as per the instrucitons in the [Github](#github) section above. Export that token in your shell environment (`export GITHUB_API_KEY=<your_github_personal_access_token>`)
-2. Follow the instructions in [Installing a Virtual Environment for Python](#installing-a-virtual-environment-for-python) to install necessary requirements.
-3. Open up a `python` REPL in the `SGTM` root directory (or use `ipython`, but you'll have to `pipenv install ipython` first)
-4. Run the function you want to test. It's usually fine / recommended to skip the DynamoDb locking when testing locally, since you usually won't be needing to test that. Here's an example of how to test updating a pull request:
+2. Create a Github Personal Access Token as per the instrucitons in the [Github](#github) section above. Export that token in your shell environment (`export GITHUB_API_KEY=<your_github_personal_access_token>`)
+3. Follow the instructions in [Installing a Virtual Environment for Python](#installing-a-virtual-environment-for-python) to install necessary requirements.
+4. Open up a `python` REPL in the `SGTM` root directory (or use `ipython`, but you'll have to `pipenv install ipython` first)
+5. Run the function you want to test. It's usually fine / recommended to skip the DynamoDb locking when testing locally, since you usually won't be needing to test that. Here's an example of how to test updating a pull request:
     1. Note what code you want to test. In this case, we want to go to [src/github/webhook.py](/src/github/webhook.py) and look at `_handle_pull_request_webhook`. It looks like we need an `pull_request_id`.
     2. Get the `pull_request_id`. One easy way to do this is to run a command like this `curl -i -u <github_username>:$GITHUB_API_KEY https://api.github.com/repos/asana/sgtm/pulls/123` and then grab the `node_id` from that response.
     3. Open up your REPL. Import the function you want to test (in this case: `import src.github.controller as github_controller; import src.github.graphql.client as graphql_client`)
@@ -225,4 +230,4 @@ Please perform the following checks prior to pushing code
 
 * run `black .` to autoformat your code
 * run `mypy` on each file that you have changed
-* run tests, as described in the previous section
+* run tests, as described in the [previous section](#running-tests)
