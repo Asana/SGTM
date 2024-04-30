@@ -413,7 +413,7 @@ resource "aws_sqs_queue" "sgtm-webhooks-queue-fifo" {
   name = "sgtm-webhooks-queue${local.suffix}.fifo"
   fifo_queue = true
   content_based_deduplication = true
-  visibility_timeout_seconds = 720  # 12 minutes
+  visibility_timeout_seconds = 240  # 4 minutes
   message_retention_seconds = 1800  # 30 minutes
 }
 
