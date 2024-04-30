@@ -186,7 +186,7 @@ Alternatively, you don't have to 'enter' the virtual environment - you can inste
 ## Testing on Staging
 SGTM's terraform configuration will also spin up a staging cluster that you can use for manual testing. To only deploy changes to staging, run `terragrunt apply --target=module.sgtm-staging`. To direct webhook events to your staging cluster, use API gateway endpoint `/sgtm_staging` instead of `/sgtm`.
 
-You can also choose to create new staging clusters, by copying the `module "sgtm-staging"` in `main.tf`. Be sure to choose a new name for your staging cluster and update the `naming_suffix` parameter so that terraform deosn't override existing resources.
+You can also choose to create new staging clusters, by copying the `module "sgtm-staging"` in `main.tf`. Be sure to choose a new name for your staging cluster and update the `naming_suffix` parameter so that terraform doesn't override existing resources.
 
 ## Testing Locally
 You can also choose to test your changes locally. Here are step-by-step instructions on how to test manually/locally:
