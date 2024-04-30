@@ -15,6 +15,7 @@ GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH = os.getenv(
     "GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH",
 )
 
+
 # Feature flags
 def is_feature_flag_enabled(flag_name: str) -> bool:
     return os.getenv(flag_name) == "true"

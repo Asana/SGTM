@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from typing import Callable, Match, Optional, List, Dict, Set
 from src.dynamodb import client as dynamodb_client
 from src.asana import logic as asana_logic
-from src.config import SGTM_FEATURE__ALLOW_PERSISTENT_TASK_ASSIGNEE
+from src.config import GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH
 from src.github.models import (
     Comment,
     PullRequest,
@@ -484,7 +484,7 @@ def task_followers_from_pull_request(pull_request: PullRequest) -> List[str]:
 
 
 def _task_followers_from_gh_handles(gh_handles: List[str]) -> List[str]:
-    return [
+    followers = [
         asana_user_id
         for github_handle in gh_handles
         if (
@@ -494,6 +494,11 @@ def _task_followers_from_gh_handles(gh_handles: List[str]) -> List[str]:
         )
         is not None
     ]
+    if not len(followers):
+        logger.warn(
+            f"No followers found for {gh_handles}. This list likely includes bots or users that are not in your {GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH}. Consider adding them to silence this warning."
+        )
+    return followers
 
 
 def _wrap_in_tag(
