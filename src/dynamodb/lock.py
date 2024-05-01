@@ -21,7 +21,7 @@ lock_client = DynamoDBLockClient(
 
 @contextmanager
 def dynamodb_lock(
-    lock_name: str, retry_timeout: Optional[timedelta] = timedelta(seconds=45)
+    lock_name: str, retry_timeout: Optional[timedelta] = timedelta(seconds=60)
 ):
     lock = lock_client.acquire_lock(
         lock_name, sort_key=lock_name, retry_timeout=retry_timeout
