@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
+import os
 import sys
 import boto3
 from botocore.auth import SigV4Auth
@@ -125,7 +126,9 @@ class AsanaGithubAuth(ABC):
         return Github(self.get_token().token)
 
     def or_local(self) -> "AsanaGithubAuth":
-        if sys.platform.startswith("darwin"):
+        if sys.platform.startswith("darwin") or os.getenv("CIRCLECI") == "true":
+            # If we're running on a local mac or in CircleCI, use the local auth (where we expect
+            # that `GITHUB_API_KEY` env var is set)
             return AsanaGithubLocalAuth()
         return self
 
