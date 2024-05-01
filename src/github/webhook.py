@@ -127,7 +127,7 @@ def _handle_pull_request_review_comment(payload: dict):
         with dynamodb_lock(comment_id):
             github_controller.delete_comment(comment_id)
         return _handle_pull_request_webhook(payload)
-    
+
     with dynamodb_lock(review.id()):
         github_controller.upsert_review(pull_request, review)
     return HttpResponse("200")
