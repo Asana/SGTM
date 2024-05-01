@@ -42,16 +42,20 @@ class TokenContainer(Protocol):
     # Not modeled: repositories, single_file, has_multiple_single_files, single_file_paths
 
     @property
-    def token(self) -> str: ...
+    def token(self) -> str:
+        ...
 
     @property
-    def expires_at(self) -> Optional[datetime]: ...
+    def expires_at(self) -> Optional[datetime]:
+        ...
 
     @property
-    def on_behalf_of(self) -> Optional[NamedUser]: ...
+    def on_behalf_of(self) -> Optional[NamedUser]:
+        ...
 
     @property
-    def repository_selection(self) -> Optional[str]: ...
+    def repository_selection(self) -> Optional[str]:
+        ...
 
 
 # Mimicks the interface provided by InstallationAuthorization.
@@ -118,7 +122,8 @@ class GithubIndirectClientAuth(GithubAuthABC):
 
 class AsanaGithubAuth(ABC):
     @abstractmethod
-    def get_token(self) -> TokenContainer: ...
+    def get_token(self) -> TokenContainer:
+        ...
 
     # This method is separate and overridable to support use-cases where the client can refresh its
     # token.
