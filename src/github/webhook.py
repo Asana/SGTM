@@ -92,14 +92,16 @@ def _handle_pull_request_review_comment(payload: dict):
 
     See https://developer.github.com/v4/object/repository/#fields.
     """
-    pull_request_id = payload["pull_request"]["node_id"]
     action = payload["action"]
     comment_id = payload["comment"]["node_id"]
+    pull_request_id = payload["pull_request"]["node_id"]
 
     # This is NOT the node_id, but is a numeric string (the databaseId field).
     review_database_id = payload["comment"]["pull_request_review_id"]
 
-    if action in ("created", "edited"):
+    review: Optional[Review] = None
+
+    if action == "created" or action == "edited":
         pull_request, comment = graphql_client.get_pull_request_and_comment(
             pull_request_id, comment_id
         )
@@ -108,25 +110,27 @@ def _handle_pull_request_review_comment(payload: dict):
                 f"Unexpected comment type {type(PullRequestReviewComment)} for pull"
                 " request review"
             )
-        review: Optional[Review] = Review.from_comment(comment)
+        review = Review.from_comment(comment)
     elif action == "deleted":
-        pull_request = graphql_client.get_pull_request(pull_request_id)
         review = graphql_client.get_review_for_database_id(
             pull_request_id, review_database_id
         )
     else:
-        raise ValueError(f"Unexpected action: {action}")
+        error_text = f"Unknown action for review_comment: {action}"
+        logger.error(error_text)
+        return HttpResponse("400", error_text)
 
-    with dynamodb_lock(pull_request_id):
-        if review is None:
-            # If we deleted the last comment from a review, Github might have deleted the review.
-            # If so, we should delete the Asana comment.
-            logger.info("No review found in Github. Deleting the Asana comment.")
+    if review is None:
+        # If a pull_request_review has only one comment that is deleted,
+        # the review is deleted. This can change the approval status of the PR
+        # if the deleted comment was part of a "changes requested" review.
+        with dynamodb_lock(comment_id):
             github_controller.delete_comment(comment_id)
-        else:
-            github_controller.upsert_review(pull_request, review)
-
-        return HttpResponse("200")
+        return _handle_pull_request_webhook(payload)
+    
+    with dynamodb_lock(review.id()):
+        github_controller.upsert_review(pull_request, review)
+    return HttpResponse("200")
 
 
 # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#status
