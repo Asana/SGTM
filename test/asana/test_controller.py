@@ -136,8 +136,10 @@ class TestUpsertGithubCommentToTask(BaseClass):
         task_followers_from_comment_mock,
         asana_comment_from_github_comment_mock,
     ):
+        add_comment_mock.return_value = self.ASANA_COMMENT_ID
         asana_comment_from_github_comment_mock.return_value = self.ASANA_COMMENT_BODY
         task_followers_from_comment_mock.return_value = []
+
         comment = self._mock_comment(self.COMMENT_ID)
 
         controller.upsert_github_comment_to_task(comment, self.ASANA_TASK_ID)
@@ -159,17 +161,17 @@ class TestUpsertGithubCommentToTask(BaseClass):
         task_followers_from_comment_mock,
         asana_comment_from_github_comment_mock,
     ):
-        get_asana_id_from_github_node_id_mock.return_value = self.ASANA_COMMENT_ID
         asana_comment_from_github_comment_mock.return_value = (
             "<body>Here's an updated comment</body>"
         )
+        get_asana_id_from_github_node_id_mock.return_value = self.ASANA_COMMENT_ID
         task_followers_from_comment_mock.return_value = []
         comment = self._mock_comment(self.COMMENT_ID)
 
         controller.upsert_github_comment_to_task(comment, self.ASANA_TASK_ID)
 
         update_comment_mock.assert_called_once_with(
-            self.ASANA_COMMENT_ID, self.ASANA_COMMENT_BODY
+            self.ASANA_COMMENT_ID, "<body>Here's an updated comment</body>"
         )
         insert_github_node_to_asana_id_mapping_mock.assert_not_called()
 
