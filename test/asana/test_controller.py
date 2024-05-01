@@ -112,7 +112,7 @@ class TestUpsertGithubReviewToTask(BaseClass):
         add_comment.assert_not_called()
 
 
-@patch("src.asana.helpers.asana_comment_from_github_review")
+@patch("src.asana.helpers.asana_comment_from_github_comment")
 @patch("src.dynamodb.client.insert_github_node_to_asana_id_mapping")
 class TestUpsertGithubCommentToTask(BaseClass):
     COMMENT_ID = "12345"
@@ -132,9 +132,9 @@ class TestUpsertGithubCommentToTask(BaseClass):
         create_attachments_mock,
         add_comment_mock,
         insert_github_node_to_asana_id_mapping_mock,
-        asana_comment_from_github_review_mock,
+        asana_comment_from_github_comment_mock,
     ):
-        asana_comment_from_github_review_mock.return_value = self.ASANA_COMMENT_BODY
+        asana_comment_from_github_comment_mock.return_value = self.ASANA_COMMENT_BODY
         comment = self._mock_comment(self.COMMENT_ID)
 
         controller.upsert_github_comment_to_task(comment, self.ASANA_TASK_ID)
@@ -153,10 +153,10 @@ class TestUpsertGithubCommentToTask(BaseClass):
         get_asana_id_from_github_node_id_mock,
         update_comment_mock,
         insert_github_node_to_asana_id_mapping_mock,
-        asana_comment_from_github_review_mock,
+        asana_comment_from_github_comment_mock,
     ):
         get_asana_id_from_github_node_id_mock.return_value = self.ASANA_COMMENT_ID
-        asana_comment_from_github_review_mock.return_value = (
+        asana_comment_from_github_comment_mock.return_value = (
             "<body>Here's an updated comment</body>"
         )
         comment = self._mock_comment(self.COMMENT_ID)
