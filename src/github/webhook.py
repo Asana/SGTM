@@ -107,7 +107,7 @@ def _handle_pull_request_review_comment(payload: dict):
             )
         review = Review.from_comment(comment)
         with dynamodb_lock(review.id()):
-            github_controller.upsert_review(pull_request, comment)
+            github_controller.upsert_review(pull_request, review)
         return HttpResponse("200")
 
     if action == "deleted":
