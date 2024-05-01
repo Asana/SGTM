@@ -96,11 +96,6 @@ def _handle_pull_request_review_comment(payload: dict):
     comment_id = payload["comment"]["node_id"]
     pull_request_id = payload["pull_request"]["node_id"]
 
-    # This is NOT the node_id, but is a numeric string (the databaseId field).
-    review_database_id = payload["comment"]["pull_request_review_id"]
-
-    review: Optional[Review] = None
-
     if action == "created" or action == "edited":
         pull_request, comment = graphql_client.get_pull_request_and_comment(
             pull_request_id, comment_id
@@ -111,26 +106,32 @@ def _handle_pull_request_review_comment(payload: dict):
                 " request review"
             )
         review = Review.from_comment(comment)
-    elif action == "deleted":
+        with dynamodb_lock(review.id()):
+            github_controller.upsert_review(pull_request, comment)
+        return HttpResponse("200")
+
+    if action == "deleted":
+        # This is NOT the node_id, but is a numeric string (the databaseId field).
+        review_database_id = payload["comment"]["pull_request_review_id"]
         review = graphql_client.get_review_for_database_id(
             pull_request_id, review_database_id
         )
-    else:
-        error_text = f"Unknown action for review_comment: {action}"
-        logger.error(error_text)
-        return HttpResponse("400", error_text)
+        if review is None:
+            # If a pull_request_review has only one comment that is deleted,
+            # the review is deleted. This can change the approval status of the PR
+            # so we need to handle this like a PR webhook.
+            with dynamodb_lock(comment_id):
+                github_controller.delete_comment(comment_id)
+            return _handle_pull_request_webhook(payload)
 
-    if review is None:
-        # If a pull_request_review has only one comment that is deleted,
-        # the review is deleted. This can change the approval status of the PR
-        # if the deleted comment was part of a "changes requested" review.
-        with dynamodb_lock(comment_id):
-            github_controller.delete_comment(comment_id)
-        return _handle_pull_request_webhook(payload)
+        pull_request = graphql_client.get_pull_request(pull_request_id)
+        with dynamodb_lock(review.id()):
+            github_controller.upsert_review(pull_request, review)
+        return HttpResponse("200")
 
-    with dynamodb_lock(review.id()):
-        github_controller.upsert_review(pull_request, review)
-    return HttpResponse("200")
+    error_text = f"Unknown action for review_comment: {action}"
+    logger.error(error_text)
+    return HttpResponse("400", error_text)
 
 
 # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#status
