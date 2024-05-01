@@ -127,7 +127,7 @@ class TestHandlePullRequestReviewComment(BaseClass):
 
         webhook._handle_pull_request_review_comment(self.payload)
 
-        get_pull_request.assert_called_once_with(self.PULL_REQUEST_NODE_ID)
+        get_pull_request.assert_called_with(self.PULL_REQUEST_NODE_ID)
         upsert_pull_request.assert_called_once_with(get_pull_request.return_value)
         upsert_review.assert_not_called()
         get_review_for_database_id.assert_called_once_with(
