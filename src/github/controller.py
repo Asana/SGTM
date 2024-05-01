@@ -62,10 +62,7 @@ def upsert_review(pull_request: PullRequest, review: Review):
     pull_request_id = pull_request.id()
     task_id = dynamodb_client.get_asana_id_from_github_node_id(pull_request_id)
     if task_id is None:
-        logger.info(
-            f"Task not found for pull request {pull_request_id}. Running a full sync!"
-        )
-        # TODO: Full sync
+        logger.error(f"Task not found for pull request {pull_request_id}. Exiting!")
     else:
         logger.info(
             f"Found task id {task_id} for pull_request {pull_request_id}. Adding review"
