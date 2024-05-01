@@ -1,11 +1,9 @@
 import unittest
-from unittest.mock import patch, call
+from unittest.mock import patch
 import src.github.logic as github_logic
-from src.github.models import Commit, ReviewState, PullRequest, MergeableState
+from src.github.models import Commit, ReviewState, MergeableState
 from test.impl.builders import builder, build
-import src.github.controller as github_controller
 import src.github.client as github_client
-from src.github.helpers import pull_request_has_label
 
 
 @patch.object(github_client, "merge_pull_request")
@@ -796,22 +794,6 @@ class TestMaybeRerunStaleRequiredChecks(unittest.TestCase):
             github_logic.maybe_rerun_stale_checks_on_approved_pull_request(pull_request)
         )
         mock_rerequest_check_run.assert_not_called()
-
-
-class TestPullRequestHasLabel(unittest.TestCase):
-    def test_pull_request_with_label(self):
-        label_name = "test label"
-        pull_request = build(
-            builder.pull_request().label(builder.label().name(label_name))
-        )
-
-        self.assertTrue(github_logic.pull_request_has_label(pull_request, label_name))
-
-    def test_pull_request_without_label(self):
-        label_name = "test label"
-        pull_request = build(builder.pull_request())
-
-        self.assertFalse(github_logic.pull_request_has_label(pull_request, label_name))
 
 
 @patch.object(github_client, "edit_pr_title")

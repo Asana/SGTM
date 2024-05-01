@@ -214,5 +214,11 @@ class PullRequest(object):
     def labels(self) -> List[Label]:
         return [Label(label) for label in self._raw["labels"]["nodes"]]
 
+    def has_label(self, label: str) -> bool:
+        for label in self.labels():
+            if label.name() == label:
+                return True
+        return False
+
     def base_ref_name(self) -> str:
         return self._raw["baseRefName"]

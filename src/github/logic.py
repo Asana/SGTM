@@ -1,18 +1,9 @@
 import re
 from datetime import datetime, timedelta, timezone
+from enum import Enum, unique
 from typing import List
-from src.logger import logger
 
 from . import client as github_client
-from src.github.models import (
-    CheckRun,
-    Comment,
-    MergeableState,
-    PullRequest,
-    Review,
-)
-from enum import Enum, unique
-from src.github.helpers import pull_request_has_label
 from src.config import (
     SGTM_FEATURE__AUTOMERGE_ENABLED,
     SGTM_FEATURE__DISABLE_GITHUB_TEAM_SUBSCRIPTION,
@@ -21,6 +12,13 @@ from src.config import (
     SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES,
     SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED,
 )
+from src.github.models import (
+    Comment,
+    MergeableState,
+    PullRequest,
+    Review,
+)
+from src.logger import logger
 
 GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
 GITHUB_ATTACHMENT_REGEX = "!\[(.*?)\]\((.+?(\.png|\.jpg|\.jpeg|\.gif))"
@@ -217,32 +215,33 @@ def maybe_add_automerge_warning_comment(pull_request: PullRequest):
     """Adds comment warnings if automerge label is enabled"""
 
     logger.info("Running maybe add automerge warning comment")
-    if SGTM_FEATURE__AUTOMERGE_ENABLED:
-        owner = pull_request.repository_owner_handle()
-        repo_name = pull_request.repository_name()
-        pr_number = pull_request.number()
+    if not SGTM_FEATURE__AUTOMERGE_ENABLED or pull_request.is_approved():
+        # If automerge is not enabled or the PR is already approved, we don't need to add a warning comment
+        return
 
-        has_automerge_after_tests_and_approval = pull_request_has_label(
-            pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
-        )
-        has_automerge_after_approval = pull_request_has_label(
-            pull_request, AutomergeLabel.AFTER_APPROVAL.value
-        )
-        automerge_comment = (
-            AUTOMERGE_COMMENT_WARNING_AFTER_TESTS_AND_APPROVAL
-            if has_automerge_after_tests_and_approval
-            else AUTOMERGE_COMMENT_WARNING_AFTER_APPROVAL
-        )
+    owner = pull_request.repository_owner_handle()
+    repo_name = pull_request.repository_name()
+    pr_number = pull_request.number()
 
-        # if a PR has an automerge label and doesn't contain a comment warning, we want to maybe add a warning comment
-        # only add warning comment if it's set to auto-merge after approval and hasn't yet been approved to limit noise
+    if pull_request.has_label(AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value):
+        automerge_comment = AUTOMERGE_COMMENT_WARNING_AFTER_TESTS_AND_APPROVAL
+        if not _pull_request_has_automerge_comment(pull_request, automerge_comment):
+            github_client.add_pr_comment(
+                owner,
+                repo_name,
+                pr_number,
+                automerge_comment,
+            )
 
-        if (
-            (has_automerge_after_tests_and_approval or has_automerge_after_approval)
-            and not _pull_request_has_automerge_comment(pull_request, automerge_comment)
-            and not pull_request.is_approved()
-        ):
-            github_client.add_pr_comment(owner, repo_name, pr_number, automerge_comment)
+    if pull_request.has_label(AutomergeLabel.AFTER_APPROVAL.value):
+        automerge_comment = AUTOMERGE_COMMENT_WARNING_AFTER_APPROVAL
+        if not _pull_request_has_automerge_comment(pull_request, automerge_comment):
+            github_client.add_pr_comment(
+                owner,
+                repo_name,
+                pr_number,
+                automerge_comment,
+            )
 
 
 # returns True if the pull request was automerged, False if not
@@ -251,17 +250,25 @@ def maybe_automerge_pull_request_and_rerun_stale_checks(
 ) -> bool:
     is_pull_request_ready_for_automerge = False
     did_rerun_stale_required_checks = False
-    if not SGTM_FEATURE__AUTOMERGE_ENABLED or not _pull_request_is_open(pull_request):
+    if (
+        not SGTM_FEATURE__AUTOMERGE_ENABLED
+        or pull_request.closed()
+        or pull_request.merged()
+    ):
         logger.info(f"Skipping automerge for {pull_request.id()} because it is closed")
         is_pull_request_ready_for_automerge = False
 
     # if there are multiple labels, we use the most permissive to define automerge behavior
-    elif pull_request_has_label(pull_request, AutomergeLabel.IMMEDIATELY.value):
+    elif pull_request.has_label(AutomergeLabel.IMMEDIATELY.value):
         is_pull_request_ready_for_automerge = pull_request.mergeable() in (
             MergeableState.MERGEABLE,
             MergeableState.UNKNOWN,
         )
-    elif pull_request_has_label(pull_request, AutomergeLabel.AFTER_TESTS.value):
+    elif pull_request.has_label(AutomergeLabel.AFTER_APPROVAL.value):
+        is_pull_request_ready_for_automerge = (
+            pull_request.is_mergeable() and pull_request.is_approved()
+        )
+    elif pull_request.has_label(AutomergeLabel.AFTER_TESTS.value):
         is_pull_request_ready_for_automerge = (
             pull_request.is_build_successful() and pull_request.is_mergeable()
         )
@@ -269,9 +276,7 @@ def maybe_automerge_pull_request_and_rerun_stale_checks(
             is_pull_request_ready_for_automerge
             and _maybe_rerun_stale_checks(pull_request)
         )
-    elif pull_request_has_label(
-        pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
-    ):
+    elif pull_request.has_label(AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value):
         is_pull_request_ready_for_automerge = (
             pull_request.is_build_successful()
             and pull_request.is_mergeable()
@@ -283,10 +288,6 @@ def maybe_automerge_pull_request_and_rerun_stale_checks(
                 is_pull_request_ready_for_automerge
                 and _maybe_rerun_stale_checks(pull_request)
             )
-    elif pull_request_has_label(pull_request, AutomergeLabel.AFTER_APPROVAL.value):
-        is_pull_request_ready_for_automerge = (
-            pull_request.is_mergeable() and pull_request.is_approved()
-        )
 
     logger.info(
         f"Pull request {pull_request.id()} status: test result: {pull_request.is_build_successful()}, mergeable: {pull_request.is_mergeable()}, approved: {pull_request.is_approved()}"
@@ -313,28 +314,28 @@ def maybe_automerge_pull_request_and_rerun_stale_checks(
 def maybe_rerun_stale_checks_on_approved_pull_request(
     pull_request: PullRequest,
 ) -> bool:
-    if (
-        SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED
-        and _pull_request_is_open(pull_request)
-        and pull_request.is_approved()
-    ):
+    if not SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED:
+        return False
+    if pull_request.merged() or pull_request.closed():
         logger.info(
-            f"PR-{pull_request.id()} is open and approved, maybe rerun stale checks"
+            f"PR-{pull_request.id()} is closed or merged, skipping rerun stale checks"
         )
-        return _maybe_rerun_stale_checks(pull_request)
+        return False
+    if not pull_request.is_approved():
+        logger.info(
+            f"PR-{pull_request.id()} is not approved, skipping rerun stale checks"
+        )
+        return False
+
     logger.info(
-        f"{pull_request.id()} is {'' if _pull_request_is_open(pull_request) else 'not '}open and {'' if pull_request.is_approved() else 'not '}approved"
+        f"PR-{pull_request.id()} is open and approved, maybe rerun stale checks"
     )
-    return False
+    return _maybe_rerun_stale_checks(pull_request)
 
 
 # ----------------------------------------------------------------------------------
 # Automerge helpers
 # ----------------------------------------------------------------------------------
-
-
-def _pull_request_is_open(pull_request: PullRequest) -> bool:
-    return not pull_request.closed() and not pull_request.merged()
 
 
 def _pull_request_has_automerge_comment(
