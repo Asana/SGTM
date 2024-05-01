@@ -82,9 +82,9 @@ class GithubIndirectClientAuth(GithubAuthABC):
 
     def __init__(self, github_auth: "AsanaGithubAppTokenAuth"):
         self._github_auth = github_auth
-        self._token = None
+        self._token: Optional[TokenContainer] = None
 
-    def _refresh(self):
+    def _refresh(self) -> TokenContainer:
         token = self._github_auth.get_token()
         self._token = token
         return token
@@ -190,7 +190,9 @@ class AsanaGithubAppTokenAuth(AsanaGithubAuth):
         )
 
         if not response.ok:
-            raise ValueError(f"Failed to get GitHub App token: {response.content}")
+            raise ValueError(
+                f"Failed to get GitHub App token: {response.content.decode()}"
+            )
 
         token = cast(TokenDict, response.json())
         return GithubPAT(

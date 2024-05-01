@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "965b998bf4caa4e010e2a68656f919e7fac842dcbca0f5dbf8df558035575e45"
+            "sha256": "e828029c2ef3ecc18d3bd024ae1b6fe8ad5e55a2833c14b75f7a3f863a428d9f"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -302,14 +302,6 @@
             "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
             "version": "==1.16.0"
         },
-        "types-requests": {
-            "hashes": [
-                "sha256:2d514ee172088a8fc0d554537d6424bd261c18e63195cfe47c410df0de0ed96f",
-                "sha256:6e9534281fe5d06ba8116807a8de930b90b6f92dff179f8cbfa2dfdd3bd2c465"
-            ],
-            "index": "pypi",
-            "version": "==2.25.1"
-        },
         "typing-extensions": {
             "hashes": [
                 "sha256:83f085bd5ca59c80295fc2a82ab5dac679cbe02b9f33f7d83af68e241bea51b0",
@@ -446,12 +438,12 @@
         },
         "boto3-stubs": {
             "hashes": [
-                "sha256:6722b0b024293eb37713b8ec35d02e2c42c48b43615a8544c402972db053412d",
-                "sha256:6dc13d312ea2e7e045e71ba8d2796ee41e1ba1b98eaef7a84eb099e5b46ee450"
+                "sha256:131941815ee2c3008f3711f1ef284f321052fd6cb1d98a02cfa88e932d3a2b80",
+                "sha256:824a62997184e39c0fdf887b242c44a1d69ab87e2154c2b31d50c64afa8a4fc5"
             ],
             "index": "pypi",
             "markers": "python_version >= '3.8'",
-            "version": "==1.34.94"
+            "version": "==1.34.96"
         },
         "botocore": {
             "hashes": [
@@ -916,6 +908,14 @@
             ],
             "markers": "python_version >= '3.8'",
             "version": "==6.0.12.20240311"
+        },
+        "types-requests": {
+            "hashes": [
+                "sha256:2d514ee172088a8fc0d554537d6424bd261c18e63195cfe47c410df0de0ed96f",
+                "sha256:6e9534281fe5d06ba8116807a8de930b90b6f92dff179f8cbfa2dfdd3bd2c465"
+            ],
+            "index": "pypi",
+            "version": "==2.25.1"
         },
         "types-s3transfer": {
             "hashes": [
