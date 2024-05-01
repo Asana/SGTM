@@ -112,6 +112,70 @@ class TestUpsertGithubReviewToTask(BaseClass):
         add_comment.assert_not_called()
 
 
+@patch("src.asana.helpers.asana_comment_from_github_comment")
+@patch("src.asana.helpers.task_followers_from_comment")
+@patch("src.dynamodb.client.insert_github_node_to_asana_id_mapping")
+class TestUpsertGithubCommentToTask(BaseClass):
+    COMMENT_ID = "12345"
+    ASANA_COMMENT_ID = "56789"
+    ASANA_TASK_ID = "abcde"
+    ASANA_COMMENT_BODY = "<body>Here's a comment</body>"
+
+    def _mock_comment(self, id):
+        return MagicMock(spec=Comment, id=MagicMock(return_value=id))
+
+    @patch("src.asana.client.add_comment")
+    @patch("src.asana.helpers.create_attachments")
+    @patch("src.dynamodb.client.get_asana_id_from_github_node_id", return_value=None)
+    def test_add_new_comment_if_not_found(
+        self,
+        get_asana_id_from_github_node_id_mock,
+        create_attachments_mock,
+        add_comment_mock,
+        insert_github_node_to_asana_id_mapping_mock,
+        task_followers_from_comment_mock,
+        asana_comment_from_github_comment_mock,
+    ):
+        add_comment_mock.return_value = self.ASANA_COMMENT_ID
+        asana_comment_from_github_comment_mock.return_value = self.ASANA_COMMENT_BODY
+        task_followers_from_comment_mock.return_value = []
+
+        comment = self._mock_comment(self.COMMENT_ID)
+
+        controller.upsert_github_comment_to_task(comment, self.ASANA_TASK_ID)
+
+        add_comment_mock.assert_called_once_with(
+            self.ASANA_TASK_ID, self.ASANA_COMMENT_BODY
+        )
+        insert_github_node_to_asana_id_mapping_mock.assert_called_once_with(
+            self.COMMENT_ID, self.ASANA_COMMENT_ID
+        )
+
+    @patch("src.asana.client.update_comment")
+    @patch("src.dynamodb.client.get_asana_id_from_github_node_id")
+    def test_updated_comment(
+        self,
+        get_asana_id_from_github_node_id_mock,
+        update_comment_mock,
+        insert_github_node_to_asana_id_mapping_mock,
+        task_followers_from_comment_mock,
+        asana_comment_from_github_comment_mock,
+    ):
+        asana_comment_from_github_comment_mock.return_value = (
+            "<body>Here's an updated comment</body>"
+        )
+        get_asana_id_from_github_node_id_mock.return_value = self.ASANA_COMMENT_ID
+        task_followers_from_comment_mock.return_value = []
+        comment = self._mock_comment(self.COMMENT_ID)
+
+        controller.upsert_github_comment_to_task(comment, self.ASANA_TASK_ID)
+
+        update_comment_mock.assert_called_once_with(
+            self.ASANA_COMMENT_ID, "<body>Here's an updated comment</body>"
+        )
+        insert_github_node_to_asana_id_mapping_mock.assert_not_called()
+
+
 class TestNewDueOnOrNone(BaseClass):
     def test_new_assignee_due_on_change(self):
         task = {"assignee": {"gid": "123"}, "due_on": "2010-01-01"}

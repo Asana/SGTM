@@ -53,25 +53,16 @@ def upsert_comment(pull_request: PullRequest, comment: Comment):
     pull_request_id = pull_request.id()
     task_id = dynamodb_client.get_asana_id_from_github_node_id(pull_request_id)
     if task_id is None:
-        logger.info(
-            f"Task not found for pull request {pull_request_id}. Running a full sync!"
-        )
-        # TODO: Full sync
+        logger.error(f"Task not found for pull request {pull_request_id}. Exiting!")
     else:
         asana_controller.upsert_github_comment_to_task(comment, task_id)
-        asana_controller.update_task(
-            pull_request, task_id, asana_helpers.task_followers_from_comment(comment)
-        )
 
 
 def upsert_review(pull_request: PullRequest, review: Review):
     pull_request_id = pull_request.id()
     task_id = dynamodb_client.get_asana_id_from_github_node_id(pull_request_id)
     if task_id is None:
-        logger.info(
-            f"Task not found for pull request {pull_request_id}. Running a full sync!"
-        )
-        # TODO: Full sync
+        logger.error(f"Task not found for pull request {pull_request_id}. Exiting!")
     else:
         logger.info(
             f"Found task id {task_id} for pull_request {pull_request_id}. Adding review"
