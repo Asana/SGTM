@@ -34,25 +34,27 @@ def _handle_pull_request_webhook(payload: dict) -> HttpResponse:
 def _handle_issue_comment_webhook(payload: dict) -> HttpResponse:
     action, issue, comment = itemgetter("action", "issue", "comment")(payload)
 
-    issue_id = issue["node_id"]
+    issue_id = issue["node_id"] # issue_id can be pull_request_id
     comment_id = comment["node_id"]
     logger.info(f"issue: {issue_id}, comment: {comment_id}")
 
-    with dynamodb_lock(issue_id):
-        if action in ("created", "edited"):
+    if action == "created" or action == "edited":
+        with dynamodb_lock(comment_id):
             pull_request, comment = graphql_client.get_pull_request_and_comment(
                 issue_id, comment_id
             )
             github_controller.upsert_comment(pull_request, comment)
-            return HttpResponse("200")
-        elif action == "deleted":
-            logger.info(f"Deleting comment {comment_id}")
+        return HttpResponse("200")
+        
+    if action == "deleted":
+        logger.info(f"Deleting comment {comment_id}")
+        with dynamodb_lock(comment_id):
             github_controller.delete_comment(comment_id)
-            return HttpResponse("200")
-        else:
-            error_text = f"Unknown action for issue_comment: {action}"
-            logger.info(error_text)
-            return HttpResponse("400", error_text)
+        return HttpResponse("200")
+
+    error_text = f"Unknown action for issue_comment: {action}"
+    logger.info(error_text)
+    return HttpResponse("400", error_text)
 
 
 # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request_review
