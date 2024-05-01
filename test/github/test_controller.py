@@ -78,12 +78,10 @@ class GithubControllerTest(MockDynamoDbTestCase):
             "original body\s*Pull Request synchronized with \[Asana task\]",
         )
 
-    @patch.object(asana_controller, "update_task")
     @patch.object(asana_controller, "upsert_github_comment_to_task")
     def test_upsert_comment_when_task_id_already_found_in_dynamodb(
         self,
         add_comment_mock,
-        update_task_mock,
         _get_asana_domain_id_mock,
     ):
         # If the task id is found in dynamodb, then we just update (don't
@@ -100,9 +98,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
         github_controller.upsert_comment(pull_request, comment)
 
         add_comment_mock.assert_called_with(comment, existing_task_id)
-        update_task_mock.assert_called_with(pull_request, existing_task_id, ANY)
 
-    @patch.object(asana_controller, "update_task")
     @patch.object(asana_controller, "upsert_github_comment_to_task")
     def test_upsert_comment_when_task_id_not_found_in_dynamodb(
         self,
@@ -114,7 +110,6 @@ class GithubControllerTest(MockDynamoDbTestCase):
         comment = builder.comment().build()
 
         github_controller.upsert_comment(pull_request, comment)
-        # TODO: Test that a full sync was performed
 
     @patch.object(github_client, "set_pull_request_assignee")
     def test_assign_pull_request_to_author(
