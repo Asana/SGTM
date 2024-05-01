@@ -113,7 +113,7 @@ def _handle_pull_request_review_comment(payload: dict):
     if action == "deleted":
         # This is NOT the node_id, but is a numeric string (the databaseId field).
         review_database_id = payload["comment"]["pull_request_review_id"]
-        review = graphql_client.get_review_for_database_id(
+        review: Optional[Review] = graphql_client.get_review_for_database_id(
             pull_request_id, review_database_id
         )
         if review is None:
