@@ -53,9 +53,7 @@ def upsert_comment(pull_request: PullRequest, comment: Comment):
     pull_request_id = pull_request.id()
     task_id = dynamodb_client.get_asana_id_from_github_node_id(pull_request_id)
     if task_id is None:
-        logger.error(
-            f"Task not found for pull request {pull_request_id}. Exiting!"
-        )
+        logger.error(f"Task not found for pull request {pull_request_id}. Exiting!")
     else:
         asana_controller.upsert_github_comment_to_task(comment, task_id)
 

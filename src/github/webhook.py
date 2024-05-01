@@ -34,7 +34,7 @@ def _handle_pull_request_webhook(payload: dict) -> HttpResponse:
 def _handle_issue_comment_webhook(payload: dict) -> HttpResponse:
     action, issue, comment = itemgetter("action", "issue", "comment")(payload)
 
-    issue_id = issue["node_id"] # issue_id can be pull_request_id
+    issue_id = issue["node_id"]  # issue_id can be pull_request_id
     comment_id = comment["node_id"]
     logger.info(f"issue: {issue_id}, comment: {comment_id}")
 
@@ -45,7 +45,7 @@ def _handle_issue_comment_webhook(payload: dict) -> HttpResponse:
             )
             github_controller.upsert_comment(pull_request, comment)
         return HttpResponse("200")
-        
+
     if action == "deleted":
         logger.info(f"Deleting comment {comment_id}")
         with dynamodb_lock(comment_id):

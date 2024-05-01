@@ -91,7 +91,7 @@ def upsert_github_comment_to_task(comment: Comment, task_id: str):
         asana_client.update_comment(
             asana_comment_id, asana_helpers.asana_comment_from_github_comment(comment)
         )
-    
+
     # Optionally add followers from the comment body
     followers = asana_helpers.task_followers_from_comment(comment)
     if len(followers) > 0:
