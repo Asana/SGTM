@@ -103,7 +103,6 @@ class GithubControllerTest(MockDynamoDbTestCase):
     def test_upsert_comment_when_task_id_not_found_in_dynamodb(
         self,
         add_comment_mock,
-        update_task_mock,
         _get_asana_domain_id_mock,
     ):
         pull_request = builder.pull_request().build()
