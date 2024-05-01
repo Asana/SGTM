@@ -53,7 +53,7 @@ def _handle_issue_comment_webhook(payload: dict) -> HttpResponse:
         return HttpResponse("200")
 
     error_text = f"Unknown action for issue_comment: {action}"
-    logger.info(error_text)
+    logger.error(error_text)
     return HttpResponse("400", error_text)
 
 
