@@ -1,4 +1,3 @@
-# pyright: basic
 from typing import Tuple, FrozenSet, Optional
 from sgqlc.endpoint.http import HTTPEndpoint  # type: ignore
 from src.github.get_app_token import sgtm_github_auth
@@ -12,10 +11,12 @@ from .queries import (
     IterateReviewsForPullRequestId,
 )
 
+####################################################################################################
+####### Core GraphQL Client helpers
+####################################################################################################
 
-__url = "https://api.github.com/graphql"
-__headers = {"Authorization": f"bearer {sgtm_github_auth.get_token().token}"}
-__endpoint = HTTPEndpoint(__url, __headers)
+
+__endpoint = sgtm_github_auth.get_graphql_endpoint()
 
 
 def _execute_graphql_query(query: FrozenSet[str], variables: dict) -> dict:
@@ -27,6 +28,11 @@ def _execute_graphql_query(query: FrozenSet[str], variables: dict) -> dict:
     # if len(data.keys()) == 1:
     #     return data[list(data.keys())[0]]
     return data
+
+
+####################################################################################################
+####### Specific queries
+####################################################################################################
 
 
 def get_pull_request(pull_request_id: str) -> PullRequest:

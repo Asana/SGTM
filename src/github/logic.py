@@ -5,7 +5,6 @@ from src.logger import logger
 
 from . import client as github_client
 from src.github.models import (
-    CheckRun,
     Comment,
     MergeableState,
     PullRequest,

@@ -4,7 +4,7 @@ from requests.auth import HTTPBasicAuth
 from github import PullRequest  # type: ignore
 from src.github.get_app_token import sgtm_github_auth
 
-gh_client = sgtm_github_auth.get_client()
+gh_client = sgtm_github_auth.get_rest_client()
 
 
 def _get_pull_request(owner: str, repository: str, number: int) -> PullRequest:  # type: ignore
