@@ -1,6 +1,6 @@
 from typing import Tuple, FrozenSet, Optional
 from sgqlc.endpoint.http import HTTPEndpoint  # type: ignore
-from src.config import GITHUB_API_KEY
+from src.config import GITHUB_API_KEY  # HGTODO
 from src.github.models import comment_factory, PullRequest, Review, Comment
 from .queries import (
     GetPullRequest,

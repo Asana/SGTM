@@ -6,8 +6,6 @@ import json
 # SGTM's source code depends on. This file runs within the lambda itself, and
 # relies on the env vars that Terraform sets in the `environment` block of the
 # `aws_lambda_function.sgtm` resource.
-
-
 ENV = os.getenv("ENV", "dev")
 LOCK_TABLE = os.getenv("LOCK_TABLE", "sgtm-lock")
 OBJECTS_TABLE = os.getenv("OBJECTS_TABLE", "sgtm-objects")
@@ -55,6 +53,7 @@ SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED = is_feature_flag_enabled(
     "SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED"
 )
 
+CUSTOM_GITHUB_TOKEN_RETRIEVAL = is_feature_flag_enabled("CUSTOM_GITHUB_TOKEN_RETRIEVAL")
 
 #### Particularly sensitive variables are retrieved from an S3 bucket, instead of
 # from terraform-set environment variables. When SGTM is being manually tested,
@@ -67,14 +66,28 @@ if __api_keys_s3_bucket is None or __api_keys_s3_key is None:
     # This means that we are running in a local environment, and we should
     # retrieve the API keys from the environment.
     ASANA_API_KEY = os.getenv("ASANA_API_KEY", "")
-    GITHUB_API_KEY = os.getenv("GITHUB_API_KEY", "")
     GITHUB_HMAC_SECRET = os.getenv("GITHUB_HMAC_SECRET", "")
+
+    if CUSTOM_GITHUB_TOKEN_RETRIEVAL:
+        GITHUB_TOKEN_RETRIEVAL_LAMBDA_FUNCTION_URL = os.getenv(
+            "GITHUB_TOKEN_RETRIEVAL_LAMBDA_FUNCTION_URL"
+        )
+    if not CUSTOM_GITHUB_TOKEN_RETRIEVAL:
+        GITHUB_API_KEY = os.getenv("GITHUB_API_KEY", "")
+
 else:
     # This means that we are running in a production environment, and we should
     # retrieve the API keys from the S3 bucket.
     s3 = boto3.client("s3")
     obj = s3.get_object(Bucket=__api_keys_s3_bucket, Key=__api_keys_s3_key)
     keys = json.loads(obj["Body"].read())
+
     ASANA_API_KEY = keys.get("ASANA_API_KEY", "")
-    GITHUB_API_KEY = keys.get("GITHUB_API_KEY", "")
     GITHUB_HMAC_SECRET = keys.get("GITHUB_HMAC_SECRET", "")
+
+    if CUSTOM_GITHUB_TOKEN_RETRIEVAL:
+        GITHUB_TOKEN_RETRIEVAL_LAMBDA_FUNCTION_URL = keys.get(
+            "GITHUB_TOKEN_RETRIEVAL_LAMBDA_FUNCTION_URL", ""
+        )
+    else:
+        GITHUB_API_KEY = keys.get("GITHUB_API_KEY", "")

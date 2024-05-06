@@ -4,6 +4,12 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+variable "custom_github_token_retrieval_s3_object" {
+  type        = bool
+  description = "SGTM's default behavior is to generate a GitHub App token from a .pem file in the API Key S3 object. Alternatively, GitHub tokens can be retrieved from a lambda function using lambda function URL invocation. If you'd like to configure the latter behavior, we'll store information about the lambda function to invoke in an S3 object that is distinct from `api_key_s3_object`."
+  default     = false
+}
+
 variable "api_key_s3_object" {
   type        = string
   description = "Name of the API key object"

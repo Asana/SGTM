@@ -2,7 +2,7 @@ import requests
 from requests.auth import HTTPBasicAuth
 
 from github import Github, PullRequest  # type: ignore
-from src.config import GITHUB_API_KEY
+from src.config import GITHUB_API_KEY  # HGTODO
 
 gh_client = Github(GITHUB_API_KEY)
 
@@ -52,3 +52,6 @@ def rerequest_check_run(owner: str, repository: str, check_run_id: int):
     )
     # Some check runs cannot be rerequested. See https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#rerequest-a-check-run--status-codes
     return requests.post(url, auth=auth).status_code == 201
+
+
+## permissions needed: get pull request, get issues, PR edits, request check run

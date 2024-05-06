@@ -2,7 +2,7 @@
 One-way sync of GitHub pull requests to Asana tasks so engineers can track all of their work in Asana. To see a more detailed explanation of the functionality of SGTM, see the [code_reviews](docs/code_reviews.md) docs.
 
 ## Setup
-Follow these instructions for setting up SGTM to run in your environment and your infrastructure! Note that this is currently only set up for deployment on AWS, so if you are using a cloud provider, you may need to modify some code and deploy the app yourself.
+Follow these instructions for setting up SGTM to run in your environment and your infrastructure! Note that this is currently only set up for deployment on AWS, so if you are using another cloud provider, you may need to modify some code and deploy the app yourself.
 
 ### Fork repository and set up your local repository
 You will need to set some overrides specific to your deployment -- mostly due to the fact that AWS S3 bucket names are globally unique, but you may want to tweak some default configuration settings. So, we recommend forking this repository into your Github organization.
@@ -31,14 +31,26 @@ Copy this Personal Access Token for the next step.
 You'll need to be able to authenticate with AWS via the command line, and there are a few ways to achieve that. See [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html) for your options, but most likely you'll already have a preferred method of interacting with AWS via the command line.
 
 #### Github
-Again, you will probably want to create a new Github user in your org that is just for SGTM (since SGTM will be updating/merging PRs, it's clearer to attribute those actions to a user that is clearly name "SGTM" or something similar).
+1. You should create a new GitHub App in your org for SGTM, and install it in your org. See [GitHub's docs](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app) on registering new GitHub Apps. You can uncheck/ignore all the settings in the following sections:
+- Identifying and authorizing users
+- Post Installation
+- Webhook
 
-1. For the Github user you want to use, generate a [Personal Access Token](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) with the following permissions:
-   * repo (Full control of private repositories)
-   * read:org (Read org and team membership, read org projects)
-2. Generate a [secret token](https://developer.github.com/webhooks/securing/) for your Github webhook. Github suggests generating this via `ruby -rsecurerandom -e 'puts SecureRandom.hex(20)'`, but use whatever method you are comfortable with to generate a secure secret token. Save this somewhere, as you'll need it twice in the later steps.
+Under 'Permissions', select:
+- Repository permissions:
+  - checks:write
+  - issues:write
+  - metadata:read
+  - pull_requests:write
+- Organization permissions:
+  - members:read
 
-Copy this Personal Access Token for the next step.
+2. Once you've created the GitHub App, copy its App ID. You'll use this in a later step.
+3. Create a new private key for your GitHub App. Download the .PEM file and save it to use in later steps.
+4. Generate a [secret token](https://developer.github.com/webhooks/securing/) for your Github webhook. Github suggests generating this via `ruby -rsecurerandom -e 'puts SecureRandom.hex(20)'`, but use whatever method you are comfortable with to generate a secure secret token. Save this somewhere, as you'll need it twice in the later steps.
+
+##### Alternative GitHub credentials approach: fetch tokens from a lambda function using Lambda function URL invocation
+Alternatively, you can retrieve GitHub credentials at runtime from a lambda function using [lambda function URL invocation](https://docs.aws.amazon.com/lambda/latest/dg/urls-invocation.html). If you're taking this approach, you should have the lambda function's ARN and URL ready to use in future steps.
 
 ### Create a file in S3 that maps github usernames to Asana user IDs
 
@@ -192,10 +204,13 @@ You can also choose to create new staging clusters, by copying the `module "sgtm
 You can also choose to test your changes locally. Here are step-by-step instructions on how to test manually/locally:
 
 1. Create a [Personal Access Token](https://developers.asana.com/docs/personal-access-token) in Asana. Copy that token and export it in your shell environment (`export ASANA_API_KEY=<your_asana_personal_access_token>`)
-2. Create a Github Personal Access Token as per the instrucitons in the [Github](#github) section above. Export that token in your shell environment (`export GITHUB_API_KEY=<your_github_personal_access_token>`)
-3. Follow the instructions in [Installing a Virtual Environment for Python](#installing-a-virtual-environment-for-python) to install necessary requirements.
-4. Open up a `python` REPL in the `SGTM` root directory (or use `ipython`, but you'll have to `pipenv install ipython` first)
-5. Run the function you want to test. It's usually fine / recommended to skip the DynamoDb locking when testing locally, since you usually won't be needing to test that. Here's an example of how to test updating a pull request:
+2. Create a Github [Personal Access Token](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) with the following permissions:
+   * repo (Full control of private repositories)
+   * read:org (Read org and team membership, read org projects)
+3. Export that token in your shell environment (`export GITHUB_API_KEY=<your_github_personal_access_token>`)
+4. Follow the instructions in [Installing a Virtual Environment for Python](#installing-a-virtual-environment-for-python), and then after activating the virtual environment, `pip install -r requirements.txt -r requirements-dev.txt`
+5. Open up a `python` REPL in the `SGTM` root directory (or use `ipython`, but you'll have to `pip install ipython` first)
+6. Run the function you want to test. It's usually fine / recommended to skip the DynamoDb locking when testing locally, since you usually won't be needing to test that. Here's an example of how to test updating a pull request:
     1. Note what code you want to test. In this case, we want to go to [src/github/webhook.py](/src/github/webhook.py) and look at `_handle_pull_request_webhook`. It looks like we need an `pull_request_id`.
     2. Get the `pull_request_id`. One easy way to do this is to run a command like this `curl -i -u <github_username>:$GITHUB_API_KEY https://api.github.com/repos/asana/sgtm/pulls/123` and then grab the `node_id` from that response.
     3. Open up your REPL. Import the function you want to test (in this case: `import src.github.controller as github_controller; import src.github.graphql.client as graphql_client`)

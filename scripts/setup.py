@@ -13,6 +13,15 @@ import botocore  # type: ignore
 REGION = "us-east-1"
 # TODO: REGION should not be hardcoded
 
+keys_to_set = {
+    "ASANA_API_KEY",
+    "GITHUB_APP_PEM",
+    "GITHUB_APP_ID",
+    "GITHUB_TOKEN_URL",
+    "GITHUB_TOKEN_ARN",
+    "GITHUB_HMAC_SECRET",
+}
+
 s3_client = boto3.client("s3", region_name=REGION)
 
 
@@ -137,8 +146,8 @@ if __name__ == "__main__":
     parser_secrets.set_defaults(action="secrets")
     parser_secrets.add_argument(
         "--keys",
-        default=("ASANA_API_KEY", "GITHUB_API_KEY", "GITHUB_HMAC_SECRET"),
-        choices=("ASANA_API_KEY", "GITHUB_API_KEY", "GITHUB_HMAC_SECRET"),
+        default=(keys_to_set),
+        choices=(keys_to_set),
         help="Select which secret to change",
         nargs="+",
     )
