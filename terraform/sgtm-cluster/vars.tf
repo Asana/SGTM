@@ -4,11 +4,36 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+variable "dynamodb-sgtm-lock-arn" {
+  description = "The ARN of the DynamoDB table to store SGTM locks"
+  type        = string
+}
+
+variable "dynamodb-sgtm-objects-arn" {
+  description = "The ARN of the DynamoDB table to store SGTM objects"
+  type        = string
+}
+
+variable "s3_api_key_bucket_arn" {
+  description = "The ARN of the S3 bucket to store API keys"
+  type        = string
+}
+
+variable "api_encryption_key_arn" {
+  description = "The ARN of the KMS key to use for decrypting API keys"
+  type        = string
+}
+
+variable "naming_cluster_suffix" {
+  description = "A cluster_suffix to append to the names of resources"
+  type        = string
+  default     = null
+}
+
 variable "api_key_s3_object" {
   type        = string
   description = "Name of the API key object"
 }
-
 
 variable "api_key_s3_bucket_name" {
   type        = string
@@ -30,37 +55,6 @@ variable "lambda_runtime" {
   type        = string
   description = "Runtime of AWS Lambda function"
   default     = "python3.9"
-}
-
-
-variable "terraform_backend_s3_bucket_name" {
-  type        = string
-  default     = ""
-  description = "S3 bucket name to store the Terraform state"
-}
-
-variable "terraform_backend_dynamodb_lock_table" {
-  type        = string
-  default     = ""
-  description = "The DynamoDb table to store the Terraform state lock"
-}
-
-variable "terraform_backend_use_tfc" {
-  type        = bool
-  default     = false
-  description = "Whether to use Terraform Cloud as the remote backend. Defaults to false."
-}
-
-variable "terraform_backend_tfc_organization" {
-  type        = string
-  default     = ""
-  description = "The Terraform Cloud organization to use as the remote backend. Must be provided if terraform_backend_use_tfc is true."
-}
-
-variable "terraform_backend_tfc_workspace" {
-  type        = string
-  default     = ""
-  description = "The Terraform Cloud workspace to use as the remote backend. Must be provided if terraform_backend_use_tfc is true."
 }
 
 variable "github_usernames_to_asana_gids_s3_path" {
@@ -114,6 +108,23 @@ variable "sgtm_feature__check_rerun_on_approval_enabled" {
   type        = string
   description = "'true' if a check rerun should be rerequested when a PR is approved. Must be combined with sgtm_feature__check_rerun_base_ref_names and sgtm_feature__check_rerun_threshold_hours."
   default     = "false"
+}
+
+variable "sgtm_rest_api_id" {
+  type        = string
+  description = "The ID of the API Gateway REST API for SGTM"
+}
+
+variable "sgtm_rest_api_root_resource_id" {
+  type        = string
+  description = "The ID of the root resource of the API Gateway REST API for SGTM"
+
+}
+
+variable "sgtm_rest_api_execution_arn" {
+  type        = string
+  description = "The ARN of the API Gateway execution role for SGTM"
+
 }
 
 variable "github_app_name" {

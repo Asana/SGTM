@@ -21,15 +21,17 @@ pipenv install
 echo "Creating deployment package..."
 
 # install dependencies into a temporary directory other than $dist_dir_name
-mkdir -p tmp
-pipenv run pip install -r <(pipenv requirements) --platform manylinux2014_x86_64 --only-binary=:all: --target tmp
+# shellcheck disable=SC2154
+temp_dir=tmp"$cluster_suffix"
+mkdir -p "$temp_dir"
+pipenv run pip install -r <(pipenv requirements) --platform manylinux2014_x86_64 --only-binary=:all: --target "$temp_dir"
 
 # Copy source code to the deployment package directory
 cp -R "$path_cwd"/"$source_code_path" "$path_cwd"/"$dist_dir_name"
 # Copy the dependencies to the deployment package directory
-cp -R tmp/* "$path_cwd"/"$dist_dir_name"
+cp -R "$temp_dir"/* "$path_cwd"/"$dist_dir_name"
 
 # Remove the temporary directory
-rm -rf tmp
+rm -rf "$temp_dir"
 
 echo "Finished script execution!"
