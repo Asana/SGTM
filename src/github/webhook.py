@@ -60,10 +60,10 @@ def _handle_issue_comment_webhook(payload: dict) -> HttpResponse:
 def _handle_pull_request_review_webhook(payload: dict) -> HttpResponse:
     pull_request_id = payload["pull_request"]["node_id"]
     review_id = payload["review"]["node_id"]
-    pull_request, review = graphql_client.get_pull_request_and_review(
-        pull_request_id, review_id
-    )
     with dynamodb_lock(pull_request_id):
+        pull_request, review = graphql_client.get_pull_request_and_review(
+            pull_request_id, review_id
+        )
         github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(pull_request)
         github_controller.upsert_review(pull_request, review)
     return HttpResponse("200")
@@ -96,36 +96,35 @@ def _handle_pull_request_review_comment(payload: dict):
     pull_request_id = payload["pull_request"]["node_id"]
 
     if action == "created" or action == "edited":
-        pull_request, comment = graphql_client.get_pull_request_and_comment(
-            pull_request_id, comment_id
-        )
-        if not isinstance(comment, PullRequestReviewComment):
-            raise Exception(
-                f"Unexpected comment type {type(PullRequestReviewComment)} for pull"
-                " request review"
+        with dynamodb_lock(pull_request_id):
+            pull_request, comment = graphql_client.get_pull_request_and_comment(
+                pull_request_id, comment_id
             )
-        review = Review.from_comment(comment)
-        with dynamodb_lock(review.id()):
+            if not isinstance(comment, PullRequestReviewComment):
+                raise Exception(
+                    f"Unexpected comment type {type(PullRequestReviewComment)} for pull"
+                    " request review"
+                )
+            review = Review.from_comment(comment)
             github_controller.upsert_review(pull_request, review)
         return HttpResponse("200")
 
     if action == "deleted":
-        # This is NOT the node_id, but is a numeric string (the databaseId field).
-        review_database_id = payload["comment"]["pull_request_review_id"]
-        maybe_review: Optional[Review] = graphql_client.get_review_for_database_id(
-            pull_request_id, review_database_id
-        )
-        if maybe_review is None:
-            # If a pull_request_review has only one comment that is deleted,
-            # the review is deleted. This can change the approval status of the PR
-            # so we need to handle this like a PR webhook.
-            with dynamodb_lock(comment_id):
+        maybe_review: Optional[Review] = None
+        with dynamodb_lock(pull_request_id):
+            # This is NOT the node_id, but is a numeric string (the databaseId field).
+            review_database_id = payload["comment"]["pull_request_review_id"]
+            maybe_review: Optional[Review] = graphql_client.get_review_for_database_id(
+                pull_request_id, review_database_id
+            )
+            if maybe_review is None:
+                # If a pull_request_review has only one comment that is deleted,
+                # the review is deleted. This can change the approval status of the PR
+                # so we need to handle this like a PR webhook.
                 github_controller.delete_comment(comment_id)
-            return _handle_pull_request_webhook(payload)
-
-        pull_request = graphql_client.get_pull_request(pull_request_id)
-        with dynamodb_lock(maybe_review.id()):
-            github_controller.upsert_review(pull_request, maybe_review)
+            else:
+                pull_request = graphql_client.get_pull_request(pull_request_id)
+                github_controller.upsert_review(pull_request, maybe_review)
         return HttpResponse("200")
 
     error_text = f"Unknown action for review_comment: {action}"
