@@ -4,22 +4,22 @@ provider "aws" {
 
 
 
-# import {
-#   to = module.sgtm-prod.aws_cloudwatch_log_group.main
-#   id = "/aws/lambda/sgtm"
-# }
+import {
+  to = module.sgtm-prod.aws_cloudwatch_log_group.main
+  id = "/aws/lambda/sgtm"
+}
 
 
-# import {
-#   to = module.sgtm-prod.aws_s3_object.lambda_code_bundle
-#   id = "${var.lambda_code_s3_bucket_name}/sgtm_bundle.zip"
-# }
+import {
+  to = module.sgtm-prod.aws_s3_object.lambda_code_bundle
+  id = "${var.lambda_code_s3_bucket_name}/sgtm_bundle.zip"
+}
 
 
-# moved {
-#   from = module.sgtm-prod.aws_iam_role.iam_for_lambda_function
-#   to   = module.sgtm-prod.aws_iam_role.sgtm_lambda
-# }
+moved {
+  from = module.sgtm-prod.aws_iam_role.iam_for_lambda_function
+  to   = module.sgtm-prod.aws_iam_role.sgtm_lambda
+}
 
 
 moved {
