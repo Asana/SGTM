@@ -165,7 +165,7 @@ data "aws_s3_object" "additional_lambda_permissions" {
 
 resource "aws_iam_policy" "additional_lambda_permissions" {
   count  = var.custom_lambda_role_policy_s3_object_key != null ? 1 : 0
-  name   = "${var.naming_cluster_suffix}_additional_lambda_permissions"
+  name   = "${local.cluster_suffix}_additional_lambda_permissions"
   policy = data.aws_s3_object.additional_lambda_permissions[0].body
 }
 
