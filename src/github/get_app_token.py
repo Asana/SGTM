@@ -1,10 +1,8 @@
 # pyright: basic
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 import json
 import os
-from parser import isexpr
 import sys
 import boto3
 from botocore.auth import SigV4Auth
@@ -23,7 +21,12 @@ from typing import (
 from typing_extensions import TypeAlias
 from sgqlc.endpoint.http import HTTPEndpoint  # type: ignore
 
-from src.config import GITHUB_API_KEY
+from src.config import (
+    GITHUB_API_KEY,
+    GITHUB_APP_NAME,
+    GITHUB_APP_INSTALLATION_ACCESS_TOKEN_RETRIEVAL_URL,
+    GITHUB_APP_NAME,
+)
 
 
 Key: TypeAlias = Hashable
@@ -71,9 +74,13 @@ def is_expired(token: TokenContainer) -> bool:
     )
 
 
-# Mimicks the interface provided by InstallationAuthorization.
 @dataclass(frozen=True)
-class GithubPAT:
+class GithubToken:
+    """
+    A simple implementation of a TokenContainer that only contains a token and an optional
+    expiration. this class can be instantiated.
+    """
+
     token: str
     expires_at: Optional[datetime] = None
 
@@ -86,22 +93,18 @@ class GithubPAT:
         return None
 
 
-class TokenDict(TypedDict):
-    token: str
-    expires_at: Optional[str]
-
-
 class GithubAutoRefreshedAppTokenAuth(GithubAuthABC):
     """
     A pygithub.Auth.GithubAuthABC implementation that uses an AsanaGithubAppTokenAuth to get a token
-    for authentication. Makes it possible to use the Github SDK continuously without directly
-    accessing the private key.
+    for authentication. A pygithub.Github object can be instantiated directly with an instance of
+    this class, and pygithub will automatically handle auto-refreshing the token based on the
+    `expires_at` property.
 
     This class caches tokens, and returns the cached token unless it's expired. If it's expired, it
     returns a refreshed token when `.token()` is called.
     """
 
-    def __init__(self, github_auth: "AsanaGithubAppTokenAuth"):
+    def __init__(self, github_auth: "SGTMGithubAppTokenAuth"):
         self._github_auth = github_auth
         self._token: Optional[TokenContainer] = None
 
@@ -112,6 +115,10 @@ class GithubAutoRefreshedAppTokenAuth(GithubAuthABC):
 
     @property
     def token_container(self) -> TokenContainer:
+        """
+        Get the token container. This method caches the token, and returns the cached token unless
+        it's expired. If it's expired, it returns a refreshed token.
+        """
         return (
             # Refresh the token if it's expired or not set.
             # otherwise, return the cached token.
@@ -136,49 +143,48 @@ class GithubAutoRefreshedAppTokenAuth(GithubAuthABC):
 
     @property
     def expires_at(self) -> Optional[datetime]:
+        """
+        Get the expiration time of the token.
+        """
         return self._token.expires_at if self._token else None
 
 
-class AsanaGithubAuth(ABC):
-    @abstractmethod
+class SGTMGithubAuth(Protocol):
+    """
+    A protocol for a class that provides authentication for interacting with the Github API. This
+    protocol is used to abstract the authentication mechanism away from the rest of the codebase. It
+    is used to provide a consistent way to get a Github client and a GraphQL endpoint, irrespective
+    of whether the authentication is done using a personal access token or a Github App token.
+    """
+
     def get_token(self) -> TokenContainer:
         ...
 
-    @abstractmethod
-    def get_rest_client(self, repo_name: Optional[str] = None) -> Github:
-        ...
+    def get_rest_client(self) -> Github: ...
 
-    @abstractmethod
     def get_graphql_endpoint(self) -> HTTPEndpoint:
         ...
 
-    def or_local(self) -> "AsanaGithubAuth":
-        if sys.platform.startswith("darwin") or os.getenv("CIRCLECI") == "true":
-            # If we're running on a local mac or in CircleCI, use the local auth (where we expect
-            # that `GITHUB_API_KEY` env var is set)
-            return AsanaGithubLocalAuth()
-        return self
-
 
 @dataclass(frozen=True)
-class AsanaGithubLocalAuth(AsanaGithubAuth):
-    @override
-    def get_token(self):
-        return GithubPAT(token=GITHUB_API_KEY)
+class SGTMGithubLocalAuth(SGTMGithubAuth):
+    """
+    A simple implementation of SGTMGithubAuth that uses a personal access token to authenticate with
+    the Github API. This class can be instantiated.
+    """
 
     @override
-    def get_rest_client(self, repo_name: Optional[str] = None) -> Github:
+    def get_token(self):
+        return GithubToken(token=GITHUB_API_KEY)
+
+    @override
+    def get_rest_client(self) -> Github:
         return Github(self.get_token().token)
 
     @override
     def get_graphql_endpoint(self) -> HTTPEndpoint:
         headers = {"Authorization": f"bearer {self.get_token().token}"}
         return HTTPEndpoint("https://api.github.com/graphql", headers)
-
-    @override
-    # This is not intended to be used from extremely generic contexts, so fail if called.
-    def or_local(self) -> "AsanaGithubAuth":
-        raise Exception("This is already a local auth")
 
 
 class GithubAutoRefreshedGraphQLEndpoint(HTTPEndpoint):
@@ -188,7 +194,7 @@ class GithubAutoRefreshedGraphQLEndpoint(HTTPEndpoint):
     refreshes the Github App installation access token when it expires.
     """
 
-    __current_token: TokenContainer
+    __current_token: Optional[TokenContainer] = None
     __auth_refresher: GithubAutoRefreshedAppTokenAuth
 
     def __init__(self, auth_refresher: GithubAutoRefreshedAppTokenAuth) -> None:
@@ -232,37 +238,70 @@ class GithubAutoRefreshedGraphQLEndpoint(HTTPEndpoint):
         self.base_headers.update(self.__get_new_auth_headers())
 
 
-class AsanaGithubAppTokenAuth(AsanaGithubAuth):
+class SGTMGithubAppTokenAuth(SGTMGithubAuth):
+    """
+    A class that provides authentication for interacting with the Github API using a Github App
+    token. This class can be instantiated.
+
+    The Github App token is retrieved from an endpoint whose URL is defined in the
+    GITHUB_APP_INSTALLATION_ACCESS_TOKEN_RETRIEVAL_URL environment variable. This class uses the
+    boto3 library to sign the request to the token retrieval endpoint with SigV4Auth.
+    """
+
     def __init__(self, github_app_name: str, session: Optional[boto3.Session] = None):
         self.github_app_name = github_app_name
         self.session = session or boto3.Session()
         self.__auto_refreshed_auth_obj = GithubAutoRefreshedAppTokenAuth(self)
 
+    class TokenDict(TypedDict):
+        """
+        A dictionary representing the response from the token retrieval URL endpoint.
+        """
+
+        token: str
+        expires_at: Optional[str]
+
+    class EndpointRequestBody(TypedDict):
+        """
+        A dictionary representing the request body for the token retrieval URL endpoint.
+        """
+
+        github_app_name: str
+
     @override
     def get_token(self) -> TokenContainer:
         """
-        Get the token needed to authenticate with a GitHub App, without directly accessing the
-        private key. This approach is preferred over AsanaGithubAppAuth whenever possible.
+        Get the token needed to authenticate with a GitHub App by retrieving a 1-hour token from the
+        endpoint whose url is defined in GITHUB_APP_INSTALLATION_ACCESS_TOKEN_RETRIEVAL_URL.
 
-        Use this function to retrieve a 1-hour token for a Github App installation.
+        Invariants:
+        - This endpoint should accept a SIGV4-signed POST request with a JSON body that specifies a value
+        for the 'github_app_name' key.
+        - The post request should return a JSON object with a 'token' key that contains the Github
+        token, and an 'expires_at' key which contains a timestamp of the format
+        '%Y-%m-%dT%H:%M:%SZ'.
 
         For context, see:
-        - Asana docs on using GH Apps: https://github.com/Asana/codez/blob/next-master/asana2/docs/github/github_apps.md
         - AWS docs on SigV4 signing requests: https://docs.aws.amazon.com/vpc-lattice/latest/ug/sigv4-authenticated-requests.html#sigv4-authenticated-requests-python
         """
 
-        # The URL and request format are specified in: https://github.com/Asana/codez/blob/next-master/asana2/docs/github/github_apps.md
-        get_token_endpoint = (
-            "https://jv2fqfrofl7veyzrfiizx4i7hq0joruw.lambda-url.us-east-1.on.aws/"
+        data = json.dumps(
+            SGTMGithubAppTokenAuth.EndpointRequestBody(
+                github_app_name=self.github_app_name
+            )
         )
-        data = json.dumps(dict(github_app_name=self.github_app_name))
+
+        assert GITHUB_APP_INSTALLATION_ACCESS_TOKEN_RETRIEVAL_URL, (
+            "GITHUB_APP_INSTALLATION_ACCESS_TOKEN_RETRIEVAL_URL is not set. "
+            "Please set this environment variable."
+        )
 
         # Sign the request with SigV4Auth.
         creds = self.session.get_credentials()
         assert creds, "No credentials available to sign the request."
         aws_request = AWSRequest(
             method="POST",
-            url=get_token_endpoint,
+            url=GITHUB_APP_INSTALLATION_ACCESS_TOKEN_RETRIEVAL_URL,
             data=data,
             params=None,
             headers={"content-type": "application/json"},
@@ -276,7 +315,7 @@ class AsanaGithubAppTokenAuth(AsanaGithubAuth):
 
         response = requests.request(
             method="POST",
-            url=get_token_endpoint,
+            url=GITHUB_APP_INSTALLATION_ACCESS_TOKEN_RETRIEVAL_URL,
             headers=dict(aws_request.headers),
             data=data,
             timeout=30,
@@ -287,8 +326,8 @@ class AsanaGithubAppTokenAuth(AsanaGithubAuth):
                 f"Failed to get GitHub App token: {response.content.decode()}"
             )
 
-        token = cast(TokenDict, response.json())
-        return GithubPAT(
+        token = cast(SGTMGithubAppTokenAuth.TokenDict, response.json())
+        return GithubToken(
             token=token["token"],
             expires_at=(
                 datetime.strptime(token["expires_at"], "%Y-%m-%dT%H:%M:%SZ")
@@ -298,7 +337,7 @@ class AsanaGithubAppTokenAuth(AsanaGithubAuth):
         )
 
     @override
-    def get_rest_client(self, repo_name: Optional[str] = None) -> Github:
+    def get_rest_client(self) -> Github:
         return Github(auth=self.__auto_refreshed_auth_obj)
 
     @override
@@ -306,4 +345,10 @@ class AsanaGithubAppTokenAuth(AsanaGithubAuth):
         return GithubAutoRefreshedGraphQLEndpoint(self.__auto_refreshed_auth_obj)
 
 
-sgtm_github_auth = AsanaGithubAppTokenAuth(github_app_name="asana-sgtm").or_local()
+if sys.platform.startswith("darwin") or os.getenv("CIRCLECI") == "true":
+    # If we're running on a local mac or in CircleCI, use the local auth (where we expect
+    # that `GITHUB_API_KEY` env var is set)
+    sgtm_github_auth = SGTMGithubLocalAuth()
+else:
+    # Otherwise, use Github App based auth
+    sgtm_github_auth = SGTMGithubAppTokenAuth(github_app_name=GITHUB_APP_NAME)
