@@ -29,7 +29,7 @@ cp -R "$path_cwd"/"$source_code_path" "$path_cwd"/"$dist_dir_name"
 # Copy the dependencies to the deployment package directory
 cp -R tmp/* "$path_cwd"/"$dist_dir_name"
 
-# Remove the temporary directory
-rm -rf tmp
+# # Remove the temporary directory
+# rm -rf tmp
 
 echo "Finished script execution!"

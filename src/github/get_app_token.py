@@ -345,16 +345,14 @@ class SGTMGithubAppTokenAuth(SGTMGithubAuth):
     def get_graphql_endpoint(self) -> HTTPEndpoint:
         return GithubAutoRefreshedGraphQLEndpoint(self.__auto_refreshed_auth_obj)
 
-
+sgtm_github_auth: SGTMGithubAuth
 if sys.platform.startswith("darwin") or os.getenv("CIRCLECI") == "true":
     # If we're running on a local mac or in CircleCI, use the local auth (where we expect
     # that `GITHUB_API_KEY` env var is set)
-    sgtm_github_auth: SGTMGithubAuth = SGTMGithubLocalAuth()
+    sgtm_github_auth = SGTMGithubLocalAuth()
 else:
     # Otherwise, use Github App based auth
     assert (
         GITHUB_APP_NAME
     ), "GITHUB_APP_NAME is not set. Please set this environment variable."
-    sgtm_github_auth: SGTMGithubAuth = SGTMGithubAppTokenAuth(
-        github_app_name=GITHUB_APP_NAME
-    )
+    sgtm_github_auth = SGTMGithubAppTokenAuth(github_app_name=GITHUB_APP_NAME)
