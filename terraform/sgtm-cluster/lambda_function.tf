@@ -57,6 +57,7 @@ resource "null_resource" "install_python_dependencies" {
       runtime          = var.lambda_runtime
       path_cwd         = path.cwd
       dist_dir_name    = local.dist_dir_name
+      cluster_suffix   = local.cluster_suffix
     }
   }
 }
