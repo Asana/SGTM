@@ -351,4 +351,7 @@ if sys.platform.startswith("darwin") or os.getenv("CIRCLECI") == "true":
     sgtm_github_auth = SGTMGithubLocalAuth()
 else:
     # Otherwise, use Github App based auth
+    assert (
+        GITHUB_APP_NAME
+    ), "GITHUB_APP_NAME is not set. Please set this environment variable."
     sgtm_github_auth = SGTMGithubAppTokenAuth(github_app_name=GITHUB_APP_NAME)
