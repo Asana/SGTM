@@ -345,6 +345,7 @@ class SGTMGithubAppTokenAuth(SGTMGithubAuth):
     def get_graphql_endpoint(self) -> HTTPEndpoint:
         return GithubAutoRefreshedGraphQLEndpoint(self.__auto_refreshed_auth_obj)
 
+
 sgtm_github_auth: SGTMGithubAuth
 if sys.platform.startswith("darwin") or os.getenv("CIRCLECI") == "true":
     # If we're running on a local mac or in CircleCI, use the local auth (where we expect
