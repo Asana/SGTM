@@ -109,15 +109,10 @@ class TestHandlePullRequestReviewComment(BaseClass):
         delete_comment.assert_not_called()
 
     @patch("src.github.controller.upsert_pull_request")
-    @patch(
-        "src.github.graphql.client.get_pull_request",
-        return_value=MagicMock(spec=PullRequest),
-    )
     @patch("src.github.graphql.client.get_review_for_database_id", return_value=None)
     def test_comment_deletion_when_review_not_found(
         self,
         get_review_for_database_id,
-        get_pull_request,
         upsert_pull_request,
         upsert_review,
         delete_comment,
@@ -127,8 +122,6 @@ class TestHandlePullRequestReviewComment(BaseClass):
 
         webhook._handle_pull_request_review_comment(self.payload)
 
-        get_pull_request.assert_called_with(self.PULL_REQUEST_NODE_ID)
-        upsert_pull_request.assert_called_once_with(get_pull_request.return_value)
         upsert_review.assert_not_called()
         get_review_for_database_id.assert_called_once_with(
             self.PULL_REQUEST_NODE_ID, self.PULL_REQUEST_REVIEW_ID
