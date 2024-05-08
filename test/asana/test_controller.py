@@ -203,6 +203,17 @@ class TestNewDueOnOrNone(BaseClass):
         update_task_fields = {"assignee": assignee_gid}
         self.assertEqual(controller._new_due_on_or_none(task, update_task_fields), None)
 
+    def test_no_assignee(self):
+        task = {"assignee": None, "due_on": "2010-01-01"}
+        update_task_fields = {"assignee": "123"}
+        self.assertEqual(controller._new_due_on_or_none(task, update_task_fields), datetime.now().strftime("%Y-%m-%d"))
+
+    def test_null_due_on(self):
+        assignee_gid = "123"
+        task = {"assignee": {"gid": assignee_gid}, "due_on": None}
+        update_task_fields = {"assignee": assignee_gid}
+        self.assertEqual(controller._new_due_on_or_none(task, update_task_fields), None)
+
 
 @patch("src.asana.client.complete_task")
 @patch("src.asana.helpers.get_linked_task_ids")
