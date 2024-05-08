@@ -31,7 +31,6 @@ def update_task(
     update_task_fields = asana_helpers.extract_task_fields_from_pull_request(
         pull_request
     )
-    logger.info(f"Updating task {task_id} with fields: {update_task_fields}")
     task = asana_client.get_task(task_id)
     new_due_on = (
         asana_helpers.today_str()
@@ -40,6 +39,8 @@ def update_task(
     )
     if new_due_on is not None:
         update_task_fields["due_on"] = new_due_on
+
+    logger.info(f"Updating task {task_id} with fields: {update_task_fields}")
     asana_client.update_task(task_id, update_task_fields)
     # Add followers is optional because Asana should automatically add followers
     # if the body contains well-formatted data-asana-gid fields. Also bots can sometimes create comments,
@@ -52,7 +53,7 @@ def update_task(
 def _new_due_on_or_none(task: dict, update_task_fields: dict) -> Optional[str]:
     today = asana_helpers.today_str()
 
-    if task["due_on"] >= today:
+    if task.get("due_on") and task["due_on"] >= today:
         # don't update due dates that aren't stale
         return None
     elif (task.get("assignee") or {}).get("gid") != update_task_fields.get("assignee"):
