@@ -53,7 +53,7 @@ def update_task(
 def _new_due_on_or_none(task: dict, update_task_fields: dict) -> Optional[str]:
     today = asana_helpers.today_str()
 
-    if task.get("due_on") and task.get("due_on") >= today:
+    if task.get("due_on") and task["due_on"] >= today:
         # don't update due dates that aren't stale
         return None
     elif (task.get("assignee") or {}).get("gid") != update_task_fields.get("assignee"):
