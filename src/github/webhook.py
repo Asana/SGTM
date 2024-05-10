@@ -14,8 +14,8 @@ from src.github.models import PullRequestReviewComment, Review
 # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
 def _handle_pull_request_webhook(payload: dict) -> HttpResponse:
     pull_request_id = payload["pull_request"]["node_id"]
-    pull_request = graphql_client.get_pull_request(pull_request_id)
     with dynamodb_lock(pull_request_id):
+        pull_request = graphql_client.get_pull_request(pull_request_id)
         # maybe rerun stale checks on approved PR before attempting to automerge
         did_rerun_stale_required_checks = (
             github_logic.maybe_rerun_stale_checks_on_approved_pull_request(pull_request)
