@@ -95,16 +95,18 @@ class DynamoDbClient(object):
         if "Item" in response:
             return response["Item"]["asana-id"]["S"]
         else:
+            logger.warning(f"Asana id not found in dynamodb for github node id {gh_node_id}")
             return None
 
     def insert_github_node_to_asana_id_mapping(self, gh_node_id: str, asana_id: str):
         """
         Creates an association between a GitHub node-id and an Asana object-id
         """
-        self.client.put_item(
+        response = self.client.put_item(
             TableName=OBJECTS_TABLE,
             Item={"github-node": {"S": gh_node_id}, "asana-id": {"S": asana_id}},
         )
+        logger.info(f"Inserted mapping into dynamodb {gh_node_id} -> {asana_id} with response {response}")
 
     def bulk_insert_github_node_to_asana_id_mapping(
         self, gh_and_asana_ids: List[Tuple[str, str]]

@@ -199,6 +199,8 @@ terraform {
   required_providers {
     aws = {
       source = "hashicorp/aws"
+      # The lowest version that supports the aws_s3_object attribute.
+      version = ">= 4.0"
     }
   }
 }
