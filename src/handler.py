@@ -47,6 +47,7 @@ def handle_github_webhook(
 
 def handler(event: dict, context: dict) -> HttpResponseDict:
     if "Records" in event:
+        logger.info(f"Records: {event['Records']}")
         # SQS event
         for record in event["Records"]:
             webhook_headers = record["messageAttributes"]

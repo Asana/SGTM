@@ -106,7 +106,10 @@ class DynamoDbClient(object):
             TableName=OBJECTS_TABLE,
             Item={"github-node": {"S": gh_node_id}, "asana-id": {"S": asana_id}},
         )
-        logger.info(f"Inserted mapping into dynamodb {gh_node_id} -> {asana_id} with response {response}")
+        if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
+            logger.info(f"Inserted into dynamodb {gh_node_id} -> {asana_id}")
+        else:
+            logger.warning(f"Error inserting into dynamodb {gh_node_id} -> {asana_id}, response {response}")
 
     def bulk_insert_github_node_to_asana_id_mapping(
         self, gh_and_asana_ids: List[Tuple[str, str]]
