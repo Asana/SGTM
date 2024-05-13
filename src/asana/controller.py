@@ -44,7 +44,7 @@ def update_task(
     asana_client.update_task(task_id, update_task_fields)
     # Add followers is optional because Asana should automatically add followers
     # if the body contains well-formatted data-asana-gid fields. Also bots can sometimes create comments,
-    # reviews, and PRs which may or may not be included in the gith ub handle to asana id mappings
+    # reviews, and PRs which may or may not be included in the github handle to asana id mappings
     if len(followers) > 0:
         asana_client.add_followers(task_id, followers)
     maybe_complete_tasks_on_merge(pull_request)
