@@ -95,7 +95,9 @@ class DynamoDbClient(object):
         if "Item" in response:
             return response["Item"]["asana-id"]["S"]
         else:
-            logger.warning(f"Asana id not found in dynamodb for github node id {gh_node_id}")
+            logger.warning(
+                f"Asana id not found in dynamodb for github node id {gh_node_id}"
+            )
             return None
 
     def insert_github_node_to_asana_id_mapping(self, gh_node_id: str, asana_id: str):
@@ -109,7 +111,9 @@ class DynamoDbClient(object):
         if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
             logger.info(f"Inserted into dynamodb {gh_node_id} -> {asana_id}")
         else:
-            logger.warning(f"Error inserting into dynamodb {gh_node_id} -> {asana_id}, response {response}")
+            logger.warning(
+                f"Error inserting into dynamodb {gh_node_id} -> {asana_id}, response {response}"
+            )
 
     def bulk_insert_github_node_to_asana_id_mapping(
         self, gh_and_asana_ids: List[Tuple[str, str]]
