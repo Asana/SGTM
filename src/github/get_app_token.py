@@ -1,4 +1,4 @@
-# pyright: basic
+# pyright: strict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
@@ -229,8 +229,8 @@ class GithubAutoRefreshedGraphQLEndpoint(HTTPEndpoint):
         """
         Retrieves a new token and returns an updated Authorization header with the new token.
         """
-        self._current_token = self.__auth_refresher.token_container
-        return {"Authorization": f"bearer {self._current_token.token}"}
+        self.__current_token = self.__auth_refresher.token_container
+        return {"Authorization": f"bearer {self.__current_token.token}"}
 
     def __update_auth_headers(self) -> None:
         """
