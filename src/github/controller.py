@@ -16,7 +16,7 @@ def upsert_pull_request(pull_request: PullRequest):
     if task_id is None:
         task_id = asana_controller.create_task(pull_request.repository_id())
         if task_id is None:
-            # TODO: Handle this case
+            logger.error(f"Failed to create task for pull request {pull_request_id}")
             return
 
         logger.info(f"Task created for pull request {pull_request_id}: {task_id}")
