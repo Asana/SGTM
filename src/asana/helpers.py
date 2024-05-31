@@ -129,7 +129,7 @@ def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
 
     if project_id is None:
         logger.error(
-            f"Task not found for pull request {pull_request.id()}. Running a full sync!"
+            f"Task not found for pull request {pull_request.id()}."
         )
         return {}
     else:
