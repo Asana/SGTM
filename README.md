@@ -214,15 +214,15 @@ You can also choose to test your changes locally. Here are step-by-step instruct
 You may then run all tests via the command line:
 
 ```bash
-TEST=1 python3 -m unittest discover
+ENV=test python3 -m unittest discover
 ```
 
 Alternatively, you may run specific tests e.g. via:
 
 ```bash
-TEST=1 python3 -m unittest test/<python-test-file-name>.py
-TEST=1 python3 -m unittest test.<python-test-module-name>.<TestClassName>
-TEST=1 python3 -m unittest test.<python-test-module-name>.<TestClassName>.<test_function_name>
+ENV=test python3 -m unittest test/<python-test-file-name>.py
+ENV=test python3 -m unittest test.<python-test-module-name>.<TestClassName>
+ENV=test python3 -m unittest test.<python-test-module-name>.<TestClassName>.<test_function_name>
 ```
 
 ## "Building"
