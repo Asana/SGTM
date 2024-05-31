@@ -5,7 +5,7 @@ or other external resources.
 import os
 import boto3  # type: ignore
 from moto import mock_dynamodb  # type: ignore
-from src.config import OBJECTS_TABLE, LOCK_TABLE
+from src.config import AWS_REGION, OBJECTS_TABLE, LOCK_TABLE
 from .base_test_case_class import BaseClass
 
 # "Mock" the AWS credentials as they can't be mocked in Botocore currently
@@ -38,7 +38,7 @@ class MockDynamoDbTestCase(BaseClass):
     def setUpClass(cls):
         mock_dynamodb().__enter__()
 
-        client = boto3.client("dynamodb")
+        client = boto3.client("dynamodb", region_name=AWS_REGION)
 
         # our DynamoDb Schema #DynamoDbSchema
         client.create_table(

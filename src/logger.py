@@ -1,6 +1,6 @@
 import logging
-import os
+
+from src.config import LOG_LEVEL
 
 logger = logging.getLogger()
-log_level = logging.CRITICAL if os.getenv("TEST") else logging.INFO
-logger.setLevel(log_level)
+logger.setLevel(LOG_LEVEL)

@@ -34,9 +34,11 @@ jobs:
     steps:
       - setup
       - run:
-          command: pipenv run TEST=1 python3 -m unittest discover
+          command: pipenv run python3 -m unittest discover
           name: Test
-
+          environment:
+            ENV: test
+            
 workflows:
   main:
     jobs:
