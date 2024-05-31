@@ -1,3 +1,9 @@
+<!-- #CodeAorBannerStart Auto-generated. Please do not edit -->
+
+This file is missing an owner. Please add one (`git aor --add 'README.md'`) or [file a report](https://go/report-missing-code-aor).
+
+<!-- #CodeAorBannerEnd -->
+
 # SGTM
 One-way sync of GitHub pull requests to Asana tasks so engineers can track all of their work in Asana. To see a more detailed explanation of the functionality of SGTM, see the [code_reviews](docs/code_reviews.md) docs.
 
@@ -196,7 +202,7 @@ You can also choose to test your changes locally. Here are step-by-step instruct
 3. Follow the instructions in [Installing a Virtual Environment for Python](#installing-a-virtual-environment-for-python) to install necessary requirements.
 4. Open up a `python` REPL in the `SGTM` root directory (or use `ipython`, but you'll have to `pipenv install ipython` first)
 5. Run the function you want to test. It's usually fine / recommended to skip the DynamoDb locking when testing locally, since you usually won't be needing to test that. Here's an example of how to test updating a pull request:
-    1. Note what code you want to test. In this case, we want to go to [src/github/webhook.py](/src/github/webhook.py) and look at `_handle_pull_request_webhook`. It looks like we need an `pull_request_id`.
+    1. Note what code you want to test. In this case, we want to go to [src/github/webhook.py](./src/github/webhook.py) and look at `_handle_pull_request_webhook`. It looks like we need an `pull_request_id`.
     2. Get the `pull_request_id`. One easy way to do this is to run a command like this `curl -i -u <github_username>:$GITHUB_API_KEY https://api.github.com/repos/asana/sgtm/pulls/123` and then grab the `node_id` from that response.
     3. Open up your REPL. Import the function you want to test (in this case: `import src.github.controller as github_controller; import src.github.graphql.client as graphql_client`)
     4. Run the code! In this case:
