@@ -1,20 +1,34 @@
 from unittest.mock import patch, MagicMock
+from python_dynamodb_lock.python_dynamodb_lock import DynamoDBLockError  # type: ignore
 
-from test.impl.base_test_case_class import BaseClass
-
+from src.dynamodb.lock import lock_client
 from src.github import webhook
 from src.github.models import PullRequest, PullRequestReviewComment, Review
+from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 
 
-class TestHandleGithubWebhook(BaseClass):
+class TestHandleGithubWebhook(MockDynamoDbTestCase):
     def test_handle_github_webhook_501_error_for_unknown_event_type(self):
         response = webhook.handle_github_webhook("unknown_event_type", {})
 
         self.assertEqual(response.status_code, "501")
 
+    def test_swallow_dynamodb_lock_errors(self):
+        response = None
+        with lock_client.acquire_lock(
+            "pull_request_1",
+            sort_key="pull_request_1",
+        ):
+            with patch.object(lock_client, "acquire_lock") as acquire_lock:
+                acquire_lock.side_effect = DynamoDBLockError("error")
+                response = webhook.handle_github_webhook(
+                    "pull_request", {"pull_request": {"node_id": "pull_request_1"}}
+                )
 
-@patch.object(webhook, "dynamodb_lock")
-class HandleIssueCommentWebhook(BaseClass):
+        self.assertEqual(response.status_code, "500")
+
+
+class HandleIssueCommentWebhook(MockDynamoDbTestCase):
     COMMENT_NODE_ID = "hijkl"
     ISSUE_NODE_ID = "ksjklsdf"
 
@@ -29,17 +43,16 @@ class HandleIssueCommentWebhook(BaseClass):
             },
         }
 
-    def test_handle_unknown_action_for_issue_comment(self, lock):
+    def test_handle_unknown_action_for_issue_comment(self):
         self.payload["action"] = "erroneous_action"
 
         response = webhook._handle_issue_comment_webhook(self.payload)
         self.assertEqual(response.status_code, "400")
 
 
-@patch.object(webhook, "dynamodb_lock")
 @patch("src.github.controller.delete_comment")
 @patch("src.github.controller.upsert_review")
-class TestHandlePullRequestReviewComment(BaseClass):
+class TestHandlePullRequestReviewComment(MockDynamoDbTestCase):
     PULL_REQUEST_REVIEW_ID = "123456"
     COMMENT_NODE_ID = "hijkl"
     PULL_REQUEST_NODE_ID = "abcde"
@@ -62,7 +75,6 @@ class TestHandlePullRequestReviewComment(BaseClass):
         review_from_comment,
         upsert_review,
         delete_comment,
-        lock,
     ):
         self.payload["action"] = "edited"
         pull_request, comment = (
@@ -90,7 +102,6 @@ class TestHandlePullRequestReviewComment(BaseClass):
         get_pull_request,
         upsert_review,
         delete_comment,
-        lock,
     ):
         self.payload["action"] = "deleted"
 
@@ -116,7 +127,6 @@ class TestHandlePullRequestReviewComment(BaseClass):
         upsert_pull_request,
         upsert_review,
         delete_comment,
-        lock,
     ):
         self.payload["action"] = "deleted"
 

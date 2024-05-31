@@ -67,13 +67,7 @@ SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED = is_feature_flag_enabled(
 
 __api_keys_s3_bucket = os.getenv("API_KEYS_S3_BUCKET")
 __api_keys_s3_key = os.getenv("API_KEYS_S3_KEY")
-if __api_keys_s3_bucket is None or __api_keys_s3_key is None:
-    # This means that we are running in a local environment, and we should
-    # retrieve the API keys from the environment.
-    ASANA_API_KEY = os.getenv("ASANA_API_KEY", "")
-    GITHUB_API_KEY = os.getenv("GITHUB_API_KEY", "")
-    GITHUB_HMAC_SECRET = os.getenv("GITHUB_HMAC_SECRET", "")
-else:
+if __api_keys_s3_bucket and __api_keys_s3_key:
     # This means that we are running in a production environment, and we should
     # retrieve the API keys from the S3 bucket.
     s3 = boto3.client("s3")
@@ -82,3 +76,15 @@ else:
     ASANA_API_KEY = keys.get("ASANA_API_KEY", "")
     GITHUB_API_KEY = keys.get("GITHUB_API_KEY", "")
     GITHUB_HMAC_SECRET = keys.get("GITHUB_HMAC_SECRET", "")
+elif os.getenv("TEST"):
+    # This means that we are running in a test environment, and we should
+    # use dummy values
+    ASANA_API_KEY = "asana-test-key"
+    GITHUB_API_KEY = "github-test-key"
+    GITHUB_HMAC_SECRET = "github-test-secret"
+else:
+    # This means that we are running in a local environment, and we should
+    # retrieve the API keys from the environment.
+    ASANA_API_KEY = os.getenv("ASANA_API_KEY", "")
+    GITHUB_API_KEY = os.getenv("GITHUB_API_KEY", "")
+    GITHUB_HMAC_SECRET = os.getenv("GITHUB_HMAC_SECRET", "")

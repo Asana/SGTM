@@ -11,7 +11,7 @@ def create_task(repository_id: str) -> Optional[str]:
     # TODO: Allow overrides with environment variables?
     project_id = dynamodb_client.get_asana_id_from_github_node_id(repository_id)
     if project_id is None:
-        logger.warn(f"No project id found for repository id {repository_id}")
+        logger.warning(f"No project id found for repository id {repository_id}")
         return None
     else:
         due_date_str = asana_helpers.default_due_date_str()

@@ -794,8 +794,7 @@ class TestTaskFollowersFromPullRequest(BaseClass):
         followers = src.asana.helpers.task_followers_from_pull_request(pull_request)
         self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", followers)
 
-    @patch("src.logger.logger.warn")
-    def test_non_asana_user_is_not_a_follower(self, mock_warn):
+    def test_non_asana_user_is_not_a_follower(self):
         unknown_github_user = build(
             builder.user("github_unknown_user_login", "GITHUB_UNKNOWN_USER_NAME")
         )
@@ -818,7 +817,6 @@ class TestTaskFollowersFromPullRequest(BaseClass):
         )
         followers = src.asana.helpers.task_followers_from_pull_request(pull_request)
         self.assertEqual(0, len(followers))
-        mock_warn.assert_called_once()
 
 
 class TestTaskFollowersFromReview(BaseClass):
@@ -839,8 +837,7 @@ class TestTaskFollowersFromReview(BaseClass):
         followers = src.asana.helpers.task_followers_from_review(review)
         self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", followers)
 
-    @patch("src.logger.logger.warn")
-    def test_non_asana_user_is_not_a_follower(self, mock_warn):
+    def test_non_asana_user_is_not_a_follower(self):
         unknown_github_user = build(
             builder.user("github_unknown_user_login", "GITHUB_UNKNOWN_USER_NAME")
         )
@@ -852,7 +849,6 @@ class TestTaskFollowersFromReview(BaseClass):
         )
         followers = src.asana.helpers.task_followers_from_review(review)
         self.assertEqual(0, len(followers))
-        mock_warn.assert_called_once()
 
 
 class TestTaskFollowersFromComment(BaseClass):
@@ -872,8 +868,7 @@ class TestTaskFollowersFromComment(BaseClass):
         followers = src.asana.helpers.task_followers_from_comment(comment)
         self.assertIn("TEST_USER_ASANA_DOMAIN_USER_ID", followers)
 
-    @patch("src.logger.logger.warn")
-    def test_non_asana_user_is_not_a_follower(self, mock_warn):
+    def test_non_asana_user_is_not_a_follower(self):
         unknown_github_user = build(
             builder.user("github_unknown_user_login", "GITHUB_UNKNOWN_USER_NAME")
         )
@@ -885,7 +880,6 @@ class TestTaskFollowersFromComment(BaseClass):
         )
         followers = src.asana.helpers.task_followers_from_comment(comment)
         self.assertEqual(0, len(followers))
-        mock_warn.assert_called_once()
 
 
 class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):

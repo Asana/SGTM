@@ -1,4 +1,6 @@
 import logging
+import os
 
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+log_level = logging.CRITICAL if os.getenv("TEST") else logging.INFO
+logger.setLevel(log_level)

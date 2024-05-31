@@ -128,10 +128,9 @@ def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
     project_id = dynamodb_client.get_asana_id_from_github_node_id(repository_id)
 
     if project_id is None:
-        logger.info(
+        logger.error(
             f"Task not found for pull request {pull_request.id()}. Running a full sync!"
         )
-        # TODO: Full sync
         return {}
     else:
         custom_field_map = {
@@ -287,8 +286,8 @@ def create_attachments(body_text: str, task_id: str) -> None:
                     attachment.file_name,
                     attachment.image_type,
                 )
-        except Exception as error:
-            logger.warn("Attachment creation failed. Creating task comment anyway.")
+        except Exception:
+            logger.warning("Attachment creation failed. Creating task comment anyway.")
 
 
 _review_action_to_text_map: Dict[ReviewState, str] = {
@@ -495,7 +494,7 @@ def _task_followers_from_gh_handles(gh_handles: List[str]) -> List[str]:
         is not None
     ]
     if len(followers) == 0:
-        logger.warn(
+        logger.warning(
             f"No asana followers found for github users {gh_handles}. This list likely includes bots or users that are not in your {GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH}. Consider adding them to silence this warning."
         )
     return followers

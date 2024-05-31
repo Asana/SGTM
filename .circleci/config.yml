@@ -37,9 +37,8 @@ jobs:
           command: pipenv run python3 -m unittest discover
           name: Test
           environment:
-            AWS_DEFAULT_REGION: us-east-1
-            GITHUB_API_KEY: test-key
-
+            TEST: 1
+            
 workflows:
   main:
     jobs:

@@ -1,7 +1,5 @@
-from unittest.mock import patch
-from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 import src.dynamodb.client as dynamodb_client
-from test.test_utils import magic_mock_with_return_type_value
+from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 
 
 class DynamodbClientTest(MockDynamoDbTestCase):

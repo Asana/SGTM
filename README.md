@@ -205,24 +205,18 @@ You can also choose to test your changes locally. Here are step-by-step instruct
 
 ## Running Tests
 
-To run the tests, you must set the AWS_DEFAULT_REGION environment variable. This is required because some of the tests
-are integration tests that require DynamoDb. This needs to be exported, so that it is available to sub-processes. Here's how:
-```bash
-if [ -z "$AWS_DEFAULT_REGION" ]; then export AWS_DEFAULT_REGION="us-east-1"; else export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION; fi
-```
-
 You may then run all tests via the command line:
 
 ```bash
-python3 -m unittest discover
+TEST=1 python3 -m unittest discover
 ```
 
 Alternatively, you may run specific tests e.g. via:
 
 ```bash
-python3 -m unittest test/<python-test-file-name>.py
-python3 -m unittest test.<python-test-module-name>.<TestClassName>
-python3 -m unittest test.<python-test-module-name>.<TestClassName>.<test_function_name>
+TEST=1 python3 -m unittest test/<python-test-file-name>.py
+TEST=1 python3 -m unittest test.<python-test-module-name>.<TestClassName>
+TEST=1 python3 -m unittest test.<python-test-module-name>.<TestClassName>.<test_function_name>
 ```
 
 ## "Building"
