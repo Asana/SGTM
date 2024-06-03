@@ -5,7 +5,6 @@ from operator import itemgetter
 import src.github.controller as github_controller
 import src.github.graphql.client as graphql_client
 import src.github.logic as github_logic
-from python_dynamodb_lock.python_dynamodb_lock import DynamoDBLockError  # type: ignore
 from src.dynamodb.lock import lock_client
 from src.github.models import PullRequestReviewComment, Review
 from src.http import HttpResponse
@@ -193,8 +192,4 @@ def handle_github_webhook(event_type, payload) -> HttpResponse:
     # if Github's data consistency needs a bit of time (does not have
     # read-after-write consistency)
     time.sleep(2)
-    try:
-        return _events_map[event_type](payload)
-    except DynamoDBLockError as e:
-        logger.warning(f"Failed to acquire lock: {e}")
-        return HttpResponse("500", "Error acquiring lock")
+    return _events_map[event_type](payload)
