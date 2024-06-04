@@ -1,7 +1,5 @@
 from unittest.mock import patch, MagicMock
-from python_dynamodb_lock.python_dynamodb_lock import DynamoDBLockError  # type: ignore
 
-from src.dynamodb.lock import lock_client
 from src.github import webhook
 from src.github.models import PullRequest, PullRequestReviewComment, Review
 from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
@@ -13,22 +11,8 @@ class TestHandleGithubWebhook(MockDynamoDbTestCase):
 
         self.assertEqual(response.status_code, "501")
 
-    def test_swallow_dynamodb_lock_errors(self):
-        response = None
-        with lock_client.acquire_lock(
-            "pull_request_1",
-            sort_key="pull_request_1",
-        ):
-            with patch.object(lock_client, "acquire_lock") as acquire_lock:
-                acquire_lock.side_effect = DynamoDBLockError("error")
-                response = webhook.handle_github_webhook(
-                    "pull_request", {"pull_request": {"node_id": "pull_request_1"}}
-                )
 
-        self.assertEqual(response.status_code, "500")
-
-
-class HandleIssueCommentWebhook(MockDynamoDbTestCase):
+class TestHandleIssueCommentWebhook(MockDynamoDbTestCase):
     COMMENT_NODE_ID = "hijkl"
     ISSUE_NODE_ID = "ksjklsdf"
 

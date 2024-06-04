@@ -1,11 +1,10 @@
 import unittest
-from unittest.mock import patch, call
-import src.github.logic as github_logic
-from src.github.models import Commit, ReviewState, PullRequest, MergeableState
-from test.impl.builders import builder, build
-import src.github.controller as github_controller
+from unittest.mock import patch
+
 import src.github.client as github_client
-from src.github.helpers import pull_request_has_label
+import src.github.logic as github_logic
+from src.github.models import Commit, ReviewState, MergeableState
+from test.impl.builders import builder, build
 
 
 @patch.object(github_client, "merge_pull_request")

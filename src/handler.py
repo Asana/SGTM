@@ -6,7 +6,7 @@ import boto3
 from python_dynamodb_lock.python_dynamodb_lock import DynamoDBLockError  # type: ignore
 
 import src.github.webhook as github_webhook
-from src.config import GITHUB_HMAC_SECRET, SQS_URL
+from src.config import GITHUB_HMAC_SECRET, SQS_URL, AWS_REGION
 from src.http import HttpResponse, HttpResponseDict
 from src.logger import logger
 
@@ -28,7 +28,7 @@ def handle_github_webhook(
         github_event = json.loads(webhook_body)
         http_response = github_webhook.handle_github_webhook(event_type, github_event)
     except DynamoDBLockError as dbe:
-        logger.warn(f"Swallowing DynamoDBLockError: {dbe}")
+        logger.warning(f"Swallowing DynamoDBLockError: {dbe}")
         http_response = HttpResponse("500", str(dbe))
     except Exception as error:
         logger.error(traceback.format_exc())
@@ -37,7 +37,7 @@ def handle_github_webhook(
         if should_retry and http_response.status_code == "500":
             logger.info("Sending webhook to SQS")
             # retry failures
-            sqs = boto3.client("sqs")
+            sqs = boto3.client("sqs", region_name=AWS_REGION)
             sqs.send_message(
                 QueueUrl=SQS_URL,
                 MessageBody=webhook_body,
