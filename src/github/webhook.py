@@ -122,9 +122,6 @@ def _handle_pull_request_review_comment(payload: dict):
                 pull_request_id, review_database_id
             )
             if maybe_review is None:
-                # If a pull_request_review has only one comment that is deleted,
-                # the review is deleted. This can change the approval status of the PR
-                # so we need to handle this like a PR webhook.
                 github_controller.delete_comment(comment_id)
             else:
                 pull_request = graphql_client.get_pull_request(pull_request_id)
