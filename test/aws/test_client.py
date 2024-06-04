@@ -1,4 +1,4 @@
-import src.aws.client as dynamodb_client
+import src.aws.dynamodb_client as dynamodb_client
 from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 
 

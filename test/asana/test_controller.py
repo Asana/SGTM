@@ -11,8 +11,8 @@ from src.asana import controller
 
 @patch("src.asana.helpers.asana_comment_from_github_review")
 @patch("src.asana.client.add_comment")
-@patch("src.dynamodb.client.insert_github_node_to_asana_id_mapping")
-@patch("src.dynamodb.client.bulk_insert_github_node_to_asana_id_mapping")
+@patch("src.aws.dynamodb_client.insert_github_node_to_asana_id_mapping")
+@patch("src.aws.dynamodb_client.bulk_insert_github_node_to_asana_id_mapping")
 class TestUpsertGithubReviewToTask(BaseClass):
     REVIEW_ID = "12345"
     ASANA_COMMENT_ID = "56789"
@@ -29,7 +29,9 @@ class TestUpsertGithubReviewToTask(BaseClass):
             comments=MagicMock(return_value=comments),
         )
 
-    @patch("src.dynamodb.client.get_asana_id_from_github_node_id", return_value=None)
+    @patch(
+        "src.aws.dynamodb_client.get_asana_id_from_github_node_id", return_value=None
+    )
     def test_created_review_with_no_comments(
         self,
         get_asana_id_from_github_node_id,
@@ -52,7 +54,9 @@ class TestUpsertGithubReviewToTask(BaseClass):
         )
         get_asana_id_from_github_node_id.assert_called_once_with(self.REVIEW_ID)
 
-    @patch("src.dynamodb.client.get_asana_id_from_github_node_id", return_value=None)
+    @patch(
+        "src.aws.dynamodb_client.get_asana_id_from_github_node_id", return_value=None
+    )
     def test_created_review_with_comments(
         self,
         get_asana_id_from_github_node_id,
@@ -82,7 +86,7 @@ class TestUpsertGithubReviewToTask(BaseClass):
 
     @patch("src.asana.client.update_comment")
     @patch(
-        "src.dynamodb.client.get_asana_id_from_github_node_id",
+        "src.aws.dynamodb_client.get_asana_id_from_github_node_id",
         return_value=ASANA_COMMENT_ID,
     )
     def test_updated_review_with_comments(
@@ -114,7 +118,7 @@ class TestUpsertGithubReviewToTask(BaseClass):
 
 @patch("src.asana.helpers.asana_comment_from_github_comment")
 @patch("src.asana.helpers.task_followers_from_comment")
-@patch("src.dynamodb.client.insert_github_node_to_asana_id_mapping")
+@patch("src.aws.dynamodb_client.insert_github_node_to_asana_id_mapping")
 class TestUpsertGithubCommentToTask(BaseClass):
     COMMENT_ID = "12345"
     ASANA_COMMENT_ID = "56789"
@@ -126,7 +130,9 @@ class TestUpsertGithubCommentToTask(BaseClass):
 
     @patch("src.asana.client.add_comment")
     @patch("src.asana.helpers.create_attachments")
-    @patch("src.dynamodb.client.get_asana_id_from_github_node_id", return_value=None)
+    @patch(
+        "src.aws.dynamodb_client.get_asana_id_from_github_node_id", return_value=None
+    )
     def test_add_new_comment_if_not_found(
         self,
         get_asana_id_from_github_node_id_mock,
@@ -152,7 +158,7 @@ class TestUpsertGithubCommentToTask(BaseClass):
         )
 
     @patch("src.asana.client.update_comment")
-    @patch("src.dynamodb.client.get_asana_id_from_github_node_id")
+    @patch("src.aws.dynamodb_client.get_asana_id_from_github_node_id")
     def test_updated_comment(
         self,
         get_asana_id_from_github_node_id_mock,

@@ -1,13 +1,13 @@
-import src.dynamodb.client as dynamodb_client
 import src.asana.controller as asana_controller
-from . import logic as github_logic
-from . import client as github_client
 import src.asana.helpers as asana_helpers
-from src.github.models import Comment, PullRequest, Review
-from src.logger import logger
+import src.github.logic as github_logic
+import src.github.client as github_client
+import src.aws.dynamodb_client as dynamodb_client
 from src.config import (
     SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS,
 )
+from src.github.models import Comment, PullRequest, Review
+from src.logger import logger
 
 
 def upsert_pull_request(pull_request: PullRequest):

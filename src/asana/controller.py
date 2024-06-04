@@ -1,14 +1,14 @@
 from typing import List, Optional
-from . import client as asana_client
-from . import helpers as asana_helpers
-from . import logic as asana_logic
+
+import src.asana.client as asana_client
+import src.asana.helpers as asana_helpers
+import src.asana.logic as asana_logic
+import src.aws.dynamodb_client as dynamodb_client
 from src.github.models import Comment, PullRequest, Review
 from src.logger import logger
-from src.dynamodb import client as dynamodb_client
 
 
 def create_task(repository_id: str) -> Optional[str]:
-    # TODO: Allow overrides with environment variables?
     project_id = dynamodb_client.get_asana_id_from_github_node_id(repository_id)
     if project_id is None:
         logger.warning(f"No project id found for repository id {repository_id}")

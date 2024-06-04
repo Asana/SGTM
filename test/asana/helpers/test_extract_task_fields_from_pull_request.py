@@ -87,7 +87,7 @@ class BaseClass(MockDynamoDbTestCase):
     def setUp(self) -> None:
         super(BaseClass, self).setUp()
         patch_get_asana_domain_user_id_from_github_handle = patch(
-            "src.dynamodb.client.get_asana_domain_user_id_from_github_handle",
+            "src.aws.s3_client.get_asana_domain_user_id_from_github_handle",
             magic_mock_with_return_type_value(
                 {"github_test_user_login": "TEST_USER_ASANA_DOMAIN_USER_ID"}
             ),
@@ -378,7 +378,7 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
 
 
 @patch(
-    "src.dynamodb.client.get_asana_domain_user_id_from_github_handle",
+    "src.aws.s3_client.get_asana_domain_user_id_from_github_handle",
     magic_mock_with_return_type_value(
         {
             "github_assignee_login_annie": "ANNIE_ASANA_DOMAIN_USER_ID",
@@ -984,7 +984,7 @@ class TestExtractsInconsistentFieldsFromPullRequest(BaseClass):
         self.assertEqual(True, task_fields["completed"])
 
 
-@patch("src.dynamodb.client.get_asana_id_from_github_node_id", return_value="0")
+@patch("src.aws.dynamodb_client.get_asana_id_from_github_node_id", return_value="0")
 class TestExtractsCustomFieldsFromPullRequest(BaseClass):
     @patch(
         "src.asana.client.get_project_custom_fields", return_value=get_custom_fields([])

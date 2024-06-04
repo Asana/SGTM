@@ -2,11 +2,11 @@ import hashlib
 import hmac
 import json
 import traceback
-import boto3
 from python_dynamodb_lock.python_dynamodb_lock import DynamoDBLockError  # type: ignore
 
 import src.github.webhook as github_webhook
-from src.config import GITHUB_HMAC_SECRET, SQS_URL, AWS_REGION
+from src.aws.sqs_client import queue_new_event
+from src.config import GITHUB_HMAC_SECRET
 from src.http import HttpResponse, HttpResponseDict
 from src.logger import logger
 
@@ -35,21 +35,7 @@ def handle_github_webhook(
         http_response = HttpResponse("500", str(error))
     finally:
         if should_retry and http_response.status_code == "500":
-            logger.info("Sending webhook to SQS")
-            # retry failures
-            sqs = boto3.client("sqs", region_name=AWS_REGION)
-            sqs.send_message(
-                QueueUrl=SQS_URL,
-                MessageBody=webhook_body,
-                MessageGroupId=delivery_id,
-                MessageAttributes={
-                    "X-GitHub-Event": {"DataType": "String", "StringValue": event_type},
-                    "X-GitHub-Delivery": {
-                        "DataType": "String",
-                        "StringValue": delivery_id,
-                    },
-                },
-            )
+            queue_new_event(event_type, webhook_body, delivery_id)
         return http_response.to_dict()
 
 

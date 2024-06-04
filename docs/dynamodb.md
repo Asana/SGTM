@@ -11,9 +11,9 @@ We can receive multiple GitHub webhooks at once for the same GitHub object. To a
 
 To lock operations, use the `lock_client`:
 ```
-from src.dynamodb.lock import lock_client
+from src.aws.lock import dynamodb_lock_client
 
-with lock_client.acquire_lock(pull_request_id, sort_key=pull_request_id):
+with dynamodb_lock_client.acquire_lock(pull_request_id, sort_key=pull_request_id):
     ...
 ```
 

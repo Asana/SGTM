@@ -5,7 +5,7 @@ from operator import itemgetter
 import src.github.controller as github_controller
 import src.github.graphql.client as graphql_client
 import src.github.logic as github_logic
-from src.dynamodb.lock import lock_client
+from src.aws.lock import dynamodb_lock_client
 from src.github.models import PullRequestReviewComment, Review
 from src.http import HttpResponse
 from src.logger import logger
@@ -14,7 +14,7 @@ from src.logger import logger
 # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
 def _handle_pull_request_webhook(payload: dict) -> HttpResponse:
     pull_request_id = payload["pull_request"]["node_id"]
-    with lock_client.acquire_lock(pull_request_id, sort_key=pull_request_id):
+    with dynamodb_lock_client.acquire_lock(pull_request_id, sort_key=pull_request_id):
         pull_request = graphql_client.get_pull_request(pull_request_id)
         # maybe rerun stale checks on approved PR before attempting to automerge
         did_rerun_stale_required_checks = (
@@ -38,7 +38,7 @@ def _handle_issue_comment_webhook(payload: dict) -> HttpResponse:
     logger.info(f"issue: {issue_id}, comment: {comment_id}")
 
     if action == "created" or action == "edited":
-        with lock_client.acquire_lock(comment_id, sort_key=comment_id):
+        with dynamodb_lock_client.acquire_lock(comment_id, sort_key=comment_id):
             pull_request, comment = graphql_client.get_pull_request_and_comment(
                 issue_id, comment_id
             )
@@ -47,7 +47,7 @@ def _handle_issue_comment_webhook(payload: dict) -> HttpResponse:
 
     if action == "deleted":
         logger.info(f"Deleting comment {comment_id}")
-        with lock_client.acquire_lock(comment_id, sort_key=comment_id):
+        with dynamodb_lock_client.acquire_lock(comment_id, sort_key=comment_id):
             github_controller.delete_comment(comment_id)
         return HttpResponse("200")
 
@@ -60,7 +60,7 @@ def _handle_issue_comment_webhook(payload: dict) -> HttpResponse:
 def _handle_pull_request_review_webhook(payload: dict) -> HttpResponse:
     pull_request_id = payload["pull_request"]["node_id"]
     review_id = payload["review"]["node_id"]
-    with lock_client.acquire_lock(pull_request_id, sort_key=pull_request_id):
+    with dynamodb_lock_client.acquire_lock(pull_request_id, sort_key=pull_request_id):
         pull_request, review = graphql_client.get_pull_request_and_review(
             pull_request_id, review_id
         )
@@ -96,7 +96,9 @@ def _handle_pull_request_review_comment(payload: dict):
     pull_request_id = payload["pull_request"]["node_id"]
 
     if action == "created" or action == "edited":
-        with lock_client.acquire_lock(pull_request_id, sort_key=pull_request_id):
+        with dynamodb_lock_client.acquire_lock(
+            pull_request_id, sort_key=pull_request_id
+        ):
             pull_request, comment = graphql_client.get_pull_request_and_comment(
                 pull_request_id, comment_id
             )
@@ -111,7 +113,9 @@ def _handle_pull_request_review_comment(payload: dict):
 
     if action == "deleted":
         maybe_review: Optional[Review] = None
-        with lock_client.acquire_lock(pull_request_id, sort_key=pull_request_id):
+        with dynamodb_lock_client.acquire_lock(
+            pull_request_id, sort_key=pull_request_id
+        ):
             # This is NOT the node_id, but is a numeric string (the databaseId field).
             review_database_id = payload["comment"]["pull_request_review_id"]
             maybe_review = graphql_client.get_review_for_database_id(
@@ -142,7 +146,9 @@ def _handle_status_webhook(payload: dict) -> HttpResponse:
         logger.warning(f"No pull request found for commit id {commit_id}")
         return HttpResponse("200")
 
-    with lock_client.acquire_lock(pull_request.id(), sort_key=pull_request.id()):
+    with dynamodb_lock_client.acquire_lock(
+        pull_request.id(), sort_key=pull_request.id()
+    ):
         github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(pull_request)
         github_controller.upsert_pull_request(pull_request)
         return HttpResponse("200")
@@ -162,7 +168,9 @@ def _handle_check_suite_webhook(payload: dict) -> HttpResponse:
         repository_node_id, pull_request_number
     )
 
-    with lock_client.acquire_lock(pull_request.id(), sort_key=pull_request.id()):
+    with dynamodb_lock_client.acquire_lock(
+        pull_request.id(), sort_key=pull_request.id()
+    ):
         github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(pull_request)
         github_controller.upsert_pull_request(pull_request)
         return HttpResponse("200")

@@ -1,5 +1,6 @@
 from unittest.mock import patch
-import src.asana.helpers
+
+import src.asana.helpers as asana_helpers
 from src.github.models import ReviewState
 from test.impl.builders import builder, build
 from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
@@ -14,7 +15,7 @@ from test.test_utils import magic_mock_with_return_type_value
 
 
 @patch(
-    "src.dynamodb.client.get_asana_domain_user_id_from_github_handle",
+    "src.aws.s3_client.get_asana_domain_user_id_from_github_handle",
     magic_mock_with_return_type_value(
         {"github_test_user_login": "TEST_USER_ASANA_DOMAIN_USER_ID"}
     ),
@@ -32,7 +33,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
             .body("GITHUB_REVIEW_TEXT")
             .comment(builder.comment().body("GITHUB_REVIEW_COMMENT_TEXT"))
         )
-        asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
+        asana_review_comment = asana_helpers.asana_comment_from_github_review(
             github_review
         )
         self.assertContainsStrings(
@@ -47,7 +48,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
             .body("https://www.asana.com")
             .comment(builder.comment().body("http://www.foo.com"))
         )
-        asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
+        asana_review_comment = asana_helpers.asana_comment_from_github_review(
             github_review
         )
         self.assertContainsStrings(
@@ -66,7 +67,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
             .body("")
             .comment(builder.comment().body("GITHUB_REVIEW_COMMENT_TEXT"))
         )
-        asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
+        asana_review_comment = asana_helpers.asana_comment_from_github_review(
             github_review
         )
         self.assertContainsStrings(
@@ -85,7 +86,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
             .author(builder.user("github_test_user_login"))
             .state(ReviewState.DEFAULT)
         )
-        asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
+        asana_review_comment = asana_helpers.asana_comment_from_github_review(
             github_review
         )
         self.assertContainsStrings(
@@ -100,7 +101,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
             )
             .state(ReviewState.DEFAULT)
         )
-        asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
+        asana_review_comment = asana_helpers.asana_comment_from_github_review(
             github_review
         )
         self.assertContainsStrings(
@@ -114,8 +115,8 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
             .author(builder.user("github_unknown_user_login"))
             .state(ReviewState.DEFAULT)
         )
-        asana_review_comment_comment = (
-            src.asana.helpers.asana_comment_from_github_review(github_review)
+        asana_review_comment_comment = asana_helpers.asana_comment_from_github_review(
+            github_review
         )
         self.assertContainsStrings(
             asana_review_comment_comment, ["github_unknown_user_login"]
@@ -130,7 +131,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
             .body(placeholder)
             .comment(builder.comment().body(placeholder))
         )
-        asana_placeholder_review = src.asana.helpers.asana_comment_from_github_review(
+        asana_placeholder_review = asana_helpers.asana_comment_from_github_review(
             github_placeholder_review
         )
         unsafe_characters = ["&", "<", ">"]
@@ -143,7 +144,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
                 .comment(builder.comment().body(unsafe_character))
             )
             asana_review_comment_comment = (
-                src.asana.helpers.asana_comment_from_github_review(github_review)
+                asana_helpers.asana_comment_from_github_review(github_review)
             )
             unexpected = asana_placeholder_review.replace(placeholder, unsafe_character)
             self.assertNotEqual(
@@ -161,7 +162,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
             .body(placeholder)
             .comment(builder.comment().body(placeholder))
         )
-        asana_placeholder_review = src.asana.helpers.asana_comment_from_github_review(
+        asana_placeholder_review = asana_helpers.asana_comment_from_github_review(
             github_placeholder_review
         )
         safe_characters = ['"', "'"]
@@ -173,7 +174,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
                 .body(safe_character)
                 .comment(builder.comment().body(safe_character))
             )
-            asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
+            asana_review_comment = asana_helpers.asana_comment_from_github_review(
                 github_review
             )
             expected = asana_placeholder_review.replace(placeholder, safe_character)
@@ -190,7 +191,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
             .state(ReviewState.DEFAULT)
             .body("@github_test_user_login")
         )
-        asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
+        asana_review_comment = asana_helpers.asana_comment_from_github_review(
             github_review
         )
         self.assertContainsStrings(
@@ -204,7 +205,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
             .state(ReviewState.DEFAULT)
             .body("@github_unknown_user_login")
         )
-        asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
+        asana_review_comment = asana_helpers.asana_comment_from_github_review(
             github_review
         )
         self.assertContainsStrings(asana_review_comment, ["@github_unknown_user_login"])
@@ -216,7 +217,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
             .state(ReviewState.DEFAULT)
             .body("hello@world.asana.com")
         )
-        asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
+        asana_review_comment = asana_helpers.asana_comment_from_github_review(
             github_review
         )
         self.assertContainsStrings(asana_review_comment, ["hello@world.asana.com"])
@@ -228,7 +229,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
             .state(ReviewState.DEFAULT)
             .comment(builder.comment().url(url))
         )
-        asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
+        asana_review_comment = asana_helpers.asana_comment_from_github_review(
             github_review
         )
         self.assertContainsStrings(asana_review_comment, [f'<A href="{url}">'])
@@ -236,7 +237,7 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
     def test_includes_link_to_review(self):
         url = "https://github.com/Asana/SGTM/pull/31#issuecomment-626850667"
         github_review = build(builder.review().state(ReviewState.DEFAULT).url(url))
-        asana_review_comment = src.asana.helpers.asana_comment_from_github_review(
+        asana_review_comment = asana_helpers.asana_comment_from_github_review(
             github_review
         )
         self.assertContainsStrings(asana_review_comment, [f'<A href="{url}">'])
