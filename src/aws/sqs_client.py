@@ -1,6 +1,5 @@
 import boto3  # type: ignore
-import json
-from typing import List
+from typing import List, Optional
 
 from src.config import (
     AWS_REGION,
@@ -40,7 +39,7 @@ class SQSClient(object):
         queue_url: str,
         message_body: str,
         message_group_id: str,
-        message_attributes: dict = None,
+        message_attributes: Optional[dict] = None,
     ):
         """
         Sends a message to the specified SQS queue
