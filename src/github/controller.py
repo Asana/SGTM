@@ -52,18 +52,16 @@ def _add_asana_task_to_pull_request(pull_request: PullRequest, task_id: str):
 def upsert_comment(pull_request: PullRequest, comment: Comment):
     pull_request_id = pull_request.id()
     task_id = dynamodb_client.get_asana_id_from_github_node_id(pull_request_id)
-    if task_id is None:
-        logger.error(f"Task not found for pull request {pull_request_id}. Exiting!")
-    else:
+    if task_id:
         asana_controller.upsert_github_comment_to_task(comment, task_id)
+    else:
+        logger.warning(f"Task not found for pull request {pull_request_id}. Queueing a new event...")
 
 
 def upsert_review(pull_request: PullRequest, review: Review):
     pull_request_id = pull_request.id()
     task_id = dynamodb_client.get_asana_id_from_github_node_id(pull_request_id)
-    if task_id is None:
-        logger.error(f"Task not found for pull request {pull_request_id}. Exiting!")
-    else:
+    if task_id:
         logger.info(
             f"Found task id {task_id} for pull_request {pull_request_id}. Adding review"
             " now."
@@ -87,6 +85,9 @@ def upsert_review(pull_request: PullRequest, review: Review):
             asana_helpers.task_followers_from_review(review),
             force_update_due_today=force_update_due_today,
         )
+    else:
+        logger.warning(f"Task not found for pull request {pull_request_id}. Queueing a new event...")
+        queue_new_event(event_type="pull_request", webhook_body=pull_request.to_dict(), delivery_id="test")
 
 
 def assign_pull_request_to_author(pull_request: PullRequest):

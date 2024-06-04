@@ -130,7 +130,7 @@ def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
     project_id = dynamodb_client.get_asana_id_from_github_node_id(repository_id)
 
     if project_id is None:
-        logger.error(f"Task not found for pull request {pull_request.id()}.")
+        logger.error(f"Project not found for repo {repository_id}.")
         return {}
     else:
         custom_field_map = {
