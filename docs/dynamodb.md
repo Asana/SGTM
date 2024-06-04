@@ -9,11 +9,11 @@ A table containing all locks for current SGTM processes. Locks are a GitHub node
 
 We can receive multiple GitHub webhooks at once for the same GitHub object. To avoid race conditions from handling the webhooks in parallel, we lock on GitHub objects with the same id.
 
-To lock operations, use the `dynamodb_lock` helper:
+To lock operations, use the `lock_client`:
 ```
-from src.dynamodb.lock import dynamodb_lock
+from src.dynamodb.lock import lock_client
 
-with dynamodb_lock(pull_request_id):
+with lock_client.acquire_lock(pull_request_id, sort_key=pull_request_id):
     ...
 ```
 

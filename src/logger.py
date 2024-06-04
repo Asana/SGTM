@@ -1,4 +1,6 @@
 import logging
 
+from src.config import LOG_LEVEL
+
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(LOG_LEVEL)

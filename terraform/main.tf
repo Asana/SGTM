@@ -50,6 +50,7 @@ module "sgtm-prod" {
   custom_config_bucket_name = var.custom_config_bucket_name
 
   # DynamoDB configuration
+  aws_region                = var.aws_region
   dynamodb-sgtm-lock-arn    = aws_dynamodb_table.sgtm-lock.arn
   dynamodb-sgtm-objects-arn = aws_dynamodb_table.sgtm-objects.arn
 
@@ -95,6 +96,7 @@ module "sgtm-staging" {
   custom_config_bucket_name = var.custom_config_bucket_name
 
   # DynamoDB configuration
+  aws_region                = var.aws_region
   dynamodb-sgtm-lock-arn    = aws_dynamodb_table.sgtm-lock.arn
   dynamodb-sgtm-objects-arn = aws_dynamodb_table.sgtm-objects.arn
 

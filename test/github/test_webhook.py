@@ -1,20 +1,18 @@
 from unittest.mock import patch, MagicMock
 
-from test.impl.base_test_case_class import BaseClass
-
 from src.github import webhook
 from src.github.models import PullRequest, PullRequestReviewComment, Review
+from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 
 
-class TestHandleGithubWebhook(BaseClass):
+class TestHandleGithubWebhook(MockDynamoDbTestCase):
     def test_handle_github_webhook_501_error_for_unknown_event_type(self):
         response = webhook.handle_github_webhook("unknown_event_type", {})
 
         self.assertEqual(response.status_code, "501")
 
 
-@patch.object(webhook, "dynamodb_lock")
-class HandleIssueCommentWebhook(BaseClass):
+class TestHandleIssueCommentWebhook(MockDynamoDbTestCase):
     COMMENT_NODE_ID = "hijkl"
     ISSUE_NODE_ID = "ksjklsdf"
 
@@ -29,17 +27,16 @@ class HandleIssueCommentWebhook(BaseClass):
             },
         }
 
-    def test_handle_unknown_action_for_issue_comment(self, lock):
+    def test_handle_unknown_action_for_issue_comment(self):
         self.payload["action"] = "erroneous_action"
 
         response = webhook._handle_issue_comment_webhook(self.payload)
         self.assertEqual(response.status_code, "400")
 
 
-@patch.object(webhook, "dynamodb_lock")
 @patch("src.github.controller.delete_comment")
 @patch("src.github.controller.upsert_review")
-class TestHandlePullRequestReviewComment(BaseClass):
+class TestHandlePullRequestReviewComment(MockDynamoDbTestCase):
     PULL_REQUEST_REVIEW_ID = "123456"
     COMMENT_NODE_ID = "hijkl"
     PULL_REQUEST_NODE_ID = "abcde"
@@ -62,7 +59,6 @@ class TestHandlePullRequestReviewComment(BaseClass):
         review_from_comment,
         upsert_review,
         delete_comment,
-        lock,
     ):
         self.payload["action"] = "edited"
         pull_request, comment = (
@@ -90,7 +86,6 @@ class TestHandlePullRequestReviewComment(BaseClass):
         get_pull_request,
         upsert_review,
         delete_comment,
-        lock,
     ):
         self.payload["action"] = "deleted"
 
@@ -116,7 +111,6 @@ class TestHandlePullRequestReviewComment(BaseClass):
         upsert_pull_request,
         upsert_review,
         delete_comment,
-        lock,
     ):
         self.payload["action"] = "deleted"
 

@@ -1,15 +1,13 @@
-from contextlib import closing
+import boto3  # type: ignore
 import json
-import traceback
-from typing import Iterator, Optional, List, Tuple
+from contextlib import closing
+from typing import Optional, List, Tuple
 from typing_extensions import TypedDict
 
-import boto3  # type: ignore
-from botocore.exceptions import NoRegionError  # type: ignore
-
 from src.config import (
-    OBJECTS_TABLE,
+    AWS_REGION,
     GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH,
+    OBJECTS_TABLE,
 )
 from src.logger import logger
 from src.utils import memoize
@@ -130,17 +128,7 @@ class DynamoDbClient(object):
 
     @staticmethod
     def _create_client():
-        # Encapsulates creating a boto3 client connection for DynamoDb with a more user-friendly error case
-        try:
-            return boto3.client("dynamodb")
-        except NoRegionError:
-            pass
-        # by raising the new error outside of the except clause, the ConfigurationError does not automatically contain
-        # the stack trace of the NoRegionError, which provides no extra value and clutters the console.
-        raise ConfigurationError(
-            "Configuration error: Please select a region, e.g. via"
-            " `AWS_DEFAULT_REGION=us-east-1`"
-        )
+        return boto3.client("dynamodb", region_name=AWS_REGION)
 
 
 class S3Client(object):
@@ -179,17 +167,7 @@ class S3Client(object):
 
     @staticmethod
     def _create_s3_client():
-        # Encapsulates creating a boto3 client connection for S3 with a more user-friendly error case
-        try:
-            return boto3.client("s3")
-        except NoRegionError:
-            pass
-        # by raising the new error outside of the except clause, the ConfigurationError does not automatically contain
-        # the stack trace of the NoRegionError, which provides no extra value and clutters the console.
-        raise ConfigurationError(
-            "Configuration error: Please select a region, e.g. via"
-            " `AWS_DEFAULT_REGION=us-east-1`"
-        )
+        return boto3.client("s3", region_name=AWS_REGION)
 
     @memoize
     def get_asana_domain_user_id_from_github_username(
