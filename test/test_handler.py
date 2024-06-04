@@ -68,16 +68,12 @@ class TestSQSRequeue(MockSQSTestCase):
                 should_retry=True,
             )
 
-        # self.called_once_with(
-        #     QueueUrl="https://sqs.us-east-1.amazonaws.com/1234567890/queue",
-        #     MessageBody=json.dumps(self.WEBHOOK_BODY_TEMPLATE),
-        #     MessageGroupId="123",
-        #     MessageAttributes={
-        #         "X-GitHub-Event": {"DataType": "String", "StringValue": "pull_request"},
-        #         "X-GitHub-Delivery": {"DataType": "String", "StringValue": "123"},
-        #     },
-        #     _mock_send_message,
-        # )
+        self.assertEqual(response["statusCode"], "500")
+
+        messages = self.client.receive_message(QueueUrl=self.test_queue_url)["Messages"]
+
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(messages[0]["Body"], json.dumps(WEBHOOK_BODY_TEMPLATE))
 
 
 if __name__ == "__main__":
