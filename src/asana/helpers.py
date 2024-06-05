@@ -1,9 +1,15 @@
 import re
-from html import escape
+import collections
+import urllib.request
 from datetime import datetime, timedelta
+from html import escape
 from typing import Callable, Match, Optional, List, Dict, Set
-from src.dynamodb import client as dynamodb_client
-from src.asana import logic as asana_logic
+
+import src.asana.client as asana_client
+import src.asana.logic as asana_logic
+import src.github.logic as github_logic
+import src.aws.dynamodb_client as dynamodb_client
+import src.aws.s3_client as s3_client
 from src.config import GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH
 from src.github.models import (
     Comment,
@@ -14,11 +20,7 @@ from src.github.models import (
     Assignee,
     AssigneeReason,
 )
-from src.asana import client as asana_client
-from src.github import logic as github_logic
 from src.logger import logger
-import collections
-import urllib.request
 from src.markdown_parser import convert_github_markdown_to_asana_xml
 
 AttachmentData = collections.namedtuple(
@@ -104,7 +106,7 @@ def _build_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
 
 
 def _author_asana_user_id_from_pull_request(pull_request: PullRequest) -> Optional[str]:
-    return dynamodb_client.get_asana_domain_user_id_from_github_handle(
+    return s3_client.get_asana_domain_user_id_from_github_handle(
         pull_request.author_handle()
     )
 
@@ -169,7 +171,7 @@ def _task_assignee_from_pull_request(pull_request: PullRequest) -> Optional[str]
     if asana_logic.should_set_task_owner_to_pr_author(pull_request):
         return _author_asana_user_id_from_pull_request(pull_request)
     assignee = pull_request.assignee()
-    return dynamodb_client.get_asana_domain_user_id_from_github_handle(assignee.login)
+    return s3_client.get_asana_domain_user_id_from_github_handle(assignee.login)
 
 
 def _asana_display_name_for_github_user(github_user: User) -> str:
@@ -189,7 +191,7 @@ def _asana_display_name_for_github_user(github_user: User) -> str:
 
 
 def _asana_user_url_from_github_user_handle(github_handle: str) -> Optional[str]:
-    user_id = dynamodb_client.get_asana_domain_user_id_from_github_handle(github_handle)
+    user_id = s3_client.get_asana_domain_user_id_from_github_handle(github_handle)
     if user_id is None:
         return None
     return _wrap_in_tag(
@@ -208,7 +210,7 @@ def _task_name_from_pull_request(pull_request: PullRequest) -> str:
 def _transform_github_mentions_to_asana_mentions(text: str) -> str:
     def _github_mention_to_asana_mention(match: Match[str]) -> str:
         github_handle = match.group(1)
-        asana_user_id = dynamodb_client.get_asana_domain_user_id_from_github_handle(
+        asana_user_id = s3_client.get_asana_domain_user_id_from_github_handle(
             github_handle
         )
         if asana_user_id is None:
@@ -485,7 +487,7 @@ def _task_followers_from_gh_handles(gh_handles: List[str]) -> List[str]:
         asana_user_id
         for github_handle in gh_handles
         if (
-            asana_user_id := dynamodb_client.get_asana_domain_user_id_from_github_handle(
+            asana_user_id := s3_client.get_asana_domain_user_id_from_github_handle(
                 github_handle
             )
         )

@@ -19,7 +19,7 @@ class TestHandleGithubWebhook(BaseClass):
         response = handle_github_webhook(None, None, None)
         self.assertEqual(response["statusCode"], "400")
 
-    @patch("src.dynamodb.lock.lock_client.acquire_lock")
+    @patch("src.aws.lock.dynamodb_lock_client.acquire_lock")
     def test_swallows_dynamodb_lock_error(self, _mock_lock):
         _mock_lock.side_effect = DynamoDBLockError("error")
         response = handle_github_webhook(
@@ -57,10 +57,10 @@ class TestHandleGithubWebhook(BaseClass):
 
 
 class TestSQSRequeue(MockSQSTestCase):
-    @patch("src.dynamodb.lock.lock_client.acquire_lock")
+    @patch("src.aws.lock.dynamodb_lock_client.acquire_lock")
     def test_requeue_on_error(self, _mock_lock):
         _mock_lock.side_effect = DynamoDBLockError("error")
-        with patch("src.handler.SQS_URL", self.test_queue_url):
+        with patch("src.aws.sqs_client.SQS_URL", self.test_queue_url):
             response = handle_github_webhook(
                 event_type="pull_request",
                 delivery_id="123",

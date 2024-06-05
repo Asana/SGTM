@@ -1,14 +1,15 @@
 from unittest.mock import patch, ANY
 from uuid import uuid4
-from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
+
+import src.asana.controller as asana_controller
+import src.aws.dynamodb_client as dynamodb_client
 import src.github.client as github_client
 import src.github.controller as github_controller
-import src.asana.controller as asana_controller
-import src.dynamodb.client as dynamodb_client
 from test.impl.builders import builder
+from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 
 
-@patch("src.dynamodb.client.get_asana_domain_user_id_from_github_handle")
+@patch("src.aws.s3_client.get_asana_domain_user_id_from_github_handle")
 class GithubControllerTest(MockDynamoDbTestCase):
     @patch.object(asana_controller, "update_task")
     @patch.object(asana_controller, "create_task")
