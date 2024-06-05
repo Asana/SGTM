@@ -76,21 +76,6 @@ class SQSClient(object):
             )
             return []
 
-    def delete_message(self, queue_url: str, receipt_handle: str):
-        """
-        Deletes a message from the specified SQS queue
-        """
-        response = self.sqs_client.delete_message(
-            QueueUrl=queue_url,
-            ReceiptHandle=receipt_handle,
-        )
-        if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
-            logger.info(f"Deleted message from SQS queue {queue_url}")
-        else:
-            logger.error(
-                f"Error deleting message from SQS queue {queue_url}, response {response}"
-            )
-
 
 def queue_new_event(event_type: str, body: str, delivery_id: str):
     """
