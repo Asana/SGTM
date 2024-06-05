@@ -65,11 +65,13 @@ class TestSQSRequeue(MockSQSTestCase):
                     },
                     "body": json.dumps(WEBHOOK_BODY_TEMPLATE),
                 },
-                context={}
+                context={},
             )
         self.assertEqual(response["statusCode"], "500")
 
-        messages = self.client.receive_message(QueueUrl=self.test_queue_url).get("Messages", [])
+        messages = self.client.receive_message(QueueUrl=self.test_queue_url).get(
+            "Messages", []
+        )
 
         self.assertEqual(len(messages), 1)
         self.assertEqual(messages[0]["Body"], json.dumps(WEBHOOK_BODY_TEMPLATE))
@@ -79,9 +81,7 @@ class TestSQSRequeue(MockSQSTestCase):
             event={
                 "Records": [
                     {
-                        "messageAttributes": {
-                            "X-GitHub-Event": {"stringValue": None}
-                        },
+                        "messageAttributes": {"X-GitHub-Event": {"stringValue": None}},
                         "body": json.dumps(WEBHOOK_BODY_TEMPLATE),
                     }
                 ]
@@ -90,9 +90,10 @@ class TestSQSRequeue(MockSQSTestCase):
         )
         self.assertEqual(response["statusCode"], "400")
 
-        messages = self.client.receive_message(QueueUrl=self.test_queue_url).get("Messages")
+        messages = self.client.receive_message(QueueUrl=self.test_queue_url).get(
+            "Messages"
+        )
         self.assertIsNone(messages)
-
 
 
 if __name__ == "__main__":

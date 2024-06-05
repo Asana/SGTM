@@ -137,7 +137,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
 
         github_controller.upsert_comment(pull_request, comment)
         add_comment_mock.assert_not_called()
-        queue_mock.assert_called_with(pull_request.id())    
+        queue_mock.assert_called_with(pull_request.id())
 
     @patch.object(github_client, "set_pull_request_assignee")
     def test_assign_pull_request_to_author(
