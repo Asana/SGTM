@@ -4,18 +4,14 @@ import json
 import traceback
 from python_dynamodb_lock.python_dynamodb_lock import DynamoDBLockError  # type: ignore
 
+import src.aws.sqs_client as sqs_client
 import src.github.webhook as github_webhook
-from src.aws.sqs_client import queue_new_event
 from src.config import GITHUB_HMAC_SECRET
 from src.http import HttpResponse, HttpResponseDict
 from src.logger import logger
 
 
-def handle_github_webhook(
-    event_type: str, delivery_id: str, webhook_body: str, should_retry: bool = False
-) -> HttpResponseDict:
-    logger.info(f"Webhook delivery id: {delivery_id}")
-
+def handle_github_webhook(event_type: str, webhook_body: str) -> HttpResponseDict:
     if not event_type:
         logger.error("X-GitHub-Event header not found")
         return HttpResponse(
@@ -34,46 +30,45 @@ def handle_github_webhook(
         logger.error(traceback.format_exc())
         http_response = HttpResponse("500", str(error))
     finally:
-        if should_retry and http_response.status_code == "500":
-            queue_new_event(event_type, webhook_body, delivery_id)
         return http_response.to_dict()
 
 
 def handler(event: dict, context: dict) -> HttpResponseDict:
     if "Records" in event:
-        logger.info(f"Records: {event['Records']}")
+        logger.info(f"{len(event['Records'])} Records: {event['Records']}")
         # SQS event
-        for record in event["Records"]:
-            webhook_headers = record["messageAttributes"]
-            event_type = webhook_headers.get("X-GitHub-Event").get("stringValue")
-            delivery_id = webhook_headers.get("X-GitHub-Delivery").get("stringValue")
-            handle_github_webhook(event_type, delivery_id, record["body"])
-        return HttpResponse("200").to_dict()
+        assert len(event["Records"]) == 1
+        record = event["Records"][0]
+        event_type = (
+            record.get("messageAttributes").get("X-GitHub-Event").get("stringValue")
+        )
+        return handle_github_webhook(event_type, record["body"])
 
     if "headers" in event:
         # API Gateway event
-        event_type = event["headers"].get("X-GitHub-Event")
-        signature = event["headers"].get("X-Hub-Signature")
-        delivery_id = event["headers"].get("X-GitHub-Delivery")
-
         if GITHUB_HMAC_SECRET is None:
             return HttpResponse("400", "GITHUB_HMAC_SECRET").to_dict()
+
         secret: str = GITHUB_HMAC_SECRET
+        event_type = event["headers"].get("X-GitHub-Event")
+        signature = event["headers"].get("X-Hub-Signature")
+        event_body = event["body"]
 
         generated_signature = (
             "sha1="
             + hmac.new(
                 bytes(secret, "utf-8"),
-                msg=bytes(event["body"], "utf-8"),
+                msg=bytes(event_body, "utf-8"),
                 digestmod=hashlib.sha1,
             ).hexdigest()
         )
         if not hmac.compare_digest(generated_signature, signature):
             return HttpResponse("501").to_dict()
 
-        return handle_github_webhook(
-            event_type, delivery_id, event["body"], should_retry=True
-        )
+        response = handle_github_webhook(event_type, event_body)
+        if response["statusCode"] == "500":
+            sqs_client.queue_new_event(event_type, event_body)
+        return response
 
     error_message = "Unknown event type, event: {}".format(event)
     logger.error(error_message)

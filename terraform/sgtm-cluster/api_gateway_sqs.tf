@@ -58,6 +58,7 @@ resource "aws_sqs_queue" "sgtm-webhooks-queue-fifo" {
 resource "aws_lambda_event_source_mapping" "sgtm-sqs-source" {
   event_source_arn = aws_sqs_queue.sgtm-webhooks-queue-fifo.arn
   function_name    = aws_lambda_function.sgtm.function_name
+  batch_size       = 1
 }
 
 resource "aws_lambda_permission" "lambda_permission_for_sgtm_rest_api" {

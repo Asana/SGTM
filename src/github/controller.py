@@ -3,6 +3,7 @@ import src.asana.helpers as asana_helpers
 import src.github.logic as github_logic
 import src.github.client as github_client
 import src.aws.dynamodb_client as dynamodb_client
+import src.aws.sqs_client as sqs_client
 from src.config import (
     SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS,
 )
@@ -16,7 +17,7 @@ def upsert_pull_request(pull_request: PullRequest):
     if task_id is None:
         task_id = asana_controller.create_task(pull_request.repository_id())
         if task_id is None:
-            logger.error(f"Failed to create task for pull request {pull_request_id}")
+            logger.error(f"Failed to create task for pull request {pull_request_id}.")
             return
 
         logger.info(f"Task created for pull request {pull_request_id}: {task_id}")
@@ -52,18 +53,22 @@ def _add_asana_task_to_pull_request(pull_request: PullRequest, task_id: str):
 def upsert_comment(pull_request: PullRequest, comment: Comment):
     pull_request_id = pull_request.id()
     task_id = dynamodb_client.get_asana_id_from_github_node_id(pull_request_id)
-    if task_id is None:
-        logger.error(f"Task not found for pull request {pull_request_id}. Exiting!")
-    else:
+    if task_id:
         asana_controller.upsert_github_comment_to_task(comment, task_id)
+        # Comments can sometimes post-merge approve a PR, so we requeue a full sync via the "pull_request" event
+        if github_logic._is_approval_comment_body(comment.body()):
+            sqs_client.queue_full_sync(pull_request_id)
+    else:
+        logger.warning(
+            f"Task not found for pull request {pull_request_id}. Queueing a new event..."
+        )
+        sqs_client.queue_full_sync(pull_request_id)
 
 
 def upsert_review(pull_request: PullRequest, review: Review):
     pull_request_id = pull_request.id()
     task_id = dynamodb_client.get_asana_id_from_github_node_id(pull_request_id)
-    if task_id is None:
-        logger.error(f"Task not found for pull request {pull_request_id}. Exiting!")
-    else:
+    if task_id:
         logger.info(
             f"Found task id {task_id} for pull_request {pull_request_id}. Adding review"
             " now."
@@ -87,6 +92,11 @@ def upsert_review(pull_request: PullRequest, review: Review):
             asana_helpers.task_followers_from_review(review),
             force_update_due_today=force_update_due_today,
         )
+    else:
+        logger.warning(
+            f"Task not found for pull request {pull_request_id}. Queueing a new event..."
+        )
+        sqs_client.queue_full_sync(pull_request_id)
 
 
 def assign_pull_request_to_author(pull_request: PullRequest):

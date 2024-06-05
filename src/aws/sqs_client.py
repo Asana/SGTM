@@ -1,4 +1,5 @@
 import boto3  # type: ignore
+import json
 from typing import List, Optional
 
 from src.config import (
@@ -77,24 +78,23 @@ class SQSClient(object):
             return []
 
 
-def queue_new_event(event_type: str, body: str, delivery_id: str):
+def queue_new_event(event_type: str, body: str):
     """
     Using the singleton instance of SQSClient, creating it if necessary:
 
     Sends a message to the specified SQS queue
     """
-    logger.info(
-        f"Queueing event {event_type} with delivery id {delivery_id} to SQS queue {SQS_URL}"
-    )
+    logger.info(f"Queueing event {event_type} to SQS queue {SQS_URL}")
     SQSClient.singleton().send_message(
         queue_url=SQS_URL,
         message_body=body,
-        message_group_id=delivery_id,
+        message_group_id="fifo_group_id",  # single group id for all messages
         message_attributes={
             "X-GitHub-Event": {"DataType": "String", "StringValue": event_type},
-            "X-GitHub-Delivery": {
-                "DataType": "String",
-                "StringValue": delivery_id,
-            },
         },
     )
+
+
+def queue_full_sync(pull_request_id: str):
+    body = {"pull_request": {"node_id": pull_request_id}}
+    queue_new_event("pull_request", json.dumps(body))
