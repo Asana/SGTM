@@ -3,6 +3,7 @@ from uuid import uuid4
 
 import src.asana.controller as asana_controller
 import src.aws.dynamodb_client as dynamodb_client
+import src.aws.sqs_client as sqs_client
 import src.github.client as github_client
 import src.github.controller as github_controller
 from test.impl.builders import builder
@@ -100,20 +101,47 @@ class GithubControllerTest(MockDynamoDbTestCase):
 
         add_comment_mock.assert_called_with(comment, existing_task_id)
 
+    @patch.object(sqs_client, "queue_full_sync")
+    @patch.object(asana_controller, "upsert_github_comment_to_task")
+    def test_queues_full_sync_on_approval_comment(
+        self,
+        add_comment_mock,
+        queue_mock,
+        _get_asana_domain_id_mock,
+    ):
+        # If the task id is found in dynamodb, then we just update (don't
+        # attempt to create)
+        pull_request = builder.pull_request().build()
+        comment = builder.comment("LGTM").build()
+
+        # Insert the mapping first
+        existing_task_id = uuid4().hex
+        dynamodb_client.insert_github_node_to_asana_id_mapping(
+            pull_request.id(), existing_task_id
+        )
+
+        github_controller.upsert_comment(pull_request, comment)
+        add_comment_mock.assert_called_with(comment, existing_task_id)
+        queue_mock.assert_called_with(pull_request.id())
+
+    @patch.object(sqs_client, "queue_full_sync")
     @patch.object(asana_controller, "upsert_github_comment_to_task")
     def test_upsert_comment_when_task_id_not_found_in_dynamodb(
         self,
         add_comment_mock,
+        queue_mock,
         _get_asana_domain_id_mock,
     ):
         pull_request = builder.pull_request().build()
         comment = builder.comment().build()
 
         github_controller.upsert_comment(pull_request, comment)
+        add_comment_mock.assert_not_called()
+        queue_mock.assert_called_with(pull_request.id())    
 
     @patch.object(github_client, "set_pull_request_assignee")
     def test_assign_pull_request_to_author(
-        self, set_pr_assignee_mock, _get_asana_domain_id_mock
+        self, set_pr_assignee_mock, _ge5t_asana_domain_id_mock
     ):
         user = builder.user().login("the_author").name("dont-care")
         pull_request = builder.pull_request().author(user).build()
