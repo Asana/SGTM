@@ -66,9 +66,6 @@ module "sgtm-prod" {
   sgtm_feature__allow_persistent_task_assignee   = var.sgtm_feature__allow_persistent_task_assignee
   sgtm_feature__autocomplete_enabled             = var.sgtm_feature__autocomplete_enabled
   sgtm_feature__automerge_enabled                = var.sgtm_feature__automerge_enabled
-  sgtm_feature__check_rerun_base_ref_names       = var.sgtm_feature__check_rerun_base_ref_names
-  sgtm_feature__check_rerun_on_approval_enabled  = var.sgtm_feature__check_rerun_on_approval_enabled
-  sgtm_feature__check_rerun_threshold_hours      = var.sgtm_feature__check_rerun_threshold_hours
   sgtm_feature__disable_github_team_subscription = var.sgtm_feature__disable_github_team_subscription
   sgtm_feature__followup_review_github_users     = var.sgtm_feature__followup_review_github_users
 
@@ -112,9 +109,6 @@ module "sgtm-staging" {
   sgtm_feature__allow_persistent_task_assignee   = var.sgtm_feature__allow_persistent_task_assignee
   sgtm_feature__autocomplete_enabled             = var.sgtm_feature__autocomplete_enabled
   sgtm_feature__automerge_enabled                = var.sgtm_feature__automerge_enabled
-  sgtm_feature__check_rerun_base_ref_names       = var.sgtm_feature__check_rerun_base_ref_names
-  sgtm_feature__check_rerun_on_approval_enabled  = var.sgtm_feature__check_rerun_on_approval_enabled
-  sgtm_feature__check_rerun_threshold_hours      = var.sgtm_feature__check_rerun_threshold_hours
   sgtm_feature__disable_github_team_subscription = var.sgtm_feature__disable_github_team_subscription
   sgtm_feature__followup_review_github_users     = var.sgtm_feature__followup_review_github_users
 

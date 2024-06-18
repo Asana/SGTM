@@ -32,7 +32,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
             )
         )
         self.assertTrue(
-            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+            github_logic.maybe_automerge_pull_request(
                 pull_request
             )
         )
@@ -65,7 +65,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
             )
         )
         self.assertTrue(
-            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+            github_logic.maybe_automerge_pull_request(
                 pull_request
             )
         )
@@ -88,7 +88,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
             .label(builder.label().name(github_logic.AutomergeLabel.AFTER_TESTS.value))
         )
         self.assertTrue(
-            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+            github_logic.maybe_automerge_pull_request(
                 pull_request
             )
         )
@@ -111,7 +111,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
             .label(builder.label().name(github_logic.AutomergeLabel.IMMEDIATELY.value))
         )
         self.assertTrue(
-            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+            github_logic.maybe_automerge_pull_request(
                 pull_request
             )
         )
@@ -134,7 +134,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
             .label(builder.label().name(github_logic.AutomergeLabel.IMMEDIATELY.value))
         )
         self.assertFalse(
-            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+            github_logic.maybe_automerge_pull_request(
                 pull_request
             )
         )
@@ -157,7 +157,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
             .label(builder.label().name(github_logic.AutomergeLabel.IMMEDIATELY.value))
         )
         self.assertFalse(
-            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+            github_logic.maybe_automerge_pull_request(
                 pull_request
             )
         )
@@ -185,7 +185,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
             )
         )
         self.assertFalse(
-            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+            github_logic.maybe_automerge_pull_request(
                 pull_request
             )
         )
@@ -213,7 +213,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
             )
         )
         self.assertFalse(
-            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+            github_logic.maybe_automerge_pull_request(
                 pull_request
             )
         )
@@ -236,7 +236,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
             .label(builder.label().name(github_logic.AutomergeLabel.AFTER_TESTS.value))
         )
         self.assertFalse(
-            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+            github_logic.maybe_automerge_pull_request(
                 pull_request
             )
         )
@@ -259,7 +259,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
             .label(builder.label().name(github_logic.AutomergeLabel.AFTER_TESTS.value))
         )
         self.assertFalse(
-            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+            github_logic.maybe_automerge_pull_request(
                 pull_request
             )
         )
@@ -286,7 +286,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
             )
         )
         self.assertFalse(
-            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+            github_logic.maybe_automerge_pull_request(
                 pull_request
             )
         )
@@ -322,7 +322,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
             )
         )
         self.assertFalse(
-            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+            github_logic.maybe_automerge_pull_request(
                 pull_request
             )
         )
@@ -358,7 +358,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
             )
         )
         self.assertTrue(
-            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+            github_logic.maybe_automerge_pull_request(
                 pull_request
             )
         )
@@ -398,7 +398,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
             )
         )
         self.assertTrue(
-            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+            github_logic.maybe_automerge_pull_request(
                 pull_request
             )
         )
@@ -421,7 +421,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
             )
         )
         self.assertFalse(
-            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+            github_logic.maybe_automerge_pull_request(
                 pull_request
             )
         )
@@ -440,7 +440,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
             .label(builder.label().name(github_logic.AutomergeLabel.AFTER_TESTS.value))
         )
         self.assertTrue(
-            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+            github_logic.maybe_automerge_pull_request(
                 pull_request
             )
         )
@@ -463,7 +463,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
             .label(builder.label().name("random label"))
         )
         self.assertFalse(
-            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+            github_logic.maybe_automerge_pull_request(
                 pull_request
             )
         )
@@ -490,7 +490,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
             )
         )
         self.assertFalse(
-            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+            github_logic.maybe_automerge_pull_request(
                 pull_request
             )
         )
@@ -513,7 +513,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
             .label(builder.label().name(github_logic.AutomergeLabel.AFTER_TESTS.value))
         )
         self.assertFalse(
-            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+            github_logic.maybe_automerge_pull_request(
                 pull_request
             )
         )
@@ -739,7 +739,7 @@ class TestMaybeRerunStaleRequiredChecks(unittest.TestCase):
         )
 
         self.assertFalse(
-            github_logic.maybe_automerge_pull_request_and_rerun_stale_checks(
+            github_logic.maybe_automerge_pull_request(
                 pull_request
             )
         )
