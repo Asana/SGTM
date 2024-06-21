@@ -42,7 +42,7 @@ def merge_pull_request(owner: str, repository: str, number: int, title: str, bod
     # we add the PR number to match Github's default squash and merge title style
     # which we rely on for code review tests.
     title_with_number = f"{title} (#{number})"
-    pr.enable_automerge(commit_headline=title_with_number, commit_body=body, merge_method="squash")  # type: ignore
+    pr.enable_automerge(commit_headline=title_with_number, commit_body=body)  # type: ignore
 
 
 def rerequest_check_run(owner: str, repository: str, check_run_id: int):
