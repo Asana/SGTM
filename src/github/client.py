@@ -44,7 +44,7 @@ def merge_pull_request(owner: str, repository: str, number: int, title: str, bod
     # which we rely on for code review tests.
     title_with_number = f"{title} (#{number})"
     try:
-        pr.enable_automerge(commit_headline=title_with_number, commit_body=body, merge_method="squash")  # type: ignore
+        pr.enable_automerge(commit_headline=title_with_number, commit_body=body)  # type: ignore
     except Exception as e:
         logger.info(f"Failed to enable automerge for PR {title_with_number}, with error {e}")
         logger.info("Merging PR manually")
