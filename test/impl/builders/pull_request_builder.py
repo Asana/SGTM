@@ -91,7 +91,7 @@ class PullRequestBuilder(BuilderBaseClass):
         self.raw_pr["body"] = body
         return self
 
-    def is_in_merge_queue(self, is_in_merge_queue: bool):
+    def isInMergeQueue(self, is_in_merge_queue: bool):
         self.raw_pr["isInMergeQueue"] = is_in_merge_queue
         return self
 
