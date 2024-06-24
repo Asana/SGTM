@@ -29,7 +29,11 @@ class TestTaskStatusFromPullRequest(BaseClass):
 
     def test_queued(self):
         pull_request = build(
-            builder.pull_request().closed(False).merged(False).isDraft(False).isInMergeQueue(True)
+            builder.pull_request()
+            .closed(False)
+            .merged(False)
+            .isDraft(False)
+            .isInMergeQueue(True)
         )
         task_status = _task_status_from_pull_request(pull_request)
         self.assertEqual("Queued", task_status)
