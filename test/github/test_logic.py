@@ -462,6 +462,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
         self.assertFalse(github_logic.maybe_automerge_pull_request(pull_request))
         mock_merge_pull_request.assert_not_called()
 
+
 class TestPullRequestHasLabel(unittest.TestCase):
     def test_pull_request_with_label(self):
         label_name = "test label"

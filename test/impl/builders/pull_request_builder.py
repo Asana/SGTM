@@ -91,6 +91,10 @@ class PullRequestBuilder(BuilderBaseClass):
         self.raw_pr["body"] = body
         return self
 
+    def is_in_merge_queue(self, is_in_merge_queue: bool):
+        self.raw_pr["isInMergeQueue"] = is_in_merge_queue
+        return self
+
     def merged_at(self, merged_at: Union[str, datetime]):
         self.raw_pr["mergedAt"] = transform_datetime(merged_at)
         return self
