@@ -455,7 +455,7 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
                 .state(ReviewState.APPROVED)
             )
             .isInMergeQueue(True)
-            .mergeable(MergeableState.CONFLICTING)
+            .mergeable(MergeableState.MERGEABLE)
             .merged(False)
             .label(builder.label().name(github_logic.AutomergeLabel.AFTER_TESTS.value))
         )
