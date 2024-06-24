@@ -442,6 +442,25 @@ class TestMaybeAutomergePullRequest(unittest.TestCase):
         self.assertFalse(github_logic.maybe_automerge_pull_request(pull_request))
         mock_merge_pull_request.assert_not_called()
 
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_is_pull_request_ready_for_automerge_when_in_merge_queue(
+        self, mock_merge_pull_request
+    ):
+        pull_request = build(
+            builder.pull_request()
+            .commit(builder.commit().status(Commit.BUILD_SUCCESSFUL))
+            .review(
+                builder.review()
+                .submitted_at("2020-01-13T14:59:58Z")
+                .state(ReviewState.APPROVED)
+            )
+            .isInMergeQueue(True)
+            .mergeable(MergeableState.CONFLICTING)
+            .merged(False)
+            .label(builder.label().name(github_logic.AutomergeLabel.AFTER_TESTS.value))
+        )
+        self.assertFalse(github_logic.maybe_automerge_pull_request(pull_request))
+        mock_merge_pull_request.assert_not_called()
 
 class TestPullRequestHasLabel(unittest.TestCase):
     def test_pull_request_with_label(self):
