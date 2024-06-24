@@ -173,15 +173,6 @@ By default SGTM will assign the task corresponding to the PR to the assignee on 
 * Set an env variable of `TF_VAR_sgtm_feature__allow_persistent_task_assignee` to `true`
 * Ensure that the PR has the `persistent task assignee` Github label attached to the PR.
 
-### Rerun required checks on pull requests that are older than N hours with a specific base ref
-SGTM can use Github API to rerun Check Runs on pull requests with a specified base ref if the results of those check runs exceeds a set number of hours. This is useful for keeping the status of your check runs "fresh" especially if the base ref is updated frequently. It will ignore pull requests that do not match the specified base ref.
-
-*Note*: This does not use Github's check conclusion state `stale`.
-
-**How to configure**:
-* Set an env variable of `TF_VAR_sgtm_feature__check_rerun_base_ref_names` to contain a comma-separated list of ref names (e.g. `master`, `main`) that pull requests must be based off of to have their check runs rerequested. The default is `"main,master"`.
-* Set an env variable of `TF_VAR_sgtm_feature__check_rerun_threshold_hours` to any positive integer to represent the number of hours before a check run will be rerequested. The default is `0` which disables the feature.
-
 ## Installing a Virtual Environment for Python
 
 We recommend using `pipenv` to manage your python environment for SGTM. We've checked in a `Pipfile` and `Pipfile.lock` to make this easier for you. If you have `pipenv` installed, `cd` into the SGTM directory, and run `pipenv install` to install all dependencies. If you don't have `pipenv` installed, you can install it via `pip install pipenv`.

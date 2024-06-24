@@ -46,19 +46,6 @@ SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS = {
     ).split(",")
     if github_username
 }
-SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS = int(
-    os.getenv("SGTM_FEATURE__CHECK_RERUN_THRESHOLD_HOURS", "0")
-)
-SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES = {
-    base_ref
-    for base_ref in os.getenv(
-        "SGTM_FEATURE__CHECK_RERUN_BASE_REF_NAMES", "main,master"
-    ).split(",")
-    if base_ref
-}
-SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED = is_feature_flag_enabled(
-    "SGTM_FEATURE__CHECK_RERUN_ON_APPROVAL_ENABLED"
-)
 
 
 #### Particularly sensitive variables are retrieved from an S3 bucket, instead of

@@ -46,9 +46,12 @@ def merge_pull_request(owner: str, repository: str, number: int, title: str, bod
     try:
         pr.enable_automerge(commit_headline=title_with_number, commit_body=body)  # type: ignore
     except Exception as e:
-        logger.info(f"Failed to enable automerge for PR {title_with_number}, with error {e}")
+        logger.info(
+            f"Failed to enable automerge for PR {title_with_number}, with error {e}"
+        )
         logger.info("Merging PR manually")
         pr.merge(commit_title=title_with_number, commit_message=body, merge_method="squash")  # type: ignore
+
 
 def rerequest_check_run(owner: str, repository: str, check_run_id: int):
     auth = HTTPBasicAuth(sgtm_github_auth.get_token().token, "")
