@@ -45,6 +45,7 @@ class PullRequestBuilder(BuilderBaseClass):
             "comments": {"nodes": []},
             "reviews": {"nodes": []},
             "reviewRequests": {"nodes": []},
+            "isInMergeQueue": False,
             "closed": False,
             "merged": False,
             "isDraft": False,
@@ -88,6 +89,10 @@ class PullRequestBuilder(BuilderBaseClass):
 
     def body(self, body: str):
         self.raw_pr["body"] = body
+        return self
+
+    def isInMergeQueue(self, is_in_merge_queue: bool):
+        self.raw_pr["isInMergeQueue"] = is_in_merge_queue
         return self
 
     def merged_at(self, merged_at: Union[str, datetime]):

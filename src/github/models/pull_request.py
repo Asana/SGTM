@@ -190,6 +190,9 @@ class PullRequest(object):
     def is_build_successful(self) -> bool:
         return self.build_status() == Commit.BUILD_SUCCESSFUL
 
+    def is_in_merge_queue(self) -> bool:
+        return self._raw["isInMergeQueue"]
+
     def merged_at(self) -> Optional[datetime]:
         merged_at = self._raw.get("mergedAt", None)
         if merged_at is None:

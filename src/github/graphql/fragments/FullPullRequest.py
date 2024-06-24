@@ -15,6 +15,7 @@ fragment FullPullRequest on PullRequest {
   closed
   merged
   isDraft
+  isInMergeQueue
   mergedAt
   mergeable
   url
