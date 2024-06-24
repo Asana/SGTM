@@ -27,6 +27,13 @@ class TestTaskStatusFromPullRequest(BaseClass):
         task_status = _task_status_from_pull_request(pull_request)
         self.assertEqual("Draft", task_status)
 
+    def test_queued(self):
+        pull_request = build(
+            builder.pull_request().closed(False).merged(False).isDraft(False).isInMergeQueue(True)
+        )
+        task_status = _task_status_from_pull_request(pull_request)
+        self.assertEqual("Queued", task_status)
+
 
 if __name__ == "__main__":
     from unittest import main as run_tests
