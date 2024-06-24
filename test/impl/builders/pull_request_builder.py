@@ -45,6 +45,7 @@ class PullRequestBuilder(BuilderBaseClass):
             "comments": {"nodes": []},
             "reviews": {"nodes": []},
             "reviewRequests": {"nodes": []},
+            "isInMergeQueue": False,
             "closed": False,
             "merged": False,
             "isDraft": False,

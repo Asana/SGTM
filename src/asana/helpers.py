@@ -85,6 +85,8 @@ def default_due_date_str(reference_datetime: Optional[datetime] = None) -> str:
 def _task_status_from_pull_request(pull_request: PullRequest) -> str:
     if pull_request.closed():
         return "Merged" if pull_request.merged() else "Closed"
+    elif pull_request.is_in_merge_queue():
+        return "Queued"
     else:
         return "Draft" if pull_request.is_draft() else "Open"
 
@@ -122,7 +124,7 @@ _custom_fields_to_extract_map = {
 def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
     """
     We currently expect the project to have three custom fields with its corresponding enum options:
-        • PR Status: "Open", "Draft", "Closed", "Merged"
+        • PR Status: "Open", "Draft", "Closed", "Queued", "Merged"
         • Build: "Success", "Failure"
         • Review Status: "Needs Review", "Changes Requested", "Approved", "Not Ready"
     """

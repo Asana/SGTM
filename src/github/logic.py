@@ -244,8 +244,8 @@ def maybe_add_automerge_warning_comment(pull_request: PullRequest):
 # returns True if the pull request was automerged, False if not
 def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
     is_pull_request_ready_for_automerge = False
-    if not SGTM_FEATURE__AUTOMERGE_ENABLED or not _pull_request_is_open(pull_request):
-        logger.info(f"Skipping automerge for {pull_request.id()} because it is closed")
+    if not SGTM_FEATURE__AUTOMERGE_ENABLED or not _pull_request_is_open(pull_request) or pull_request.is_in_merge_queue():
+        logger.info(f"Skipping automerge for {pull_request.id()} because it is closed or in merge queue")
         is_pull_request_ready_for_automerge = False
 
     # if there are multiple labels, we use the most permissive to define automerge behavior

@@ -166,7 +166,6 @@ def _handle_check_suite_webhook(payload: dict) -> HttpResponse:
         github_controller.upsert_pull_request(pull_request)
         return HttpResponse("200")
 
-
 _events_map = {
     "pull_request": _handle_pull_request_webhook,
     "issue_comment": _handle_issue_comment_webhook,
