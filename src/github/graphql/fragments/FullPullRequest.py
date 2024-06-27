@@ -6,6 +6,7 @@ _full_pull_request = """
 fragment FullPullRequest on PullRequest {
   id
   baseRefName
+  headRefName
   body
   bodyHTML
   title
