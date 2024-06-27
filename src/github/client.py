@@ -1,7 +1,7 @@
 import requests
 from requests.auth import HTTPBasicAuth
 
-from github import PullRequest  # type: ignore
+from github import PullRequest, GithubException  # type: ignore
 from src.github.get_app_token import sgtm_github_auth
 from src.logger import logger
 
@@ -79,7 +79,7 @@ def delete_branch_if_exists(owner: str, repo_name: str, branch_name: str):
         git_ref = repo.get_git_ref(ref)
         git_ref.delete()
         logger.info(f"Branch '{branch_name}' deleted successfully.")
-    except Exception as e:
+    except GithubException as e:
         if e.status == 404:
             logger.info(f"Branch '{branch_name}' does not exist or is already deleted.")
         else:
