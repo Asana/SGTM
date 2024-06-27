@@ -169,6 +169,10 @@ class PullRequestBuilder(BuilderBaseClass):
         self.raw_pr["baseRefName"] = base_ref_name
         return self
 
+    def head_ref_name(self, head_ref_name: str):
+        self.raw_pr["headRefName"] = head_ref_name
+        return self
+
     def build(self) -> PullRequest:
         return PullRequest(self.raw_pr)
 

@@ -143,9 +143,8 @@ class TestHandlePullRequestWebhookClosed(MockDynamoDbTestCase):
         maybe_automerge_pull_request,
         maybe_delete_branch_if_merged,
     ):
-        response = webhook._handle_pull_request_webhook(self.payload)
+        webhook._handle_pull_request_webhook(self.payload)
 
-        self.assertEqual(response.status_code, "200")
         upsert_pull_request.assert_called_once()
         maybe_automerge_pull_request.assert_called_once()
         maybe_delete_branch_if_merged.assert_called_once()

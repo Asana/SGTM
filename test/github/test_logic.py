@@ -601,13 +601,11 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
 
         add_pr_comment_mock.assert_not_called()
 
-@patch.object(github_client, "delete_branch")
+@patch.object(github_client, "delete_branch_if_exists")
 class TestMaybeDeleteBranchIfMerged(unittest.TestCase):
     def test_maybe_delete_branch_if_merged(self, mock_delete_branch):
         pull_request = build(
-            builder.pull_request()
-            .merged(True)
-            .branch(builder.branch().name("feature-branch"))
+            builder.pull_request().merged(True).head_ref_name("feature-branch")
         )
         self.assertTrue(github_logic.maybe_delete_branch_if_merged(pull_request))
         mock_delete_branch.assert_called_once_with(
