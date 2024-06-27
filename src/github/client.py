@@ -60,3 +60,28 @@ def rerequest_check_run(owner: str, repository: str, check_run_id: int):
     )
     # Some check runs cannot be rerequested. See https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#rerequest-a-check-run--status-codes
     return requests.post(url, auth=auth).status_code == 201
+
+
+def delete_branch_if_exists(owner: str, repo_name: str, branch_name: str):
+    """
+    Deletes a branch from a GitHub repository if it exists.
+
+    Args:
+        owner (str): The owner of the repository.
+        repo_name (str): The name of the repository.
+        branch_name (str): The name of the branch to delete.
+    """
+    try:
+        repo = gh_client.get_repo(f"{owner}/{repo_name}")
+        # Attempt to get the branch, will raise a 404 error if not found
+        repo.get_branch(branch_name)
+        ref = f"heads/{branch_name}"
+        git_ref = repo.get_git_ref(ref)
+        git_ref.delete()
+        logger.info(f"Branch '{branch_name}' deleted successfully.")
+    except Exception as e:
+        if e.status == 404:
+            logger.info(f"Branch '{branch_name}' does not exist or is already deleted.")
+        else:
+            logger.error(f"Error deleting branch: {e}")
+            raise

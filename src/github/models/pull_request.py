@@ -219,3 +219,6 @@ class PullRequest(object):
 
     def base_ref_name(self) -> str:
         return self._raw["baseRefName"]
+
+    def head_ref_name(self) -> str:
+        return self._raw["headRefName"]
