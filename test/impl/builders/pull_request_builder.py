@@ -27,6 +27,7 @@ class PullRequestBuilder(BuilderBaseClass):
             "number": pr_number,
             "body": body,
             "baseRefName": create_uuid(),
+            "headRefName": create_uuid(),
             "title": create_uuid(),
             "url": "https://www.github.com/foo/pulls/" + str(pr_number),
             "assignees": {"nodes": []},
