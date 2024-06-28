@@ -122,7 +122,7 @@ class TestHandlePullRequestReviewComment(MockDynamoDbTestCase):
         )
         delete_comment.assert_called_once_with(self.COMMENT_NODE_ID)
 
-
+@patch("src.github.graphql.client.get_pull_request")
 @patch("src.github.logic.maybe_delete_branch_if_merged")
 @patch("src.github.logic.maybe_automerge_pull_request")
 @patch("src.github.controller.upsert_pull_request")
@@ -131,6 +131,7 @@ class TestHandlePullRequestWebhookClosed(MockDynamoDbTestCase):
 
     def test_handle_pull_request_webhook_when_closed(
         self,
+        get_pull_request,
         upsert_pull_request,
         maybe_automerge_pull_request,
         maybe_delete_branch_if_merged,
@@ -141,6 +142,9 @@ class TestHandlePullRequestWebhookClosed(MockDynamoDbTestCase):
                 "node_id": self.PULL_REQUEST_NODE_ID,
             },
         }
+
+        pull_request = MagicMock(spec=PullRequest)
+        get_pull_request.return_value = pull_request
 
         webhook._handle_pull_request_webhook(payload)
 
