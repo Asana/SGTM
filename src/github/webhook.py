@@ -13,15 +13,22 @@ from src.logger import logger
 
 # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
 def _handle_pull_request_webhook(payload: dict) -> HttpResponse:
+    print("blahblah")
     pull_request_id = payload["pull_request"]["node_id"]
+    print("yes")
     with dynamodb_lock_client.acquire_lock(pull_request_id, sort_key=pull_request_id):
+        print("with")
         pull_request = graphql_client.get_pull_request(pull_request_id)
         # a label change will trigger this webhook, so it may trigger automerge
         github_logic.maybe_automerge_pull_request(pull_request)
         if payload["action"] == "closed":
+            print("Hello")
             github_logic.maybe_delete_branch_if_merged(pull_request)
+        print("1")
         github_logic.maybe_add_automerge_warning_comment(pull_request)
+        print("2")
         github_controller.upsert_pull_request(pull_request)
+        print("3")
         return HttpResponse("200")
 
 
