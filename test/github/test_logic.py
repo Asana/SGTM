@@ -602,6 +602,27 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
         add_pr_comment_mock.assert_not_called()
 
 
+@patch.object(github_client, "delete_branch_if_exists")
+class TestMaybeDeleteBranchIfMerged(unittest.TestCase):
+    def test_maybe_delete_branch_if_merged(self, mock_delete_branch):
+        pull_request = build(
+            builder.pull_request().merged(True).head_ref_name("feature-branch")
+        )
+        github_logic.maybe_delete_branch_if_merged(pull_request)
+        mock_delete_branch.assert_called_once_with(
+            pull_request.repository_owner_handle(),
+            pull_request.repository_name(),
+            "feature-branch",
+        )
+
+    def test_do_not_delete_branch_if_closed(self, mock_delete_branch):
+        pull_request = build(
+            builder.pull_request().merged(False).head_ref_name("feature-branch")
+        )
+        github_logic.maybe_delete_branch_if_merged(pull_request)
+        mock_delete_branch.assert_not_called()
+
+
 if __name__ == "__main__":
     from unittest import main as run_tests
 
