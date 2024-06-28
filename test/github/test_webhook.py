@@ -122,6 +122,7 @@ class TestHandlePullRequestReviewComment(MockDynamoDbTestCase):
         )
         delete_comment.assert_called_once_with(self.COMMENT_NODE_ID)
 
+
 @patch("src.github.logic.maybe_delete_branch_if_merged")
 @patch("src.github.logic.maybe_automerge_pull_request")
 @patch("src.github.controller.upsert_pull_request")
