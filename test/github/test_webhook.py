@@ -23,7 +23,7 @@ class TestHandleGithubWebhook(MockDynamoDbTestCase):
         payload = {
             "action": "closed",
             "pull_request": {
-                "node_id": self.PULL_REQUEST_NODE_ID,
+                "node_id": "abcdef",
             },
         }
 
