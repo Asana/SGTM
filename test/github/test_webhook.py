@@ -11,6 +11,29 @@ class TestHandleGithubWebhook(MockDynamoDbTestCase):
 
         self.assertEqual(response.status_code, "501")
 
+    @patch("src.github.logic.maybe_delete_branch_if_merged")
+    @patch("src.github.logic.maybe_automerge_pull_request")
+    @patch("src.github.controller.upsert_pull_request")
+    def test_handle_pull_request_webhook_when_closed(
+        self,
+        upsert_pull_request,
+        maybe_automerge_pull_request,
+        maybe_delete_branch_if_merged,
+    ):
+        payload = {
+            "action": "closed",
+            "pull_request": {
+                "node_id": self.PULL_REQUEST_NODE_ID,
+            },
+        }
+
+        response = webhook._handle_pull_request_webhook(payload)
+        self.assertEqual(response.status_code, "200")
+
+        maybe_automerge_pull_request.assert_called_once()
+        maybe_delete_branch_if_merged.assert_called_once()
+        upsert_pull_request.assert_not_called()
+
 
 class TestHandleIssueCommentWebhook(MockDynamoDbTestCase):
     COMMENT_NODE_ID = "hijkl"
@@ -121,34 +144,6 @@ class TestHandlePullRequestReviewComment(MockDynamoDbTestCase):
             self.PULL_REQUEST_NODE_ID, self.PULL_REQUEST_REVIEW_ID
         )
         delete_comment.assert_called_once_with(self.COMMENT_NODE_ID)
-
-
-@patch("src.github.logic.maybe_delete_branch_if_merged")
-@patch("src.github.logic.maybe_automerge_pull_request")
-@patch("src.github.controller.upsert_pull_request")
-class TestHandlePullRequestWebhookClosed(MockDynamoDbTestCase):
-    PULL_REQUEST_NODE_ID = "abcdef"
-
-    def setUp(self):
-        super().setUp()
-        self.payload = {
-            "action": "closed",
-            "pull_request": {
-                "node_id": self.PULL_REQUEST_NODE_ID,
-            },
-        }
-
-    def test_handle_pull_request_webhook_when_closed(
-        self,
-        upsert_pull_request,
-        maybe_automerge_pull_request,
-        maybe_delete_branch_if_merged,
-    ):
-        webhook._handle_pull_request_webhook(self.payload)
-
-        maybe_automerge_pull_request.assert_called_once()
-        maybe_delete_branch_if_merged.assert_called_once()
-        upsert_pull_request.assert_not_called()
 
 
 if __name__ == "__main__":
