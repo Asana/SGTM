@@ -123,38 +123,6 @@ class TestHandlePullRequestReviewComment(MockDynamoDbTestCase):
         delete_comment.assert_called_once_with(self.COMMENT_NODE_ID)
 
 
-@patch("src.github.controller.upsert_pull_request")
-@patch("src.github.logic.maybe_automerge_pull_request")
-@patch("src.github.logic.maybe_delete_branch_if_merged")
-@patch("src.github.graphql.client.get_pull_request")
-class TestHandlePullRequestWebhookClosed(MockDynamoDbTestCase):
-    PULL_REQUEST_NODE_ID = "abcdef"
-
-    def test_handle_pull_request_webhook_when_closed(
-        self,
-        get_pull_request,
-        maybe_delete_branch_if_merged,
-        maybe_automerge_pull_request,
-        upsert_pull_request,
-    ):
-        payload = {
-            "action": "closed",
-            "pull_request": {
-                "node_id": self.PULL_REQUEST_NODE_ID,
-            },
-        }
-
-        pull_request = MagicMock(spec=PullRequest)
-        get_pull_request.return_value = pull_request
-
-        response = webhook._handle_pull_request_webhook(payload)
-        self.assertEqual(response.status_code, "200")
-
-        maybe_automerge_pull_request.assert_called_once()
-        maybe_delete_branch_if_merged.assert_called_once()
-        upsert_pull_request.assert_called_once()
-
-
 if __name__ == "__main__":
     from unittest import main as run_tests
 

@@ -296,14 +296,6 @@ def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
     return False
 
 
-def maybe_delete_branch_if_merged(pull_request: PullRequest):
-    if pull_request.merged():
-        owner = pull_request.repository_owner_handle()
-        repo_name = pull_request.repository_name()
-        branch_name = pull_request.head_ref_name()
-        github_client.delete_branch_if_exists(owner, repo_name, branch_name)
-
-
 # ----------------------------------------------------------------------------------
 # Automerge helpers
 # ----------------------------------------------------------------------------------
