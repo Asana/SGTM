@@ -19,7 +19,8 @@ def _handle_pull_request_webhook(payload: dict) -> HttpResponse:
         # a label change will trigger this webhook, so it may trigger automerge
         github_logic.maybe_automerge_pull_request(pull_request)
         if payload["action"] == "closed":
-            github_logic.maybe_delete_branch_if_merged(pull_request)
+            repository = graphql_client.get_repository(pull_request.repository_id())
+            github_logic.maybe_delete_branch_if_merged(pull_request, repository)
         github_logic.maybe_add_automerge_warning_comment(pull_request)
         github_controller.upsert_pull_request(pull_request)
         return HttpResponse("200")
