@@ -7,6 +7,7 @@ from .queries import (
     GetPullRequestByRepositoryAndNumber,
     GetPullRequestAndComment,
     GetPullRequestAndReview,
+    GetRepository,
     IteratePullRequestIdsForCommitId,
     IterateReviewsForPullRequestId,
 )
@@ -146,3 +147,8 @@ def get_review_for_database_id(
                 },
             )["node"]["reviews"]["edges"]
     return None
+
+
+def get_repository(repository_id: str):
+    data = _execute_graphql_query(GetRepository, {"repositoryId": repository_id})
+    return data["repository"]

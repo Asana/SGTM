@@ -622,9 +622,21 @@ class TestMaybeDeleteBranchIfMerged(unittest.TestCase):
         github_logic.maybe_delete_branch_if_merged(pull_request)
         mock_delete_branch.assert_not_called()
 
-    def test_do_not_delete_main_branch(self, mock_delete_branch):
+    def test_do_not_delete_default_branch(self, mock_delete_branch):
         pull_request = build(builder.pull_request().merged(True).head_ref_name("main"))
-        github_logic.maybe_delete_branch_if_merged(pull_request)
+        repository = {"deleteBranchOnMerge": True, "defaultBranchRef": {"name": "main"}}
+        github_logic.maybe_delete_branch_if_merged(pull_request, repository)
+        mock_delete_branch.assert_not_called()
+
+    def test_do_not_delete_default_branch(self, mock_delete_branch):
+        pull_request = build(
+            builder.pull_request().merged(True).head_ref_name("feature-branch")
+        )
+        repository = {
+            "deleteBranchOnMerge": False,
+            "defaultBranchRef": {"name": "main"},
+        }
+        github_logic.maybe_delete_branch_if_merged(pull_request, repository)
         mock_delete_branch.assert_not_called()
 
 
