@@ -26,7 +26,10 @@ class PullRequestBuilder(BuilderBaseClass):
             "id": create_uuid(),
             "number": pr_number,
             "body": body,
-            "baseRefName": create_uuid(),
+            "baseRef": {
+                "name": create_uuid(),
+                "associatedPullRequests": {"totalCount": 0},
+            },
             "title": create_uuid(),
             "url": "https://www.github.com/foo/pulls/" + str(pr_number),
             "assignees": {"nodes": []},
@@ -164,8 +167,10 @@ class PullRequestBuilder(BuilderBaseClass):
         )
         return self
 
-    def base_ref_name(self, base_ref_name: str):
-        self.raw_pr["baseRefName"] = base_ref_name
+    def base_ref_associated_pull_requests(self, associated_pull_requests: int):
+        self.raw_pr["baseRef"]["associatedPullRequests"][
+            "totalCount"
+        ] = associated_pull_requests
         return self
 
     def build(self) -> PullRequest:
