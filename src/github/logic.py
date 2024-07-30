@@ -235,8 +235,8 @@ def maybe_add_automerge_warning_comment(pull_request: PullRequest):
     # if a PR has an automerge label and doesn't contain a comment warning, we want to maybe add a warning comment
     # only add warning comment if it's set to auto-merge after approval and hasn't yet been approved to limit noise
 
-    if automerge_comment and not _pull_request_has_automerge_comment(
-        pull_request, automerge_comment
+    if automerge_comment and not any(
+        comment.body() == automerge_comment for comment in pull_request.comments()
     ):
         github_client.add_pr_comment(
             owner=pull_request.repository_owner_handle(),
@@ -256,7 +256,7 @@ def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
         or pull_request.base_ref_associated_pull_requests() > 0
     ):
         logger.info(
-            f"Skipping automerge for {pull_request.id()} because it is closed or in merge queue"
+            f"Skipping automerge for {pull_request.id()} because it is closed, in merge queue, or the base branch has open PRs associated with it."
         )
         is_pull_request_ready_for_automerge = False
 
@@ -309,11 +309,3 @@ def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
 
 def _pull_request_is_open(pull_request: PullRequest) -> bool:
     return not pull_request.closed() and not pull_request.merged()
-
-
-def _pull_request_has_automerge_comment(
-    pull_request: PullRequest, automerge_comment: str
-) -> bool:
-    return any(
-        comment.body() == automerge_comment for comment in pull_request.comments()
-    )
