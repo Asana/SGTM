@@ -1,5 +1,4 @@
 import re
-from datetime import datetime, timedelta, timezone
 from typing import List
 from src.logger import logger
 
@@ -218,29 +217,33 @@ def pull_request_participants(pull_request: PullRequest) -> List[str]:
 def maybe_add_automerge_warning_comment(pull_request: PullRequest):
     """Adds comment warnings if automerge label is enabled"""
 
-    logger.info("Running maybe add automerge warning comment")
-    if SGTM_FEATURE__AUTOMERGE_ENABLED:
-        owner = pull_request.repository_owner_handle()
-        repo_name = pull_request.repository_name()
-        pr_number = pull_request.number()
+    if not SGTM_FEATURE__AUTOMERGE_ENABLED or not any(
+        pull_request_has_label(pull_request, label.value) for label in AutomergeLabel
+    ):
+        return
 
-        automerge_comment = None
-        if pull_request.base_ref_associated_pull_requests() > 0:
-            automerge_comment = AUTOMERGE_COMMENT_WARNING_OPEN_BASE_REF_PRS
-        elif pull_request_has_label(pull_request, AutomergeLabel.AFTER_APPROVAL.value):
-            automerge_comment = AUTOMERGE_COMMENT_WARNING_AFTER_APPROVAL
-        elif pull_request_has_label(
-            pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
-        ):
-            automerge_comment = AUTOMERGE_COMMENT_WARNING_AFTER_TESTS_AND_APPROVAL
+    automerge_comment = None
+    if pull_request.base_ref_associated_pull_requests() > 0:
+        automerge_comment = AUTOMERGE_COMMENT_WARNING_OPEN_BASE_REF_PRS
+    elif pull_request_has_label(pull_request, AutomergeLabel.AFTER_APPROVAL.value):
+        automerge_comment = AUTOMERGE_COMMENT_WARNING_AFTER_APPROVAL
+    elif pull_request_has_label(
+        pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+    ):
+        automerge_comment = AUTOMERGE_COMMENT_WARNING_AFTER_TESTS_AND_APPROVAL
 
-        # if a PR has an automerge label and doesn't contain a comment warning, we want to maybe add a warning comment
-        # only add warning comment if it's set to auto-merge after approval and hasn't yet been approved to limit noise
+    # if a PR has an automerge label and doesn't contain a comment warning, we want to maybe add a warning comment
+    # only add warning comment if it's set to auto-merge after approval and hasn't yet been approved to limit noise
 
-        if automerge_comment and not _pull_request_has_automerge_comment(
-            pull_request, automerge_comment
-        ):
-            github_client.add_pr_comment(owner, repo_name, pr_number, automerge_comment)
+    if automerge_comment and not _pull_request_has_automerge_comment(
+        pull_request, automerge_comment
+    ):
+        github_client.add_pr_comment(
+            owner=pull_request.repository_owner_handle(),
+            repository=pull_request.repository_name(),
+            number=pull_request.number(),
+            comment=automerge_comment,
+        )
 
 
 # returns True if the pull request was automerged, False if not

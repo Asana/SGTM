@@ -4,7 +4,7 @@ from unittest.mock import patch
 import src.github.client as github_client
 import src.github.logic as github_logic
 from src.github.models import Commit, ReviewState, MergeableState
-from test.impl.builders import builder, build, PullRequestBuilder
+from test.impl.builders import builder, build
 
 
 @patch.object(github_client, "merge_pull_request")
@@ -551,10 +551,10 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
             github_logic.maybe_add_automerge_warning_comment(pull_request)
 
             add_pr_comment_mock.assert_called_with(
-                pull_request.repository_owner_handle(),
-                pull_request.repository_name(),
-                pull_request.number(),
-                automerge_comment,
+                owner=pull_request.repository_owner_handle(),
+                repository=pull_request.repository_name(),
+                number=pull_request.number(),
+                comment=automerge_comment,
             )
 
     @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
@@ -612,11 +612,25 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
         github_logic.maybe_add_automerge_warning_comment(pull_request)
 
         add_pr_comment_mock.assert_called_with(
-            pull_request.repository_owner_handle(),
-            pull_request.repository_name(),
-            pull_request.number(),
-            github_logic.AUTOMERGE_COMMENT_WARNING_OPEN_BASE_REF_PRS,
+            owner=pull_request.repository_owner_handle(),
+            repository=pull_request.repository_name(),
+            number=pull_request.number(),
+            comment=github_logic.AUTOMERGE_COMMENT_WARNING_OPEN_BASE_REF_PRS,
         )
+
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_does_not_add_warning_comment_for_open_prs_if_no_label(
+        self, add_pr_comment_mock, edit_pr_title_mock
+    ):
+        pull_request = build(
+            builder.pull_request()
+            .base_ref_associated_pull_requests(1)
+            .title(self.SAMPLE_PR_TITLE)
+        )
+
+        github_logic.maybe_add_automerge_warning_comment(pull_request)
+
+        add_pr_comment_mock.assert_not_called()
 
     @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
     def test_adds_multiple_comments_if_changed_state(
@@ -633,9 +647,7 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
             .base_ref_associated_pull_requests(1)
         )
 
-        def mock_add_pr_comment(
-            owner: str, repository: str, pr_number: int, comment: str
-        ):
+        def mock_add_pr_comment(owner: str, repository: str, number: int, comment: str):
             nonlocal pull_request_builder
             pull_request_builder = pull_request_builder.comment(
                 builder.comment(body=comment)
