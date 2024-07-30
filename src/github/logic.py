@@ -1,5 +1,4 @@
 import re
-from datetime import datetime, timedelta, timezone
 from typing import List
 from src.logger import logger
 
@@ -31,6 +30,12 @@ AUTOMERGE_COMMENT_WARNING_AFTER_APPROVAL = (
     "**:warning: Reviewer:** If you approve this PR, it will be auto-merged immediately."
     " If you don't want this to be auto-merged, either Request Changes or"
     " remove the auto-merge label before accepting."
+)
+
+AUTOMERGE_COMMENT_WARNING_OPEN_BASE_REF_PRS = (
+    "**:warning: Author:** This PR cannot be auto-merged because the base branch has at"
+    " least one open PR associated with it. Once the associated PRs are merged or closed,"
+    " this PR will be eligible for auto-merge."
 )
 
 
@@ -212,33 +217,33 @@ def pull_request_participants(pull_request: PullRequest) -> List[str]:
 def maybe_add_automerge_warning_comment(pull_request: PullRequest):
     """Adds comment warnings if automerge label is enabled"""
 
-    logger.info("Running maybe add automerge warning comment")
-    if SGTM_FEATURE__AUTOMERGE_ENABLED:
-        owner = pull_request.repository_owner_handle()
-        repo_name = pull_request.repository_name()
-        pr_number = pull_request.number()
+    if not SGTM_FEATURE__AUTOMERGE_ENABLED or not any(
+        pull_request_has_label(pull_request, label.value) for label in AutomergeLabel
+    ):
+        return
 
-        has_automerge_after_tests_and_approval = pull_request_has_label(
-            pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
-        )
-        has_automerge_after_approval = pull_request_has_label(
-            pull_request, AutomergeLabel.AFTER_APPROVAL.value
-        )
-        automerge_comment = (
-            AUTOMERGE_COMMENT_WARNING_AFTER_TESTS_AND_APPROVAL
-            if has_automerge_after_tests_and_approval
-            else AUTOMERGE_COMMENT_WARNING_AFTER_APPROVAL
-        )
+    automerge_comment = None
+    if pull_request.base_ref_associated_pull_requests() > 0:
+        automerge_comment = AUTOMERGE_COMMENT_WARNING_OPEN_BASE_REF_PRS
+    elif pull_request_has_label(pull_request, AutomergeLabel.AFTER_APPROVAL.value):
+        automerge_comment = AUTOMERGE_COMMENT_WARNING_AFTER_APPROVAL
+    elif pull_request_has_label(
+        pull_request, AutomergeLabel.AFTER_TESTS_AND_APPROVAL.value
+    ):
+        automerge_comment = AUTOMERGE_COMMENT_WARNING_AFTER_TESTS_AND_APPROVAL
 
-        # if a PR has an automerge label and doesn't contain a comment warning, we want to maybe add a warning comment
-        # only add warning comment if it's set to auto-merge after approval and hasn't yet been approved to limit noise
+    # if a PR has an automerge label and doesn't contain a comment warning, we want to maybe add a warning comment
+    # only add warning comment if it's set to auto-merge after approval and hasn't yet been approved to limit noise
 
-        if (
-            (has_automerge_after_tests_and_approval or has_automerge_after_approval)
-            and not _pull_request_has_automerge_comment(pull_request, automerge_comment)
-            and not pull_request.is_approved()
-        ):
-            github_client.add_pr_comment(owner, repo_name, pr_number, automerge_comment)
+    if automerge_comment and not any(
+        comment.body() == automerge_comment for comment in pull_request.comments()
+    ):
+        github_client.add_pr_comment(
+            owner=pull_request.repository_owner_handle(),
+            repository=pull_request.repository_name(),
+            number=pull_request.number(),
+            comment=automerge_comment,
+        )
 
 
 # returns True if the pull request was automerged, False if not
@@ -248,9 +253,10 @@ def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
         not SGTM_FEATURE__AUTOMERGE_ENABLED
         or not _pull_request_is_open(pull_request)
         or pull_request.is_in_merge_queue()
+        or pull_request.base_ref_associated_pull_requests() > 0
     ):
         logger.info(
-            f"Skipping automerge for {pull_request.id()} because it is closed or in merge queue"
+            f"Skipping automerge for {pull_request.id()} because it is closed, in merge queue, or the base branch has open PRs associated with it."
         )
         is_pull_request_ready_for_automerge = False
 
@@ -303,11 +309,3 @@ def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
 
 def _pull_request_is_open(pull_request: PullRequest) -> bool:
     return not pull_request.closed() and not pull_request.merged()
-
-
-def _pull_request_has_automerge_comment(
-    pull_request: PullRequest, automerge_comment: str
-) -> bool:
-    return any(
-        comment.body() == automerge_comment for comment in pull_request.comments()
-    )
