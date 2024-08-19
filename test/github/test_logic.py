@@ -633,6 +633,58 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
         add_pr_comment_mock.assert_not_called()
 
     @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_does_not_add_warning_comment_for_closed_prs(
+        self, add_pr_comment_mock, edit_pr_title_mock
+    ):
+        pull_request = build(
+            builder.pull_request()
+            .title(self.SAMPLE_PR_TITLE)
+            .label(builder.label().name(github_logic.AutomergeLabel.AFTER_TESTS.value))
+            .base_ref_associated_pull_requests(1)
+            .closed(True)
+        )
+
+        github_logic.maybe_add_automerge_warning_comment(pull_request)
+
+        add_pr_comment_mock.assert_not_called()
+
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_does_not_add_warning_comment_for_merged_prs(
+        self, add_pr_comment_mock, edit_pr_title_mock
+    ):
+        pull_request = build(
+            builder.pull_request()
+            .title(self.SAMPLE_PR_TITLE)
+            .label(builder.label().name(github_logic.AutomergeLabel.AFTER_TESTS.value))
+            .base_ref_associated_pull_requests(1)
+            .merged(True)
+        )
+
+        github_logic.maybe_add_automerge_warning_comment(pull_request)
+
+        add_pr_comment_mock.assert_not_called()
+
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
+    def test_does_not_add_warning_comment_for_approved_prs(
+        self, add_pr_comment_mock, edit_pr_title_mock
+    ):
+        review = build(
+            builder.review()
+            .state(ReviewState.APPROVED)
+        )
+        pull_request = build(
+            builder.pull_request()
+            .title(self.SAMPLE_PR_TITLE)
+            .label(builder.label().name(github_logic.AutomergeLabel.AFTER_TESTS.value))
+            .base_ref_associated_pull_requests(1)
+            .reviews([review])
+        )
+
+        github_logic.maybe_add_automerge_warning_comment(pull_request)
+
+        add_pr_comment_mock.assert_not_called()
+
+    @patch("src.github.logic.SGTM_FEATURE__AUTOMERGE_ENABLED", True)
     def test_adds_multiple_comments_if_changed_state(
         self, add_pr_comment_mock, edit_pr_title_mock
     ):
