@@ -670,6 +670,7 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
     ):
         review = build(
             builder.review()
+            .submitted_at("2020-01-13T14:59:58Z")
             .state(ReviewState.APPROVED)
         )
         pull_request = build(
