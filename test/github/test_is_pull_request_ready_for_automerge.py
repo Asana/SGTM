@@ -9,14 +9,22 @@ import src.github.client as github_client
 
 
 class GithubLogicTest(unittest.TestCase):
-    def test_inject_asana_task_into_pull_request_body(self):
+    def test_inject_metadata_into_pull_request_body(self):
         task_url = "https://asana.com/task/1"
+        pr_url = "https://github.com/my-org/my-repo/pull/219"
         self.assertEqual(
-            github_logic.inject_asana_task_into_pull_request_body(
-                "this is the original body", task_url
+            github_logic.inject_metadata_into_pull_request_body(
+                "this is the original body", task_url, pr_url
             ),
-            "this is the original body\n\n\nPull Request synchronized with [Asana"
-            f" task]({task_url})",
+            f"this is the original body\n\n\nPull Request synchronized with [Asana task]({task_url})\nPull Request: {pr_url}",
+        )
+
+        # Test PR that already has PR link
+        self.assertEqual(
+            github_logic.inject_metadata_into_pull_request_body(
+                f"this is the original body\nPull Request: {pr_url}", task_url, pr_url
+            ),
+            f"this is the original body\nPull Request: {pr_url}\n\n\nPull Request synchronized with [Asana task]({task_url})",
         )
 
     def test_extract_mentions(self):
