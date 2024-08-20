@@ -38,8 +38,8 @@ def upsert_pull_request(pull_request: PullRequest):
 def _add_asana_task_to_pull_request(pull_request: PullRequest, task_id: str):
     owner = pull_request.repository_owner_handle()
     task_url = asana_helpers.task_url_from_task_id(task_id)
-    new_body = github_logic.inject_asana_task_into_pull_request_body(
-        pull_request.body(), task_url
+    new_body = github_logic.inject_metadata_into_pull_request_body(
+        pull_request.body(), task_url=task_url, pr_url=pull_request.url()
     )
     github_client.edit_pr_description(
         owner, pull_request.repository_name(), pull_request.number(), new_body
