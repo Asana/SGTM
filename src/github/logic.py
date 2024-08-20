@@ -54,7 +54,7 @@ class ApprovedBeforeMergeStatus(Enum):
     APPROVED = 2
 
 
-def does_pull_request_body_contain_pull_request_link(body: str) -> bool:
+def pull_request_body_contains_pull_request_link(body: str) -> bool:
     return re.search(r"^Pull Request:.*$", body, re.MULTILINE) is not None
 
 
@@ -66,7 +66,7 @@ def inject_metadata_into_pull_request_body(
 
     body += "\n\n\n" + pull_request_sync_text
 
-    if not does_pull_request_body_contain_pull_request_link(body):
+    if not pull_request_body_contains_pull_request_link(body):
         body += "\n" + pull_request_url_text
 
     return body
