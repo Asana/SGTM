@@ -27,8 +27,6 @@ class GithubLogicTest(unittest.TestCase):
             f"this is the original body\nPull Request: {pr_url}\n\n\nPull Request synchronized with [Asana task]({task_url})",
         )
 
-        
-
     def test_extract_mentions(self):
         self.assertEqual(github_logic._extract_mentions("hello"), [])
         self.assertEqual(github_logic._extract_mentions("Hello @There"), ["There"])
