@@ -14,6 +14,7 @@ import requests
 from typing_extensions import TypedDict, override
 from typing import (
     Hashable,
+    MutableMapping,
     Optional,
     Protocol,
     cast,
@@ -27,6 +28,7 @@ from src.config import (
     GITHUB_APP_INSTALLATION_ACCESS_TOKEN_RETRIEVAL_URL,
     GITHUB_APP_NAME,
 )
+from src.config import memoize
 
 
 Key: TypeAlias = Hashable
@@ -349,6 +351,7 @@ class SGTMGithubAppTokenAuth(SGTMGithubAuth):
         return GithubAutoRefreshedGraphQLEndpoint(self.__auto_refreshed_auth_obj)
 
 
+sgtm_github_auth_by_org: MutableMapping[str, SGTMGithubAuth] = {}
 def sgtm_github_auth(github_org_name: str) -> SGTMGithubAuth:
     if sys.platform.startswith("darwin") or os.getenv("CIRCLECI") == "true":
         # If we're running on a local mac or in CircleCI, use the local auth (where we expect
@@ -359,5 +362,8 @@ def sgtm_github_auth(github_org_name: str) -> SGTMGithubAuth:
     assert (
         GITHUB_APP_NAME
     ), "GITHUB_APP_NAME is not set. Please set this environment variable."
+
+    if github_org_name not in sgtm_github_auth_by_org:
+        sgtm_github_auth_by_org[github_org_name] = SGTMGithubAppTokenAuth(github_app_name=GITHUB_APP_NAME, github_org_name=github_org_name)
     
-    return SGTMGithubAppTokenAuth(github_app_name=GITHUB_APP_NAME, github_org_name=github_org_name)
+    return sgtm_github_auth_by_org[github_org_name]
