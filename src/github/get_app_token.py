@@ -28,7 +28,6 @@ from src.config import (
     GITHUB_APP_INSTALLATION_ACCESS_TOKEN_RETRIEVAL_URL,
     GITHUB_APP_NAME,
 )
-from src.config import memoize
 
 
 Key: TypeAlias = Hashable

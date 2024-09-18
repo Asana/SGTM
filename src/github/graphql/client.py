@@ -101,7 +101,7 @@ def get_pull_request_for_commit_id(
             match = next(
                 (e["node"]["id"] for e in pull_request_edges if is_last_commit(e))
             )
-            return get_pull_request(match)
+            return get_pull_request(org_name, match)
         except StopIteration:
             pull_request_edges = _execute_graphql_query(
                 org_name,
