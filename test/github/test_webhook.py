@@ -25,6 +25,9 @@ class TestHandleIssueCommentWebhook(MockDynamoDbTestCase):
             "issue": {
                 "node_id": self.ISSUE_NODE_ID,
             },
+            "organization": {
+                "login": "Foo",
+            },
         }
 
     def test_handle_unknown_action_for_issue_comment(self):
@@ -40,6 +43,7 @@ class TestHandlePullRequestReviewComment(MockDynamoDbTestCase):
     PULL_REQUEST_REVIEW_ID = "123456"
     COMMENT_NODE_ID = "hijkl"
     PULL_REQUEST_NODE_ID = "abcde"
+    ORG_NAME = "Baz"
 
     def setUp(self):
         self.payload = {
@@ -48,6 +52,9 @@ class TestHandlePullRequestReviewComment(MockDynamoDbTestCase):
             "comment": {
                 "node_id": self.COMMENT_NODE_ID,
                 "pull_request_review_id": self.PULL_REQUEST_REVIEW_ID,
+            },
+            "organization": {
+                "login": self.ORG_NAME,
             },
         }
 
@@ -70,9 +77,8 @@ class TestHandlePullRequestReviewComment(MockDynamoDbTestCase):
         review_from_comment.return_value = review
 
         webhook._handle_pull_request_review_comment(self.payload)
-
         get_pull_request_and_comment.assert_called_once_with(
-            self.PULL_REQUEST_NODE_ID, self.COMMENT_NODE_ID
+            self.ORG_NAME, self.PULL_REQUEST_NODE_ID, self.COMMENT_NODE_ID
         )
         upsert_review.assert_called_once_with(pull_request, review)
         review_from_comment.assert_called_once_with(comment)
@@ -96,10 +102,12 @@ class TestHandlePullRequestReviewComment(MockDynamoDbTestCase):
 
         webhook._handle_pull_request_review_comment(self.payload)
 
-        get_pull_request.assert_called_once_with(self.PULL_REQUEST_NODE_ID)
+        get_pull_request.assert_called_once_with(
+            self.ORG_NAME, self.PULL_REQUEST_NODE_ID
+        )
         upsert_review.assert_called_once_with(pull_request, review)
         get_review_for_database_id.assert_called_once_with(
-            self.PULL_REQUEST_NODE_ID, self.PULL_REQUEST_REVIEW_ID
+            self.ORG_NAME, self.PULL_REQUEST_NODE_ID, self.PULL_REQUEST_REVIEW_ID
         )
         delete_comment.assert_not_called()
 
@@ -118,7 +126,7 @@ class TestHandlePullRequestReviewComment(MockDynamoDbTestCase):
 
         upsert_review.assert_not_called()
         get_review_for_database_id.assert_called_once_with(
-            self.PULL_REQUEST_NODE_ID, self.PULL_REQUEST_REVIEW_ID
+            self.ORG_NAME, self.PULL_REQUEST_NODE_ID, self.PULL_REQUEST_REVIEW_ID
         )
         delete_comment.assert_called_once_with(self.COMMENT_NODE_ID)
 
