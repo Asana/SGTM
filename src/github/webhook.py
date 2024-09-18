@@ -14,8 +14,9 @@ from src.logger import logger
 # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
 def _handle_pull_request_webhook(payload: dict) -> HttpResponse:
     pull_request_id = payload["pull_request"]["node_id"]
+    org_name = payload["organization"]["login"]
     with dynamodb_lock_client.acquire_lock(pull_request_id, sort_key=pull_request_id):
-        pull_request = graphql_client.get_pull_request(pull_request_id)
+        pull_request = graphql_client.get_pull_request(org_name, pull_request_id)
         # a label change will trigger this webhook, so it may trigger automerge
         github_logic.maybe_automerge_pull_request(pull_request)
         github_logic.maybe_add_automerge_warning_comment(pull_request)
@@ -29,12 +30,13 @@ def _handle_issue_comment_webhook(payload: dict) -> HttpResponse:
 
     issue_id = issue["node_id"]  # issue_id can be pull_request_id
     comment_id = comment["node_id"]
+    org_name = payload["organization"]["login"]
     logger.info(f"issue: {issue_id}, comment: {comment_id}")
 
     if action == "created" or action == "edited":
         with dynamodb_lock_client.acquire_lock(comment_id, sort_key=comment_id):
             pull_request, comment = graphql_client.get_pull_request_and_comment(
-                issue_id, comment_id
+                org_name, issue_id, comment_id
             )
             github_controller.upsert_comment(pull_request, comment)
         return HttpResponse("200")
@@ -54,9 +56,10 @@ def _handle_issue_comment_webhook(payload: dict) -> HttpResponse:
 def _handle_pull_request_review_webhook(payload: dict) -> HttpResponse:
     pull_request_id = payload["pull_request"]["node_id"]
     review_id = payload["review"]["node_id"]
+    org_name = payload["organization"]["login"]
     with dynamodb_lock_client.acquire_lock(pull_request_id, sort_key=pull_request_id):
         pull_request, review = graphql_client.get_pull_request_and_review(
-            pull_request_id, review_id
+            org_name, pull_request_id, review_id
         )
         github_logic.maybe_automerge_pull_request(pull_request)
         github_controller.upsert_review(pull_request, review)
@@ -88,13 +91,14 @@ def _handle_pull_request_review_comment(payload: dict):
     action = payload["action"]
     comment_id = payload["comment"]["node_id"]
     pull_request_id = payload["pull_request"]["node_id"]
+    org_name = payload["organization"]["login"]
 
     if action == "created" or action == "edited":
         with dynamodb_lock_client.acquire_lock(
             pull_request_id, sort_key=pull_request_id
         ):
             pull_request, comment = graphql_client.get_pull_request_and_comment(
-                pull_request_id, comment_id
+                org_name, pull_request_id, comment_id
             )
             if not isinstance(comment, PullRequestReviewComment):
                 raise Exception(
@@ -113,12 +117,12 @@ def _handle_pull_request_review_comment(payload: dict):
             # This is NOT the node_id, but is a numeric string (the databaseId field).
             review_database_id = payload["comment"]["pull_request_review_id"]
             maybe_review = graphql_client.get_review_for_database_id(
-                pull_request_id, review_database_id
+                org_name, pull_request_id, review_database_id
             )
             if maybe_review is None:
                 github_controller.delete_comment(comment_id)
             else:
-                pull_request = graphql_client.get_pull_request(pull_request_id)
+                pull_request = graphql_client.get_pull_request(org_name, pull_request_id)
                 github_controller.upsert_review(pull_request, maybe_review)
         return HttpResponse("200")
 
@@ -130,7 +134,8 @@ def _handle_pull_request_review_comment(payload: dict):
 # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#status
 def _handle_status_webhook(payload: dict) -> HttpResponse:
     commit_id = payload["commit"]["node_id"]
-    pull_request = graphql_client.get_pull_request_for_commit_id(commit_id)
+    org_name = payload["organization"]["login"]
+    pull_request = graphql_client.get_pull_request_for_commit_id(org_name, commit_id)
     if pull_request is None:
         # This could happen for commits that get pushed outside of the normal
         # pull request flow. These should just be silently ignored.
@@ -148,6 +153,7 @@ def _handle_status_webhook(payload: dict) -> HttpResponse:
 # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#check_suite
 def _handle_check_suite_webhook(payload: dict) -> HttpResponse:
     pull_requests = payload["check_suite"]["pull_requests"]
+    org_name = payload["organization"]["login"]
     if len(pull_requests) == 0:
         return HttpResponse("400", "No Pull Request Found")
 
@@ -156,7 +162,7 @@ def _handle_check_suite_webhook(payload: dict) -> HttpResponse:
     repository_node_id = payload["repository"]["node_id"]
 
     pull_request = graphql_client.get_pull_request_by_repository_and_number(
-        repository_node_id, pull_request_number
+        org_name, repository_node_id, pull_request_number
     )
 
     with dynamodb_lock_client.acquire_lock(

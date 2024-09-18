@@ -16,12 +16,10 @@ from .queries import (
 ####################################################################################################
 
 
-__endpoint = sgtm_github_auth.get_graphql_endpoint()
-
-
-def _execute_graphql_query(query: FrozenSet[str], variables: dict) -> dict:
+def _execute_graphql_query(org_name: str, query: FrozenSet[str], variables: dict) -> dict:
     query_str = "\n".join(query)
-    response = __endpoint(query_str, variables)
+
+    response = sgtm_github_auth(org_name).get_graphql_endpoint()(query_str, variables)
     if "errors" in response:
         raise ValueError(f"Error in graphql query:\n{response }")
     data = response["data"]
@@ -35,15 +33,16 @@ def _execute_graphql_query(query: FrozenSet[str], variables: dict) -> dict:
 ####################################################################################################
 
 
-def get_pull_request(pull_request_id: str) -> PullRequest:
-    data = _execute_graphql_query(GetPullRequest, {"pullRequestId": pull_request_id})
+def get_pull_request(org_name: str, pull_request_id: str) -> PullRequest:
+    data = _execute_graphql_query(org_name, GetPullRequest, {"pullRequestId": pull_request_id})
     return PullRequest(data["pullRequest"])
 
 
 def get_pull_request_by_repository_and_number(
-    repository_node_id: str, pull_request_number: int
+    org_name: str, repository_node_id: str, pull_request_number: int
 ) -> PullRequest:
     data = _execute_graphql_query(
+        org_name, 
         GetPullRequestByRepositoryAndNumber,
         {"repositoryId": repository_node_id, "pullRequestNumber": pull_request_number},
     )
@@ -51,9 +50,10 @@ def get_pull_request_by_repository_and_number(
 
 
 def get_pull_request_and_comment(
-    pull_request_id: str, comment_id: str
+    org_name: str, pull_request_id: str, comment_id: str
 ) -> Tuple[PullRequest, Comment]:
     data = _execute_graphql_query(
+        org_name, 
         GetPullRequestAndComment,
         {"pullRequestId": pull_request_id, "commentId": comment_id},
     )
@@ -61,16 +61,17 @@ def get_pull_request_and_comment(
 
 
 def get_pull_request_and_review(
-    pull_request_id: str, review_id: str
+    org_name: str, pull_request_id: str, review_id: str
 ) -> Tuple[PullRequest, Review]:
     data = _execute_graphql_query(
+        org_name, 
         GetPullRequestAndReview,
         {"pullRequestId": pull_request_id, "reviewId": review_id},
     )
     return PullRequest(data["pullRequest"]), Review(data["review"])
 
 
-def get_pull_request_for_commit_id(commit_id: str) -> Optional[PullRequest]:
+def get_pull_request_for_commit_id(org_name: str, commit_id: str) -> Optional[PullRequest]:
     """Get the PullRequest given a commit id.
 
     Every commit is associated with one or more pull requests.
@@ -87,7 +88,7 @@ def get_pull_request_for_commit_id(commit_id: str) -> Optional[PullRequest]:
         return last_commit_id == commit_id
 
     pull_request_edges = _execute_graphql_query(
-        IteratePullRequestIdsForCommitId, {"commitId": commit_id}
+        org_name, IteratePullRequestIdsForCommitId, {"commitId": commit_id}
     )["commit"]["associatedPullRequests"]["edges"]
     while pull_request_edges:
         try:
@@ -97,6 +98,7 @@ def get_pull_request_for_commit_id(commit_id: str) -> Optional[PullRequest]:
             return get_pull_request(match)
         except StopIteration:
             pull_request_edges = _execute_graphql_query(
+                org_name, 
                 IteratePullRequestIdsForCommitId,
                 {
                     "commitId": commit_id,
@@ -107,7 +109,7 @@ def get_pull_request_for_commit_id(commit_id: str) -> Optional[PullRequest]:
 
 
 def get_review_for_database_id(
-    pull_request_id: str, review_db_id: str
+    org_name: str, pull_request_id: str, review_db_id: str
 ) -> Optional[Review]:
     """Get the PullRequestReview given a pull request and the NUMERIC id id of the review.
 
@@ -130,7 +132,7 @@ def get_review_for_database_id(
         return review_edge["node"]["databaseId"] == review_db_id
 
     review_edges = _execute_graphql_query(
-        IterateReviewsForPullRequestId, {"pullRequestId": pull_request_id}
+        org_name, IterateReviewsForPullRequestId, {"pullRequestId": pull_request_id}
     )["node"]["reviews"]["edges"]
     while review_edges:
         try:
@@ -139,6 +141,7 @@ def get_review_for_database_id(
         except StopIteration:
             # no matching reviews, continue.
             review_edges = _execute_graphql_query(
+                org_name,
                 IterateReviewsForPullRequestId,
                 {
                     "pullRequestId": pull_request_id,
