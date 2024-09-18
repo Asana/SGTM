@@ -2,6 +2,7 @@
 Test case that should be used for tests that require integration with dynamodb
 or other external resources.
 """
+
 import os
 import boto3  # type: ignore
 from moto import mock_dynamodb  # type: ignore
@@ -15,7 +16,6 @@ os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
 
 @mock_dynamodb
 class MockDynamoDbTestCase(BaseClass):
-
     """
     The boto3.client instance, mocked by moto, that should be used in the tests.
     """

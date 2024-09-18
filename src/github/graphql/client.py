@@ -16,7 +16,9 @@ from .queries import (
 ####################################################################################################
 
 
-def _execute_graphql_query(org_name: str, query: FrozenSet[str], variables: dict) -> dict:
+def _execute_graphql_query(
+    org_name: str, query: FrozenSet[str], variables: dict
+) -> dict:
     query_str = "\n".join(query)
 
     response = sgtm_github_auth(org_name).get_graphql_endpoint()(query_str, variables)
@@ -34,7 +36,9 @@ def _execute_graphql_query(org_name: str, query: FrozenSet[str], variables: dict
 
 
 def get_pull_request(org_name: str, pull_request_id: str) -> PullRequest:
-    data = _execute_graphql_query(org_name, GetPullRequest, {"pullRequestId": pull_request_id})
+    data = _execute_graphql_query(
+        org_name, GetPullRequest, {"pullRequestId": pull_request_id}
+    )
     return PullRequest(data["pullRequest"])
 
 
@@ -42,7 +46,7 @@ def get_pull_request_by_repository_and_number(
     org_name: str, repository_node_id: str, pull_request_number: int
 ) -> PullRequest:
     data = _execute_graphql_query(
-        org_name, 
+        org_name,
         GetPullRequestByRepositoryAndNumber,
         {"repositoryId": repository_node_id, "pullRequestNumber": pull_request_number},
     )
@@ -53,7 +57,7 @@ def get_pull_request_and_comment(
     org_name: str, pull_request_id: str, comment_id: str
 ) -> Tuple[PullRequest, Comment]:
     data = _execute_graphql_query(
-        org_name, 
+        org_name,
         GetPullRequestAndComment,
         {"pullRequestId": pull_request_id, "commentId": comment_id},
     )
@@ -64,14 +68,16 @@ def get_pull_request_and_review(
     org_name: str, pull_request_id: str, review_id: str
 ) -> Tuple[PullRequest, Review]:
     data = _execute_graphql_query(
-        org_name, 
+        org_name,
         GetPullRequestAndReview,
         {"pullRequestId": pull_request_id, "reviewId": review_id},
     )
     return PullRequest(data["pullRequest"]), Review(data["review"])
 
 
-def get_pull_request_for_commit_id(org_name: str, commit_id: str) -> Optional[PullRequest]:
+def get_pull_request_for_commit_id(
+    org_name: str, commit_id: str
+) -> Optional[PullRequest]:
     """Get the PullRequest given a commit id.
 
     Every commit is associated with one or more pull requests.
@@ -98,7 +104,7 @@ def get_pull_request_for_commit_id(org_name: str, commit_id: str) -> Optional[Pu
             return get_pull_request(match)
         except StopIteration:
             pull_request_edges = _execute_graphql_query(
-                org_name, 
+                org_name,
                 IteratePullRequestIdsForCommitId,
                 {
                     "commitId": commit_id,

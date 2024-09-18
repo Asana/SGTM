@@ -49,20 +49,16 @@ class TokenContainer(Protocol):
     # Not modeled: repositories, single_file, has_multiple_single_files, single_file_paths
 
     @property
-    def token(self) -> str:
-        ...
+    def token(self) -> str: ...
 
     @property
-    def expires_at(self) -> Optional[datetime]:
-        ...
+    def expires_at(self) -> Optional[datetime]: ...
 
     @property
-    def on_behalf_of(self) -> Optional[NamedUser]:
-        ...
+    def on_behalf_of(self) -> Optional[NamedUser]: ...
 
     @property
-    def repository_selection(self) -> Optional[str]:
-        ...
+    def repository_selection(self) -> Optional[str]: ...
 
 
 def is_expired(token: TokenContainer) -> bool:
@@ -159,14 +155,11 @@ class SGTMGithubAuth(Protocol):
     of whether the authentication is done using a personal access token or a Github App token.
     """
 
-    def get_token(self) -> TokenContainer:
-        ...
+    def get_token(self) -> TokenContainer: ...
 
-    def get_rest_client(self) -> Github:
-        ...
+    def get_rest_client(self) -> Github: ...
 
-    def get_graphql_endpoint(self) -> HTTPEndpoint:
-        ...
+    def get_graphql_endpoint(self) -> HTTPEndpoint: ...
 
 
 @dataclass(frozen=True)
@@ -251,7 +244,12 @@ class SGTMGithubAppTokenAuth(SGTMGithubAuth):
     boto3 library to sign the request to the token retrieval endpoint with SigV4Auth.
     """
 
-    def __init__(self, github_app_name: str, github_org_name: str, session: Optional[boto3.Session] = None):
+    def __init__(
+        self,
+        github_app_name: str,
+        github_org_name: str,
+        session: Optional[boto3.Session] = None,
+    ):
         self.github_app_name = github_app_name
         self.github_org_name = github_org_name
         self.session = session or boto3.Session()
@@ -292,8 +290,8 @@ class SGTMGithubAppTokenAuth(SGTMGithubAuth):
 
         data = json.dumps(
             SGTMGithubAppTokenAuth.EndpointRequestBody(
-                github_app_name=self.github_app_name
-                github_org_name=self.github_org_name
+                github_app_name=self.github_app_name,
+                github_org_name=self.github_org_name,
             )
         )
 
@@ -352,6 +350,8 @@ class SGTMGithubAppTokenAuth(SGTMGithubAuth):
 
 
 sgtm_github_auth_by_org: MutableMapping[str, SGTMGithubAuth] = {}
+
+
 def sgtm_github_auth(github_org_name: str) -> SGTMGithubAuth:
     if sys.platform.startswith("darwin") or os.getenv("CIRCLECI") == "true":
         # If we're running on a local mac or in CircleCI, use the local auth (where we expect
@@ -364,6 +364,8 @@ def sgtm_github_auth(github_org_name: str) -> SGTMGithubAuth:
     ), "GITHUB_APP_NAME is not set. Please set this environment variable."
 
     if github_org_name not in sgtm_github_auth_by_org:
-        sgtm_github_auth_by_org[github_org_name] = SGTMGithubAppTokenAuth(github_app_name=GITHUB_APP_NAME, github_org_name=github_org_name)
-    
+        sgtm_github_auth_by_org[github_org_name] = SGTMGithubAppTokenAuth(
+            github_app_name=GITHUB_APP_NAME, github_org_name=github_org_name
+        )
+
     return sgtm_github_auth_by_org[github_org_name]

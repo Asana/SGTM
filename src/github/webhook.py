@@ -122,7 +122,9 @@ def _handle_pull_request_review_comment(payload: dict):
             if maybe_review is None:
                 github_controller.delete_comment(comment_id)
             else:
-                pull_request = graphql_client.get_pull_request(org_name, pull_request_id)
+                pull_request = graphql_client.get_pull_request(
+                    org_name, pull_request_id
+                )
                 github_controller.upsert_review(pull_request, maybe_review)
         return HttpResponse("200")
 
