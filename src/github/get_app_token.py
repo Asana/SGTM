@@ -355,6 +355,7 @@ class SGTMGithubAppTokenAuth(SGTMGithubAuth):
         return GithubAutoRefreshedGraphQLEndpoint(self.__auto_refreshed_auth_obj)
 
 
+sgtm_github_local_auth: SGTMGithubAuth = SGTMGithubLocalAuth()
 sgtm_github_auth_by_org: MutableMapping[str, SGTMGithubAuth] = {}
 
 
@@ -362,7 +363,7 @@ def sgtm_github_auth(github_org_name: str) -> SGTMGithubAuth:
     if sys.platform.startswith("darwin") or os.getenv("CIRCLECI") == "true":
         # If we're running on a local mac or in CircleCI, use the local auth (where we expect
         # that `GITHUB_API_KEY` env var is set)
-        return SGTMGithubLocalAuth()
+        return sgtm_github_local_auth
 
     # Otherwise, use Github App based auth
     assert (

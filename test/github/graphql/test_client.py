@@ -1,7 +1,6 @@
-from unittest.mock import patch, Mock, call
+from unittest.mock import patch, call
 from src.github.graphql import client
 from src.github.graphql.queries import (
-    GetPullRequest,
     IterateReviewsForPullRequestId,
     IteratePullRequestIdsForCommitId,
 )
