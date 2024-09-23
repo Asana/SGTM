@@ -12,6 +12,7 @@ WEBHOOK_BODY_TEMPLATE = {
     "comment": {"node_id": "hijkl"},
     "issue": {"node_id": "ksjklsdf"},
     "pull_request": {"node_id": "abcde"},
+    "organization": {"login": "Foo"},
 }
 
 

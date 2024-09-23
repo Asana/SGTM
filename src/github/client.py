@@ -5,11 +5,9 @@ from github import PullRequest  # type: ignore
 from src.github.get_app_token import sgtm_github_auth
 from src.logger import logger
 
-gh_client = sgtm_github_auth.get_rest_client()
-
 
 def _get_pull_request(owner: str, repository: str, number: int) -> PullRequest:  # type: ignore
-    repo = gh_client.get_repo(f"{owner}/{repository}")
+    repo = sgtm_github_auth(owner).get_rest_client().get_repo(f"{owner}/{repository}")
     pr = repo.get_pull(number)
     return pr  # type: ignore
 
@@ -30,7 +28,7 @@ def add_pr_comment(owner: str, repository: str, number: int, comment: str):
 
 
 def set_pull_request_assignee(owner: str, repository: str, number: int, assignee: str):
-    repo = gh_client.get_repo(f"{owner}/{repository}")
+    repo = sgtm_github_auth(owner).get_rest_client().get_repo(f"{owner}/{repository}")
     # Using get_issue here because get_pull returns a pull request which only
     # allows you to *add* an assignee, not set the assignee.
     pr = repo.get_issue(number)
@@ -54,7 +52,7 @@ def merge_pull_request(owner: str, repository: str, number: int, title: str, bod
 
 
 def rerequest_check_run(owner: str, repository: str, check_run_id: int):
-    auth = HTTPBasicAuth(sgtm_github_auth.get_token().token, "")
+    auth = HTTPBasicAuth(sgtm_github_auth(owner).get_token().token, "")
     url = "https://api.github.com/repos/{owner}/{repository}/check-runs/{check_run_id}/rerequest".format(
         owner=owner, repository=repository, check_run_id=check_run_id
     )

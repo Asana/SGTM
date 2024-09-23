@@ -1,7 +1,6 @@
-from unittest.mock import patch, Mock, call
+from unittest.mock import patch, call
 from src.github.graphql import client
 from src.github.graphql.queries import (
-    GetPullRequest,
     IterateReviewsForPullRequestId,
     IteratePullRequestIdsForCommitId,
 )
@@ -10,6 +9,7 @@ from test.impl.base_test_case_class import BaseClass
 
 @patch.object(client, "_execute_graphql_query")
 class TestGithubClientGetReviewForDatabaseId(BaseClass):
+    ORG_NAME = "FooOrgnization"
     REVIEW_DB_ID = "1234566"
     PULL_REQUEST_ID = "PR_jiefjiejfji232--"
 
@@ -17,12 +17,14 @@ class TestGithubClientGetReviewForDatabaseId(BaseClass):
         mock_query.return_value = {"node": {"reviews": {"edges": []}}}
 
         actual = client.get_review_for_database_id(
-            self.PULL_REQUEST_ID, self.REVIEW_DB_ID
+            self.ORG_NAME, self.PULL_REQUEST_ID, self.REVIEW_DB_ID
         )
 
         self.assertEqual(actual, None)
         mock_query.assert_called_once_with(
-            IterateReviewsForPullRequestId, {"pullRequestId": self.PULL_REQUEST_ID}
+            self.ORG_NAME,
+            IterateReviewsForPullRequestId,
+            {"pullRequestId": self.PULL_REQUEST_ID},
         )
 
     def test_when_no_reviews_match__should_return_None(self, mock_query):
@@ -43,7 +45,7 @@ class TestGithubClientGetReviewForDatabaseId(BaseClass):
         ]
 
         actual = client.get_review_for_database_id(
-            self.PULL_REQUEST_ID, self.REVIEW_DB_ID
+            self.ORG_NAME, self.PULL_REQUEST_ID, self.REVIEW_DB_ID
         )
 
         self.assertEqual(actual, None)
@@ -51,10 +53,12 @@ class TestGithubClientGetReviewForDatabaseId(BaseClass):
         mock_query.assert_has_calls(
             [
                 call(
+                    self.ORG_NAME,
                     IterateReviewsForPullRequestId,
                     {"pullRequestId": self.PULL_REQUEST_ID},
                 ),
                 call(
+                    self.ORG_NAME,
                     IterateReviewsForPullRequestId,
                     {"pullRequestId": self.PULL_REQUEST_ID, "cursor": "some-cursor"},
                 ),
@@ -79,14 +83,16 @@ class TestGithubClientGetReviewForDatabaseId(BaseClass):
             {"node": {"reviews": {"edges": []}}},
         ]
         actual = client.get_review_for_database_id(
-            self.PULL_REQUEST_ID, self.REVIEW_DB_ID
+            self.ORG_NAME, self.PULL_REQUEST_ID, self.REVIEW_DB_ID
         )
 
         self.assertEqual(actual.id(), "matching-review")
 
         # Should onlly be called once, since the matching review is in the first batch returned by graphql.
         mock_query.assert_called_once_with(
-            IterateReviewsForPullRequestId, {"pullRequestId": self.PULL_REQUEST_ID}
+            self.ORG_NAME,
+            IterateReviewsForPullRequestId,
+            {"pullRequestId": self.PULL_REQUEST_ID},
         )
 
     def test_when_review_in_second_batch_matches__should_return_it(self, mock_query):
@@ -108,7 +114,7 @@ class TestGithubClientGetReviewForDatabaseId(BaseClass):
             {"node": {"reviews": {"edges": []}}},
         ]
         actual = client.get_review_for_database_id(
-            self.PULL_REQUEST_ID, self.REVIEW_DB_ID
+            self.ORG_NAME, self.PULL_REQUEST_ID, self.REVIEW_DB_ID
         )
 
         self.assertEqual(actual.id(), "matching-review")
@@ -117,10 +123,12 @@ class TestGithubClientGetReviewForDatabaseId(BaseClass):
         mock_query.assert_has_calls(
             [
                 call(
+                    self.ORG_NAME,
                     IterateReviewsForPullRequestId,
                     {"pullRequestId": self.PULL_REQUEST_ID},
                 ),
                 call(
+                    self.ORG_NAME,
                     IterateReviewsForPullRequestId,
                     {"pullRequestId": self.PULL_REQUEST_ID, "cursor": "cursor-1"},
                 ),
@@ -132,17 +140,21 @@ class TestGithubClientGetReviewForDatabaseId(BaseClass):
 @patch.object(client, "_execute_graphql_query")
 class TestGithubClientGetPullRequestForCommitId(BaseClass):
     COMMIT_ID = "C_jiefjiejfji232--"
+    ORG_NAME = "BarOrganization"
 
     def test_no_pull_requests_found_should_return_none(self, mock_query):
         mock_query.return_value = {"commit": {"associatedPullRequests": {"edges": []}}}
 
         actual = client.get_pull_request_for_commit_id(
+            self.ORG_NAME,
             self.COMMIT_ID,
         )
 
         self.assertEqual(actual, None)
         mock_query.assert_called_once_with(
-            IteratePullRequestIdsForCommitId, {"commitId": self.COMMIT_ID}
+            self.ORG_NAME,
+            IteratePullRequestIdsForCommitId,
+            {"commitId": self.COMMIT_ID},
         )
 
     def test_pull_requests_not_last_commit_should_return_none(self, mock_query):
@@ -168,14 +180,20 @@ class TestGithubClientGetPullRequestForCommitId(BaseClass):
         ]
 
         actual = client.get_pull_request_for_commit_id(
+            self.ORG_NAME,
             self.COMMIT_ID,
         )
 
         self.assertEqual(actual, None)
         mock_query.assert_has_calls(
             [
-                call(IteratePullRequestIdsForCommitId, {"commitId": self.COMMIT_ID}),
                 call(
+                    self.ORG_NAME,
+                    IteratePullRequestIdsForCommitId,
+                    {"commitId": self.COMMIT_ID},
+                ),
+                call(
+                    self.ORG_NAME,
                     IteratePullRequestIdsForCommitId,
                     {"commitId": self.COMMIT_ID, "cursor": "some-cursor"},
                 ),
@@ -215,14 +233,19 @@ class TestGithubClientGetPullRequestForCommitId(BaseClass):
         ]
         mock_get_pull_request.return_value = None
 
-        actual = client.get_pull_request_for_commit_id(
+        _ = client.get_pull_request_for_commit_id(
+            self.ORG_NAME,
             self.COMMIT_ID,
         )
 
         mock_query.assert_called_once_with(
-            IteratePullRequestIdsForCommitId, {"commitId": self.COMMIT_ID}
+            self.ORG_NAME,
+            IteratePullRequestIdsForCommitId,
+            {"commitId": self.COMMIT_ID},
         )
-        mock_get_pull_request.assert_called_once_with(matching_node["id"])
+        mock_get_pull_request.assert_called_once_with(
+            self.ORG_NAME, matching_node["id"]
+        )
 
 
 if __name__ == "__main__":

@@ -14,6 +14,7 @@ import requests
 from typing_extensions import TypedDict, override
 from typing import (
     Hashable,
+    MutableMapping,
     Optional,
     Protocol,
     cast,
@@ -249,8 +250,14 @@ class SGTMGithubAppTokenAuth(SGTMGithubAuth):
     boto3 library to sign the request to the token retrieval endpoint with SigV4Auth.
     """
 
-    def __init__(self, github_app_name: str, session: Optional[boto3.Session] = None):
+    def __init__(
+        self,
+        github_app_name: str,
+        github_org_name: str,
+        session: Optional[boto3.Session] = None,
+    ):
         self.github_app_name = github_app_name
+        self.github_org_name = github_org_name
         self.session = session or boto3.Session()
         self.__auto_refreshed_auth_obj = GithubAutoRefreshedAppTokenAuth(self)
 
@@ -268,6 +275,7 @@ class SGTMGithubAppTokenAuth(SGTMGithubAuth):
         """
 
         github_app_name: str
+        github_org_name: str
 
     @override
     def get_token(self) -> TokenContainer:
@@ -277,7 +285,7 @@ class SGTMGithubAppTokenAuth(SGTMGithubAuth):
 
         Invariants:
         - This endpoint should accept a SIGV4-signed POST request with a JSON body that specifies a value
-        for the 'github_app_name' key.
+        for the 'github_app_name' key and 'github_org_name'.
         - The post request should return a JSON object with a 'token' key that contains the Github
         token, and an 'expires_at' key which contains a timestamp of the format
         '%Y-%m-%dT%H:%M:%SZ'.
@@ -288,7 +296,8 @@ class SGTMGithubAppTokenAuth(SGTMGithubAuth):
 
         data = json.dumps(
             SGTMGithubAppTokenAuth.EndpointRequestBody(
-                github_app_name=self.github_app_name
+                github_app_name=self.github_app_name,
+                github_org_name=self.github_org_name,
             )
         )
 
@@ -346,14 +355,24 @@ class SGTMGithubAppTokenAuth(SGTMGithubAuth):
         return GithubAutoRefreshedGraphQLEndpoint(self.__auto_refreshed_auth_obj)
 
 
-sgtm_github_auth: SGTMGithubAuth
-if sys.platform.startswith("darwin") or os.getenv("CIRCLECI") == "true":
-    # If we're running on a local mac or in CircleCI, use the local auth (where we expect
-    # that `GITHUB_API_KEY` env var is set)
-    sgtm_github_auth = SGTMGithubLocalAuth()
-else:
+sgtm_github_local_auth: SGTMGithubAuth = SGTMGithubLocalAuth()
+sgtm_github_auth_by_org: MutableMapping[str, SGTMGithubAuth] = {}
+
+
+def sgtm_github_auth(github_org_name: str) -> SGTMGithubAuth:
+    if sys.platform.startswith("darwin") or os.getenv("CIRCLECI") == "true":
+        # If we're running on a local mac or in CircleCI, use the local auth (where we expect
+        # that `GITHUB_API_KEY` env var is set)
+        return sgtm_github_local_auth
+
     # Otherwise, use Github App based auth
     assert (
         GITHUB_APP_NAME
     ), "GITHUB_APP_NAME is not set. Please set this environment variable."
-    sgtm_github_auth = SGTMGithubAppTokenAuth(github_app_name=GITHUB_APP_NAME)
+
+    if github_org_name not in sgtm_github_auth_by_org:
+        sgtm_github_auth_by_org[github_org_name] = SGTMGithubAppTokenAuth(
+            github_app_name=GITHUB_APP_NAME, github_org_name=github_org_name
+        )
+
+    return sgtm_github_auth_by_org[github_org_name]
