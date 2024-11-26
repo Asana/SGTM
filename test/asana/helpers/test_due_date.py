@@ -17,10 +17,12 @@ class TestDefaultDueDateStr(BaseClass):
         friday_morning = datetime(2020, 4, 10, 9)
         friday_afternoon = datetime(2020, 4, 10, 14)
         saturday = datetime(2020, 4, 11)
+        sunday = datetime(2020, 4, 12)
 
         self.assertEqual(asana_helpers.default_due_date_str(friday_morning), "2020-04-10")
         self.assertEqual(asana_helpers.default_due_date_str(friday_afternoon), "2020-04-13")
         self.assertEqual(asana_helpers.default_due_date_str(saturday), "2020-04-13")
+        self.assertEqual(asana_helpers.default_due_date_str(sunday), "2020-04-13")
 
 
 if __name__ == "__main__":

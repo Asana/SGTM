@@ -69,9 +69,9 @@ def default_due_date_str(reference_datetime: Optional[datetime] = None) -> str:
     if maybe_due_date.weekday() < 5:
         # weekday is 0-indexed at Monday, so 0,1,2,3,4 is Mon,Tues,Wed,Thurs,Fri
         # tomorrow is a weekday! Return it.
-        due_date = next
+        due_date = maybe_due_date
     elif maybe_due_date.weekday() == 5:
-        due_date = next + timedelta(
+        due_date = maybe_due_date + timedelta(
             hours=48
         )  # Tomorrow is Saturday, so add two more days to get to Monday
     else:
