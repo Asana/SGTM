@@ -9,7 +9,7 @@ class TestDefaultDueDateStr(BaseClass):
         thursday = datetime(2020, 4, 9)
         self.assertEqual(asana_helpers.default_due_date_str(thursday), "2020-04-09")
 
-    def test_default_due_date_str_from_mid_week(self):
+    def test_default_due_date_str_from_mid_day(self):
         thursday = datetime(2020, 4, 9, 13)
         self.assertEqual(asana_helpers.default_due_date_str(thursday), "2020-04-10")
 
