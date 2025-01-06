@@ -54,7 +54,8 @@ def upsert_comment(pull_request: PullRequest, comment: Comment):
     pull_request_id = pull_request.id()
     task_id = dynamodb_client.get_asana_id_from_github_node_id(pull_request_id)
     if task_id:
-        asana_controller.upsert_github_comment_to_task(comment, task_id)
+        if not comment.author().is_bot():
+            asana_controller.upsert_github_comment_to_task(comment, task_id)
         # Comments can sometimes post-merge approve a PR, so we requeue a full sync via the "pull_request" event
         if github_logic._is_approval_comment_body(comment.body()):
             sqs_client.queue_full_sync(pull_request_id)
@@ -73,7 +74,8 @@ def upsert_review(pull_request: PullRequest, review: Review):
             f"Found task id {task_id} for pull_request {pull_request_id}. Adding review"
             " now."
         )
-        asana_controller.upsert_github_review_to_task(review, task_id)
+        if not review.author().is_bot():
+            asana_controller.upsert_github_review_to_task(review, task_id)
         force_update_due_today = False
         if review.is_approval_or_changes_requested():
             # If this action was taken by a user that's marked for follow-up

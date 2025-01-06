@@ -18,6 +18,7 @@ fragment FullComment on Comment {
   __typename
   id
   author {
+    __typename
     login
     ... on User {
       name

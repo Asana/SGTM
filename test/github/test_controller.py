@@ -6,6 +6,7 @@ import src.aws.dynamodb_client as dynamodb_client
 import src.aws.sqs_client as sqs_client
 import src.github.client as github_client
 import src.github.controller as github_controller
+from src.github.models import ReviewState
 from test.impl.builders import builder
 from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 
@@ -89,7 +90,8 @@ class GithubControllerTest(MockDynamoDbTestCase):
         # If the task id is found in dynamodb, then we just update (don't
         # attempt to create)
         pull_request = builder.pull_request().build()
-        comment = builder.comment().build()
+        user = builder.user().login("the_author").name("dont-care")
+        comment = builder.comment().author(user).build()
 
         # Insert the mapping first
         existing_task_id = uuid4().hex
@@ -112,7 +114,8 @@ class GithubControllerTest(MockDynamoDbTestCase):
         # If the task id is found in dynamodb, then we just update (don't
         # attempt to create)
         pull_request = builder.pull_request().build()
-        comment = builder.comment("LGTM").build()
+        user = builder.user().login("the_author").name("dont-care")
+        comment = builder.comment("LGTM").author(user).build()
 
         # Insert the mapping first
         existing_task_id = uuid4().hex
@@ -133,11 +136,61 @@ class GithubControllerTest(MockDynamoDbTestCase):
         _get_asana_domain_id_mock,
     ):
         pull_request = builder.pull_request().build()
-        comment = builder.comment().build()
+        user = builder.user().login("the_author").name("dont-care")
+        comment = builder.comment().author(user).build()
 
         github_controller.upsert_comment(pull_request, comment)
         add_comment_mock.assert_not_called()
         queue_mock.assert_called_with(pull_request.id())
+
+    @patch.object(asana_controller, "upsert_github_comment_to_task")
+    def test_no_comment_when_made_by_bot(
+        self,
+        add_comment_mock,
+        _get_asana_domain_id_mock,
+    ):
+        pull_request = builder.pull_request().build()
+        bot_user = builder.user().login("the_author")
+        comment = builder.comment("Blah").author(bot_user).build()
+
+        # Insert the mapping first
+        existing_task_id = uuid4().hex
+        dynamodb_client.insert_github_node_to_asana_id_mapping(
+            pull_request.id(), existing_task_id
+        )
+
+        github_controller.upsert_comment(pull_request, comment)
+        add_comment_mock.assert_not_called()
+
+    @patch.object(asana_controller, "update_task")
+    @patch.object(asana_controller, "upsert_github_review_to_task")
+    @patch.object(github_client, "set_pull_request_assignee")
+    def test_no_review_comment_when_made_by_bot(
+        self,
+        set_assignee_mock,
+        add_review_mock,
+        update_task_mock,
+        _get_asana_domain_id_mock,
+    ):
+        author = builder.user().login("the_author").name("not-a-bot")
+        pull_request = builder.pull_request().author(author).build()
+        bot = builder.user().login("the_bot")
+        review = builder.review("LGTM").author(bot).state(ReviewState.APPROVED).build()
+
+        # Insert the mapping first
+        existing_task_id = uuid4().hex
+        dynamodb_client.insert_github_node_to_asana_id_mapping(
+            pull_request.id(), existing_task_id
+        )
+
+        github_controller.upsert_review(pull_request, review)
+        add_review_mock.assert_not_called()
+        set_assignee_mock.assert_called_with(
+            pull_request.repository_owner_handle(),
+            pull_request.repository_name(),
+            pull_request.number(),
+            pull_request.author_handle(),
+        )
 
     @patch.object(github_client, "set_pull_request_assignee")
     def test_assign_pull_request_to_author(

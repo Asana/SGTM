@@ -11,6 +11,9 @@ class User(object):
     def id(self) -> str:
         return self._raw["id"]
 
+    def is_bot(self) -> bool:
+        return self._raw["__typename"] == "Bot"
+
     def login(self) -> str:
         return self._raw["login"]
 
