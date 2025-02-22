@@ -163,7 +163,7 @@ class GithubLogicTest(unittest.TestCase):
         commented_at = merged_at + timedelta(days=2)
         pull_request = build(
             builder.pull_request()
-            .merged_at(datetime.now())
+            .merged_at(merged_at)
             .merged(True)
             .reviews(
                 [
@@ -188,7 +188,7 @@ class GithubLogicTest(unittest.TestCase):
         commented_at = merged_at + timedelta(days=2)
         pull_request = build(
             builder.pull_request()
-            .merged_at(datetime.now())
+            .merged_at(merged_at)
             .merged(True)
             .reviews(
                 [
@@ -213,7 +213,7 @@ class GithubLogicTest(unittest.TestCase):
         commented_at = merged_at + timedelta(days=2)
         pull_request = build(
             builder.pull_request()
-            .merged_at(datetime.now())
+            .merged_at(merged_at)
             .merged(True)
             .reviews(
                 [
@@ -227,6 +227,23 @@ class GithubLogicTest(unittest.TestCase):
                     builder.comment("v cool use of emojis")
                     .published_at(commented_at)
                     .author(builder.user("human"))
+                ]
+            )
+        )
+        self.assertTrue(github_logic.pull_request_approved_after_merging(pull_request))
+
+    def test_pull_request_approved_by_review_after_merging(self):
+        merged_at = datetime.now()
+        reviewed_at = merged_at + timedelta(days=1)
+        pull_request = build(
+            builder.pull_request()
+            .merged_at(merged_at)
+            .merged(True)
+            .reviews(
+                [
+                    builder.review()
+                    .submitted_at(reviewed_at)
+                    .state(ReviewState.APPROVED)
                 ]
             )
         )

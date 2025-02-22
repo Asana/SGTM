@@ -14,6 +14,7 @@ class ReviewBuilder(BuilderBaseClass):
             "body": body,
             "author": {"login": "somebody", "name": ""},
             "comments": {"nodes": []},
+            "state": "DEFAULT",
             "url": "",
         }
 
