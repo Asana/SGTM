@@ -199,20 +199,22 @@ You can also choose to test your changes locally. Here are step-by-step instruct
 You may then run all tests via the command line:
 
 ```bash
-ENV=test python3 -m unittest discover
+pipenv install --dev
+ENV=test pipenv run python3 -m unittest
 ```
 
 Alternatively, you may run specific tests e.g. via:
 
 ```bash
-ENV=test python3 -m unittest test/<python-test-file-name>.py
-ENV=test python3 -m unittest test.<python-test-module-name>.<TestClassName>
-ENV=test python3 -m unittest test.<python-test-module-name>.<TestClassName>.<test_function_name>
+pipenv install --dev
+ENV=test pipenv run python3 -m unittest test/<python-test-file-name>.py
+ENV=test pipenv run python3 -m unittest test.<python-test-module-name>.<TestClassName>
+ENV=test pipenv run python3 -m unittest test.<python-test-module-name>.<TestClassName>.<test_function_name>
 ```
 
 ## "Building"
 Please perform the following checks prior to pushing code
 
-* run `black .` to autoformat your code
+* run `pipenv run black .` to autoformat your code
 * run `mypy` on each file that you have changed
 * run tests, as described in the [previous section](#running-tests)

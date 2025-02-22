@@ -198,16 +198,14 @@ def pull_request_approved_after_merging(pull_request: PullRequest) -> bool:
             and review.author().login()
             not in SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS
         ]
+
+        if any(review.is_approval() for review in postmerge_reviews):
+            return True
+
         body_texts = [c.body() for c in postmerge_comments] + [
             r.body() for r in postmerge_reviews
         ]
-        return bool(
-            [
-                body_text
-                for body_text in body_texts
-                if _is_approval_comment_body(body_text)
-            ]
-        )
+        return any(_is_approval_comment_body(body_text) for body_text in body_texts)
     return False
 
 
