@@ -30,6 +30,8 @@ def handle_github_webhook(event_type: str, webhook_body: str) -> HttpResponseDic
         logger.error(traceback.format_exc())
         http_response = HttpResponse("500", str(error))
     finally:
+        if http_response is None: # handle_github_webhook can occasionally return None
+            http_response = HttpResponse("500", "Unknown error")
         return http_response.to_dict()
 
 
