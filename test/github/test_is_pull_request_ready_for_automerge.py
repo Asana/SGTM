@@ -240,11 +240,7 @@ class GithubLogicTest(unittest.TestCase):
             .merged_at(merged_at)
             .merged(True)
             .reviews(
-                [
-                    builder.review()
-                    .submitted_at(reviewed_at)
-                    .state(ReviewState.APPROVED)
-                ]
+                [builder.review().submitted_at(reviewed_at).state(ReviewState.APPROVED)]
             )
         )
         self.assertTrue(github_logic.pull_request_approved_after_merging(pull_request))
