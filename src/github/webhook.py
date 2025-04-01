@@ -38,7 +38,7 @@ def _handle_issue_comment_webhook(payload: dict) -> HttpResponse:
             pull_request, comment = graphql_client.get_pull_request_and_comment(
                 org_name, issue_id, comment_id
             )
-            github_controller.upsert_comment(pull_request, comment)
+            github_controller.upsert_comment(pull_request, comment, org_name)
         return HttpResponse("200")
 
     if action == "deleted":
@@ -62,7 +62,7 @@ def _handle_pull_request_review_webhook(payload: dict) -> HttpResponse:
             org_name, pull_request_id, review_id
         )
         github_logic.maybe_automerge_pull_request(pull_request)
-        github_controller.upsert_review(pull_request, review)
+        github_controller.upsert_review(pull_request, review, org_name)
     return HttpResponse("200")
 
 
@@ -106,7 +106,7 @@ def _handle_pull_request_review_comment(payload: dict):
                     " request review"
                 )
             review = Review.from_comment(comment)
-            github_controller.upsert_review(pull_request, review)
+            github_controller.upsert_review(pull_request, review, org_name)
         return HttpResponse("200")
 
     if action == "deleted":
@@ -125,7 +125,7 @@ def _handle_pull_request_review_comment(payload: dict):
                 pull_request = graphql_client.get_pull_request(
                     org_name, pull_request_id
                 )
-                github_controller.upsert_review(pull_request, maybe_review)
+                github_controller.upsert_review(pull_request, maybe_review, org_name)
         return HttpResponse("200")
 
     error_text = f"Unknown action for review_comment: {action}"
