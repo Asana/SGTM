@@ -92,7 +92,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
         pull_request = builder.pull_request().build()
         user = builder.user().login("the_author").name("dont-care")
         comment = builder.comment().author(user).build()
-        organization = "the-org"
+        org_name = "the-org"
 
         # Insert the mapping first
         existing_task_id = uuid4().hex
@@ -100,7 +100,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
             pull_request.id(), existing_task_id
         )
 
-        github_controller.upsert_comment(pull_request, comment, organization)
+        github_controller.upsert_comment(pull_request, comment, org_name)
         add_comment_mock.assert_called_with(comment, existing_task_id)
 
     @patch.object(sqs_client, "queue_full_sync")
@@ -116,7 +116,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
         pull_request = builder.pull_request().build()
         user = builder.user().login("the_author").name("dont-care")
         comment = builder.comment("LGTM").author(user).build()
-        organization = "the-org"
+        org_name = "the-org"
 
         # Insert the mapping first
         existing_task_id = uuid4().hex
@@ -124,9 +124,9 @@ class GithubControllerTest(MockDynamoDbTestCase):
             pull_request.id(), existing_task_id
         )
 
-        github_controller.upsert_comment(pull_request, comment, organization)
+        github_controller.upsert_comment(pull_request, comment, org_name)
         add_comment_mock.assert_called_with(comment, existing_task_id)
-        queue_mock.assert_called_with(pull_request.id(), organization)
+        queue_mock.assert_called_with(pull_request.id(), org_name)
 
     @patch.object(sqs_client, "queue_full_sync")
     @patch.object(asana_controller, "upsert_github_comment_to_task")
@@ -139,11 +139,11 @@ class GithubControllerTest(MockDynamoDbTestCase):
         pull_request = builder.pull_request().build()
         user = builder.user().login("the_author").name("dont-care")
         comment = builder.comment().author(user).build()
-        organization = "the-org"
+        org_name = "the-org"
 
-        github_controller.upsert_comment(pull_request, comment, organization)
+        github_controller.upsert_comment(pull_request, comment, org_name)
         add_comment_mock.assert_not_called()
-        queue_mock.assert_called_with(pull_request.id(), organization)
+        queue_mock.assert_called_with(pull_request.id(), org_name)
 
     @patch.object(asana_controller, "upsert_github_comment_to_task")
     def test_no_comment_when_made_by_bot(
@@ -161,9 +161,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
             pull_request.id(), existing_task_id
         )
 
-        github_controller.upsert_comment(
-            pull_request, comment, organization="organization"
-        )
+        github_controller.upsert_comment(pull_request, comment, org_name="organization")
         add_comment_mock.assert_not_called()
 
     @patch.object(asana_controller, "update_task")
@@ -180,7 +178,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
         pull_request = builder.pull_request().author(author).build()
         bot = builder.user().login("the_bot")
         review = builder.review("LGTM").author(bot).state(ReviewState.APPROVED).build()
-        organization = "the-org"
+        org_name = "the-org"
 
         # Insert the mapping first
         existing_task_id = uuid4().hex
@@ -188,7 +186,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
             pull_request.id(), existing_task_id
         )
 
-        github_controller.upsert_review(pull_request, review, organization)
+        github_controller.upsert_review(pull_request, review, org_name)
         add_review_mock.assert_not_called()
         set_assignee_mock.assert_called_with(
             pull_request.repository_owner_handle(),
