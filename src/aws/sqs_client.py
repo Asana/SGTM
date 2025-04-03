@@ -96,5 +96,8 @@ def queue_new_event(event_type: str, body: str):
 
 
 def queue_full_sync(pull_request_id: str, organization: str):
-    body = {"pull_request": {"node_id": pull_request_id}, "organization": {"login": organization}}
+    body = {
+        "pull_request": {"node_id": pull_request_id},
+        "organization": {"login": organization},
+    }
     queue_new_event("pull_request", json.dumps(body))

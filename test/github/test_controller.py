@@ -92,7 +92,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
         pull_request = builder.pull_request().build()
         user = builder.user().login("the_author").name("dont-care")
         comment = builder.comment().author(user).build()
-        organization="the-org"
+        organization = "the-org"
 
         # Insert the mapping first
         existing_task_id = uuid4().hex
@@ -139,7 +139,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
         pull_request = builder.pull_request().build()
         user = builder.user().login("the_author").name("dont-care")
         comment = builder.comment().author(user).build()
-        organization="the-org"
+        organization = "the-org"
 
         github_controller.upsert_comment(pull_request, comment, organization)
         add_comment_mock.assert_not_called()
@@ -161,7 +161,9 @@ class GithubControllerTest(MockDynamoDbTestCase):
             pull_request.id(), existing_task_id
         )
 
-        github_controller.upsert_comment(pull_request, comment, organization="organization")
+        github_controller.upsert_comment(
+            pull_request, comment, organization="organization"
+        )
         add_comment_mock.assert_not_called()
 
     @patch.object(asana_controller, "update_task")
@@ -178,7 +180,7 @@ class GithubControllerTest(MockDynamoDbTestCase):
         pull_request = builder.pull_request().author(author).build()
         bot = builder.user().login("the_bot")
         review = builder.review("LGTM").author(bot).state(ReviewState.APPROVED).build()
-        organization="the-org"
+        organization = "the-org"
 
         # Insert the mapping first
         existing_task_id = uuid4().hex
