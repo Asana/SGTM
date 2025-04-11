@@ -80,7 +80,7 @@ class TestHandlePullRequestReviewComment(MockDynamoDbTestCase):
         get_pull_request_and_comment.assert_called_once_with(
             self.ORG_NAME, self.PULL_REQUEST_NODE_ID, self.COMMENT_NODE_ID
         )
-        upsert_review.assert_called_once_with(pull_request, review)
+        upsert_review.assert_called_once_with(pull_request, review, self.ORG_NAME)
         review_from_comment.assert_called_once_with(comment)
         delete_comment.assert_not_called()
 
@@ -105,7 +105,7 @@ class TestHandlePullRequestReviewComment(MockDynamoDbTestCase):
         get_pull_request.assert_called_once_with(
             self.ORG_NAME, self.PULL_REQUEST_NODE_ID
         )
-        upsert_review.assert_called_once_with(pull_request, review)
+        upsert_review.assert_called_once_with(pull_request, review, self.ORG_NAME)
         get_review_for_database_id.assert_called_once_with(
             self.ORG_NAME, self.PULL_REQUEST_NODE_ID, self.PULL_REQUEST_REVIEW_ID
         )

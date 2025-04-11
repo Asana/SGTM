@@ -147,7 +147,7 @@ def pull_request_approved_before_merging(
     return ApprovedBeforeMergeStatus.APPROVED
 
 
-def _is_approval_comment_body(body: str) -> bool:
+def is_approval_comment_body(body: str) -> bool:
     return (
         re.search(
             "sgtm|lgtm|sounds good|sound good|looks good|look good|looks great|look"
@@ -205,7 +205,7 @@ def pull_request_approved_after_merging(pull_request: PullRequest) -> bool:
         body_texts = [c.body() for c in postmerge_comments] + [
             r.body() for r in postmerge_reviews
         ]
-        return any(_is_approval_comment_body(body_text) for body_text in body_texts)
+        return any(is_approval_comment_body(body_text) for body_text in body_texts)
     return False
 
 

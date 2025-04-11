@@ -50,23 +50,23 @@ def _add_asana_task_to_pull_request(pull_request: PullRequest, task_id: str):
     pull_request.set_body(new_body)
 
 
-def upsert_comment(pull_request: PullRequest, comment: Comment):
+def upsert_comment(pull_request: PullRequest, comment: Comment, org_name: str):
     pull_request_id = pull_request.id()
     task_id = dynamodb_client.get_asana_id_from_github_node_id(pull_request_id)
     if task_id:
         if not comment.author().is_bot():
             asana_controller.upsert_github_comment_to_task(comment, task_id)
         # Comments can sometimes post-merge approve a PR, so we requeue a full sync via the "pull_request" event
-        if github_logic._is_approval_comment_body(comment.body()):
-            sqs_client.queue_full_sync(pull_request_id)
+        if github_logic.is_approval_comment_body(comment.body()):
+            sqs_client.queue_full_sync(pull_request_id, org_name)
     else:
         logger.warning(
             f"Task not found for pull request {pull_request_id}. Queueing a new event..."
         )
-        sqs_client.queue_full_sync(pull_request_id)
+        sqs_client.queue_full_sync(pull_request_id, org_name)
 
 
-def upsert_review(pull_request: PullRequest, review: Review):
+def upsert_review(pull_request: PullRequest, review: Review, org_name: str):
     pull_request_id = pull_request.id()
     task_id = dynamodb_client.get_asana_id_from_github_node_id(pull_request_id)
     if task_id:
@@ -98,7 +98,7 @@ def upsert_review(pull_request: PullRequest, review: Review):
         logger.warning(
             f"Task not found for pull request {pull_request_id}. Queueing a new event..."
         )
-        sqs_client.queue_full_sync(pull_request_id)
+        sqs_client.queue_full_sync(pull_request_id, org_name)
 
 
 def assign_pull_request_to_author(pull_request: PullRequest):
