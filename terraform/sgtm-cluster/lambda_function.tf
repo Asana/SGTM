@@ -20,6 +20,7 @@ resource "aws_lambda_function" "sgtm" {
 
       # SGTM features
       SGTM_FEATURE__AUTOMERGE_ENABLED                = var.sgtm_feature__automerge_enabled,
+      SGTM_FEATURE__AUTOMERGE_DISABLED_REPOSITORIES  = var.sgtm_feature__automerge_disabled_repositories,
       SGTM_FEATURE__AUTOCOMPLETE_ENABLED             = var.sgtm_feature__autocomplete_enabled,
       SGTM_FEATURE__DISABLE_GITHUB_TEAM_SUBSCRIPTION = var.sgtm_feature__disable_github_team_subscription,
       SGTM_FEATURE__ALLOW_PERSISTENT_TASK_ASSIGNEE   = var.sgtm_feature__allow_persistent_task_assignee,

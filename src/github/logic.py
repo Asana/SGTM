@@ -269,13 +269,13 @@ def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
     is_pull_request_ready_for_automerge = False
     if (
         not SGTM_FEATURE__AUTOMERGE_ENABLED
-        or f"{pull_request.owner_handle()}/{pull_request.repository_name()}" in SGTM_FEATURE__AUTOMERGE_DISABLED_REPOSITORIES
+        or f"{pull_request.repository_owner_handle()}/{pull_request.repository_name()}" in SGTM_FEATURE__AUTOMERGE_DISABLED_REPOSITORIES
         or not _pull_request_is_open(pull_request)
         or pull_request.is_in_merge_queue()
         or pull_request.base_ref_associated_pull_requests() > 0
     ):
         logger.info(
-            f"Skipping automerge for {pull_request.id()} because it is closed, in merge queue, or the base branch has open PRs associated with it."
+            f"Skipping automerge for {pull_request.id()} because automerge is diasbled, it is closed, it is in the merge queue, or the base branch has open PRs associated with it."
         )
         is_pull_request_ready_for_automerge = False
 
