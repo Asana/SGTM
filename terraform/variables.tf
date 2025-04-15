@@ -74,6 +74,12 @@ variable "sgtm_feature__automerge_enabled" {
   default     = "false"
 }
 
+variable "sgtm_feature__automerge_disabled_repositories" {
+  type        = string
+  description = "A comma-separated list of Github repositories in format owner/repo that should not use the automerge feature"
+  default     = ""
+}
+
 variable "sgtm_feature__autocomplete_enabled" {
   type        = string
   description = "'true' if behavior to autocomplete linked tasks with Github labels is enabled"
