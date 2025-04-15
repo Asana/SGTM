@@ -15,6 +15,7 @@ from src.config import (
     SGTM_FEATURE__AUTOMERGE_ENABLED,
     SGTM_FEATURE__DISABLE_GITHUB_TEAM_SUBSCRIPTION,
     SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS,
+    SGTM_FEATURE__AUTOMERGE_DISABLED_REPOSITORIES,
 )
 
 GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
@@ -268,6 +269,7 @@ def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
     is_pull_request_ready_for_automerge = False
     if (
         not SGTM_FEATURE__AUTOMERGE_ENABLED
+        or f"{pull_request.owner_handle()}/{pull_request.repository_name()}" in SGTM_FEATURE__AUTOMERGE_DISABLED_REPOSITORIES
         or not _pull_request_is_open(pull_request)
         or pull_request.is_in_merge_queue()
         or pull_request.base_ref_associated_pull_requests() > 0
