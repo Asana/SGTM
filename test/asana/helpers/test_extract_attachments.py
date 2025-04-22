@@ -6,14 +6,18 @@ from test.impl.builders import builder, build
 class TestExtractAttachments(BaseClass):
     def test_extract_no_attachments(self):
         github_comment = "No urls here!! ![but some weird formatting] (oops)"
-        attachments = asana_helpers._extract_attachments(github_comment)
+        github_html = "No urls here!! <img alt=\"but some weird formatting\" /> (oops)"
+        attachments = asana_helpers._extract_attachments(github_comment, github_html)
         self.assertEqual(len(attachments), 0)
 
     def test_extract_attachment_with_unknown_extension(self):
         github_comment = (
             "Ok here it is ![photoo ooo](www.photopng.com/this.fakeg) and there it was"
         )
-        attachments = asana_helpers._extract_attachments(github_comment)
+        github_html = (
+            "Ok here it is <img src=\"www.photopng.com/this.fakeg\" alt=\"photoo ooo\" /> and there it was"
+        )
+        attachments = asana_helpers._extract_attachments(github_comment, github_html)
         self.assertEqual(len(attachments), 0)
 
     def test_extract_attachments_with_extensions(self):
@@ -21,35 +25,107 @@ class TestExtractAttachments(BaseClass):
             "Ok here's the first: ![photo.png](www.photopng.com/this.png) and the"
             " second!! ![giferino.gif](giphy.com/example.gif)"
         )
-        attachments = asana_helpers._extract_attachments(github_comment)
+        github_html = (
+            "Ok here's the first: <img src=\"www.photopng.com/this.png\" alt=\"photo.png\" /> and the"
+            " second!! <img src=\"giphy.com/example.gif\" alt=\"giferino.gif\" />"
+        )
+        attachments = asana_helpers._extract_attachments(github_comment, github_html)
         self.assertListEqual(
             attachments,
             [
                 asana_helpers.AttachmentData(
                     file_name="photo.png",
                     file_url="www.photopng.com/this.png",
-                    image_type="image/png",
+                    file_type="image/png",
                 ),
                 asana_helpers.AttachmentData(
                     file_name="giferino.gif",
                     file_url="giphy.com/example.gif",
-                    image_type="image/gif",
+                    file_type="image/gif",
                 ),
             ],
         )
+
+    def test_extract_attachments_with_double_extensions(self):
+        github_comment = (
+            "Ok here's the first: ![photo.png](www.photopng.com/this.png/this-small.png) and the"
+            " second!! ![cute-cat.jpg](giphy.com/cute-cat.jpg/small.jpg)"
+            " third! ![even-cuter-cat.jpg](giphy.com/even-cuter-cat.jpg/small.jpg)"
+        )
+        github_html = (
+            "Ok here's the first: <img src=\"www.photopng.com/this.png/this-small.png\" alt=\"photo.png\" /> and the"
+            " second!! <img src=\"giphy.com/cute-cat.jpg/small.jpg\" alt=\"cute-cat.jpg\" />"
+            " third! <img src=\"giphy.com/even-cuter-cat.jpg/small.jpg\" alt=\"even-cuter-cat.jpg\" />"
+        )
+        attachments = asana_helpers._extract_attachments(github_comment, github_html)
+        self.assertListEqual(
+            attachments,
+            [
+                asana_helpers.AttachmentData(
+                    file_name="photo.png",
+                    file_url="www.photopng.com/this.png/this-small.png",
+                    file_type="image/png",
+                ),
+                asana_helpers.AttachmentData(
+                    file_name="cute-cat.jpg",
+                    file_url="giphy.com/cute-cat.jpg/small.jpg",
+                    file_type="image/jpeg",
+                ),
+                asana_helpers.AttachmentData(
+                    file_name="even-cuter-cat.jpg",
+                    file_url="giphy.com/even-cuter-cat.jpg/small.jpg",
+                    file_type="image/jpeg",
+                ),
+            ],
+        )
+    
+    def test_extract_attachment_with_github_asset_url(self):
+        github_comment = (
+            "Ok here's the first: ![github-asset](https://github.com/user-attachments/assets/long-unique-uuid) and that's it!"
+        )
+        github_html = (
+            "Ok here's the first: <img src=\"https://api.github.com/assets/long-unique-uuid.png?token=123321\" alt=\"github-asset\" /> and that's it!"
+        )
+        attachments = asana_helpers._extract_attachments(github_comment, github_html)
+        self.assertListEqual(attachments, [
+            asana_helpers.AttachmentData(
+                file_name="github-asset.png",
+                file_url="https://api.github.com/assets/long-unique-uuid.png?token=123321",
+                file_type="image/png",
+            ),
+        ])
+    
+    def test_extract_attachment_with_github_video_url(self):
+        github_comment = (
+            "Ok here's the first: https://github.com/user-attachments/assets/long-unique-uuid and that's it!"
+        )
+        github_html = (
+            "Ok here's the first: <video src=\"https://api.github.com/assets/long-unique-uuid.mov?token=123321\" alt=\"github-video\" /> and that's it!"
+        )
+        attachments = asana_helpers._extract_attachments(github_comment, github_html)
+        self.assertListEqual(attachments, [
+            asana_helpers.AttachmentData(
+                file_name="long-unique-uuid.mov",
+                file_url="https://api.github.com/assets/long-unique-uuid.mov?token=123321",
+                file_type="video/mov",
+            ),
+        ])
 
     def test_extract_attachment_without_extension(self):
         github_comment = (
             "Ok here's the first: ![photo](www.photopng.com/this.png) and that's it!"
         )
-        attachments = asana_helpers._extract_attachments(github_comment)
+        github_html = (
+            "Ok here's the first: <img src=\"www.photopng.com/this.png\" alt=\"photo\" /> and that's it!"
+        )
+        attachments = asana_helpers._extract_attachments(github_comment, github_html)
         self.assertListEqual(
             attachments,
             [
                 asana_helpers.AttachmentData(
                     file_name="photo.png",
                     file_url="www.photopng.com/this.png",
-                    image_type="image/png",
+                    file_type="image/png",
                 ),
             ],
         )
@@ -58,14 +134,17 @@ class TestExtractAttachments(BaseClass):
         github_comment = (
             "Ok here's the first: ![](www.photopng.com/this.png) and that's it!"
         )
-        attachments = asana_helpers._extract_attachments(github_comment)
+        github_html = (
+            "Ok here's the first: <img src=\"www.photopng.com/this.png\" /> and that's it!"
+        )
+        attachments = asana_helpers._extract_attachments(github_comment, github_html)
         self.assertListEqual(
             attachments,
             [
                 asana_helpers.AttachmentData(
                     file_name="github_attachment.png",
                     file_url="www.photopng.com/this.png",
-                    image_type="image/png",
+                    file_type="image/png",
                 ),
             ],
         )

@@ -25,6 +25,7 @@ fragment FullComment on Comment {
     }
   }
   body
+  bodyHTML
   ... on IssueComment {
     url
   }

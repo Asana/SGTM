@@ -3,6 +3,7 @@ from typing import List, Optional, Dict, Any, Set
 from src.logger import logger
 from src.utils import parse_date_string
 from enum import Enum, unique
+import re
 
 # from .review import Review
 from .comment import IssueComment
@@ -126,6 +127,9 @@ class PullRequest(object):
 
     def body(self) -> str:
         return self._raw["body"]
+    
+    def body_html(self) -> str:
+        return self._raw["bodyHTML"]
 
     def set_body(self, body: str):
         self._raw = copy.deepcopy(self._raw)

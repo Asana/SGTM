@@ -212,7 +212,7 @@ def create_attachment_on_task(
     attachment_content: str,
     attachment_name: str,
     attachment_type: Optional[str] = None,
-) -> None:
+) -> None: 
     AsanaClient.singleton().create_attachment_on_task(
         task_id, attachment_content, attachment_name, attachment_type
     )
