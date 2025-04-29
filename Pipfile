@@ -12,6 +12,7 @@ python-dynamodb-lock = "==0.9.1"
 requests = "==2.25.1"
 sgqlc = "==8.1"
 typing-extensions = "~=4.6"
+beautifulsoup4 = "==4.13.4"
 
 [dev-packages]
 black = "==22.3.0"
