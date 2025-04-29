@@ -1,7 +1,6 @@
 import re
 import collections
 import urllib.request
-import requests
 from datetime import datetime, timedelta
 from html import escape
 from typing import Callable, Match, Optional, List, Dict, Set
@@ -25,6 +24,7 @@ from src.logger import logger
 from src.markdown_parser import convert_github_markdown_to_asana_xml
 
 from src.config import GITHUB_API_KEY
+from bs4 import BeautifulSoup
 
 AttachmentData = collections.namedtuple(
     "AttachmentData", "file_name file_url file_type"
@@ -261,10 +261,7 @@ _file_extension_to_type = {
     ".mov": "video/mov",
 }
 
-_supported_file_extensions = list(_file_extension_to_type.keys())
-
-def _get_asset_id_from_attachment_url(url: str) -> str:
-    return url.split('/assets/')[1].split('/')[0]
+_supported_file_extensions = set(_file_extension_to_type.keys())
 
 def _get_file_name_from_signed_url(url: str) -> str:
     return url.split('?')[0].split('/')[-1]
@@ -272,71 +269,49 @@ def _get_file_name_from_signed_url(url: str) -> str:
 def _get_file_extension_from_url(url: str) -> str:
     return '.' + url.split('?')[0].split('.')[-1]
 
-def _extract_attachments(body_text: str, body_html: str) -> List[AttachmentData]:
+def _extract_attachments(body_html: str) -> List[AttachmentData]:
     """
-    Finds, but does not replace, all the image/video attachment URLs in the body_text. Handles:
+    Finds, but does not replace, all the image/video attachment URLs in the body_html. Handles:
     1. Regular image URLs (ending in png, gif, jpg, or jpeg)
     2. Double-extension URLs (like /img.jpg/img-small.jpg)
     3. GitHub asset URLs (https://github.com/user-attachments/assets/...)
     """
     attachments = []
-    matches = re.findall(github_logic.GITHUB_ATTACHMENT_REGEX, body_text)
-    
-    # Find all img and video tags with src attributes in the HTML body
-    # Used only for github assets since they don't have a proper url in the body_text
-    attachments_urls = re.findall(github_logic.GITHUB_HTML_ATTACHMENT_REGEX, body_html)
-    
-    for img_name, img_url in matches:
-        # Handle GitHub asset URLs
-        if "github.com" in img_url and "/assets/" in img_url:
-            # For GitHub assets, find the corresponding HTML URL
-            file_name = _get_asset_id_from_attachment_url(img_url) 
 
-            for tag_type, url in attachments_urls:
-                if file_name in url:
-                    html_url = url
-                    break
+    # Parse the body_html for img and video tags
+    matches = BeautifulSoup(body_html, 'lxml').find_all(['img', 'video'])
 
-            # Get the file extension from the URL
-            file_ext = _get_file_extension_from_url(html_url)
+    for match in matches:
+        # data-canonical-src is set for assets hosted outside of github
+        data_canonical_src = match.get('data-canonical-src')
 
-            file_type = _file_extension_to_type[file_ext]
-            
-            full_name = (img_name if img_name else "github_attachment") + file_ext
+        file_url = data_canonical_src if data_canonical_src else match.get('src')
+        if file_url is None:
+            continue
 
-            img_url = html_url
+        file_ext = _get_file_extension_from_url(file_url)
+        if file_ext not in _supported_file_extensions:
+            logger.warning(f"Unsupported file extension: {file_ext}")
+            continue
+        
+        file_type = _file_extension_to_type[file_ext]
+
+        file_title: str = match.get('alt')
+
+        if file_title is None or file_title.strip() == "":
+            file_name = _get_file_name_from_signed_url(file_url)
         else:
-            # Handle regular and double-extension images
-            # Find the last valid extension in the URL
-            last_ext = next(
-                (ext for ext in _supported_file_extensions if ext in img_url),
-                None
-            )
-            
-            if not last_ext:
-                continue
-
-            file_type = _file_extension_to_type[last_ext]
-            full_name = f"{img_name or 'github_attachment'}{'' if last_ext in img_name else last_ext}"
+            file_name = file_title + file_ext
 
         attachments.append(
-            AttachmentData(file_name=full_name, file_url=img_url, file_type=file_type)
+            AttachmentData(file_name=file_name, file_url=file_url, file_type=file_type)
         )
-
-    # Add video attachments parsed from the body_html
-    for tag_type, url in attachments_urls:
-        file_ext = _get_file_extension_from_url(url)
-        if tag_type == 'video':
-            file_name = _get_file_name_from_signed_url(url)
-            attachments.append(
-                AttachmentData(file_name=file_name, file_url=url, file_type=_file_extension_to_type[file_ext])
-            )
 
     return attachments
 
 
-def create_attachments(body_text: str, body_html: str, task_id: str) -> None:
-    attachments = _extract_attachments(body_text, body_html)
+def create_attachments(body_html: str, task_id: str) -> None:
+    attachments = _extract_attachments(body_html)
     for attachment in attachments:
         try:
             with urllib.request.urlopen(attachment.file_url) as f:
