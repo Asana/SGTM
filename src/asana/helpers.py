@@ -1,6 +1,7 @@
 import re
 import collections
 import urllib.request
+from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from html import escape
 from typing import Callable, Match, Optional, List, Dict, Set
@@ -22,9 +23,6 @@ from src.github.models import (
 )
 from src.logger import logger
 from src.markdown_parser import convert_github_markdown_to_asana_xml
-
-from src.config import GITHUB_API_KEY
-from bs4 import BeautifulSoup
 
 AttachmentData = collections.namedtuple(
     "AttachmentData", "file_name file_url file_type"

@@ -3,7 +3,6 @@ from typing import List, Optional, Dict, Any, Set
 from src.logger import logger
 from src.utils import parse_date_string
 from enum import Enum, unique
-import re
 
 # from .review import Review
 from .comment import IssueComment

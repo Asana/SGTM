@@ -22,7 +22,7 @@ def upsert_pull_request(pull_request: PullRequest):
 
         logger.info(f"Task created for pull request {pull_request_id}: {task_id}")
         dynamodb_client.insert_github_node_to_asana_id_mapping(pull_request_id, task_id)
-        asana_helpers.create_attachments(pull_request.body(), pull_request.body_html(), task_id)
+        asana_helpers.create_attachments(pull_request.body_html(), task_id)
         _add_asana_task_to_pull_request(pull_request, task_id)
     else:
         logger.info(
