@@ -66,9 +66,8 @@ class GithubLogicTest(unittest.TestCase):
 
     def test_pull_request_body_mentions(self):
         pull_request = builder.pull_request("@foo\n@bar").build()
-        self.assertEqual(
-            github_logic._pull_request_body_mentions(pull_request), ["foo", "bar"]
-        )
+        mentions = github_logic._pull_request_body_mentions(pull_request)
+        self.assertEqual(sorted(["foo", "bar"]), sorted(mentions))
 
     def test_pull_request_approved_before_merging_review_approved_after_merge(self):
         merged_at = datetime.now()

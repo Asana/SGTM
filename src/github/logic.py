@@ -1,8 +1,9 @@
 import re
-from typing import List
+from typing import List, Set
 from src.logger import logger
 
 from . import client as github_client
+from .graphql import client as github_graphql_client
 from src.github.models import (
     Comment,
     MergeableState,
@@ -18,8 +19,8 @@ from src.config import (
     SGTM_FEATURE__AUTOMERGE_DISABLED_REPOSITORIES,
 )
 
-GITHUB_MENTION_REGEX = "\B@([a-zA-Z0-9_\-]+)"
-GITHUB_ATTACHMENT_REGEX = "!\[(.*?)\]\((.+?(\.png|\.jpg|\.jpeg|\.gif))"
+GITHUB_MENTION_REGEX = r"\B@([a-zA-Z0-9_\-]+(?:/[a-zA-Z0-9_\-]+)?)"
+GITHUB_ATTACHMENT_REGEX = r"!\[(.*?)\]\((.+?(\.png|\.jpg|\.jpeg|\.gif))"
 
 AUTOMERGE_COMMENT_WARNING_AFTER_TESTS_AND_APPROVAL = (
     "**:warning: Reviewer:** If you approve this PR, it will be auto-merged as soon as"
@@ -77,8 +78,44 @@ def _extract_mentions(text: str) -> List[str]:
     return re.findall(GITHUB_MENTION_REGEX, text)
 
 
+def _expand_team_mentions(mentions: List[str]) -> Set[str]:
+    """Expand team mentions to their member usernames, supporting @org/team-slug.
+
+    Only expands mentions that follow the @org/team-slug format.
+    Other mentions are treated as regular user mentions.
+    """
+    expanded_mentions = set()
+    for mention in mentions:
+        # Only expand mentions that follow the org/team-slug format
+        if "/" in mention:
+            org, team_slug = mention.split("/", 1)
+            try:
+                team_members = github_graphql_client.get_team_members(org, team_slug)
+                if team_members:
+                    expanded_mentions.update(team_members)
+                else:
+                    expanded_mentions.add(mention)
+            except Exception as e:
+                logger.warning(f"Failed to expand team mention @{mention}: {e}")
+                expanded_mentions.add(mention)
+        else:
+            # Treat as regular user mention
+            expanded_mentions.add(mention)
+    return expanded_mentions
+
+
 def _pull_request_body_mentions(pull_request: PullRequest) -> List[str]:
-    return _extract_mentions(pull_request.body())
+    """Extract and expand mentions from PR body.
+
+    Args:
+        pull_request: The pull request to extract mentions from
+
+    Returns:
+        List of GitHub usernames mentioned in the PR body
+    """
+    mentions = _extract_mentions(pull_request.body())
+    expanded_mentions = _expand_team_mentions(mentions)
+    return sorted(expanded_mentions)
 
 
 def comment_participants_and_mentions(comment: Comment) -> List[str]:
