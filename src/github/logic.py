@@ -19,7 +19,8 @@ from src.config import (
     SGTM_FEATURE__AUTOMERGE_DISABLED_REPOSITORIES,
 )
 
-GITHUB_MENTION_REGEX = r"\B@([a-zA-Z0-9_\-]+(?:/[a-zA-Z0-9_\-]+)?)"
+GITHUB_USERNAME_MENTION_REGEX = r"\B@([A-Za-z0-9_\-]+)(?![A-Za-z0-9_\-]*/)"
+GITHUB_TEAM_MENTION_REGEX = r"\B@([a-zA-Z0-9_\-]+/[a-zA-Z0-9_\-]+)"
 GITHUB_ATTACHMENT_REGEX = r"!\[(.*?)\]\((.+?(\.png|\.jpg|\.jpeg|\.gif))"
 
 AUTOMERGE_COMMENT_WARNING_AFTER_TESTS_AND_APPROVAL = (
@@ -74,8 +75,12 @@ def inject_metadata_into_pull_request_body(
     return body
 
 
-def _extract_mentions(text: str) -> List[str]:
-    return re.findall(GITHUB_MENTION_REGEX, text)
+def _extract_user_name_mentions(text: str) -> List[str]:
+    return re.findall(GITHUB_USERNAME_MENTION_REGEX, text)
+
+
+def _extract_team_mentions(text: str) -> List[str]:
+    return re.findall(GITHUB_TEAM_MENTION_REGEX, text)
 
 
 def _expand_team_mentions(mentions: List[str]) -> Set[str]:
@@ -113,13 +118,16 @@ def _pull_request_body_mentions(pull_request: PullRequest) -> List[str]:
     Returns:
         List of GitHub usernames mentioned in the PR body
     """
-    mentions = _extract_mentions(pull_request.body())
-    expanded_mentions = _expand_team_mentions(mentions)
-    return sorted(expanded_mentions)
+    user_mentions = _extract_user_name_mentions(pull_request.body())
+    team_mentions = _extract_team_mentions(pull_request.body())
+    expanded_team_mentions = _expand_team_mentions(team_mentions)
+    return sorted(set(user_mentions) | expanded_team_mentions)
 
 
 def comment_participants_and_mentions(comment: Comment) -> List[str]:
-    return list(set([comment.author_handle()] + _extract_mentions(comment.body())))
+    return list(
+        set([comment.author_handle()] + _extract_user_name_mentions(comment.body()))
+    )
 
 
 def review_participants_and_mentions(review: Review) -> List[str]:
@@ -130,7 +138,7 @@ def review_participants_and_mentions(review: Review) -> List[str]:
             + [
                 mention
                 for review_text in review_texts
-                for mention in _extract_mentions(review_text)
+                for mention in _extract_user_name_mentions(review_text)
             ]
         )
     )
