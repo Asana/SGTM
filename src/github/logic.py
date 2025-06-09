@@ -275,8 +275,14 @@ def pull_request_participants(pull_request: PullRequest) -> List[str]:
 def maybe_add_automerge_warning_comment(pull_request: PullRequest):
     """Adds comment warnings if automerge label is enabled"""
 
-    if not SGTM_FEATURE__AUTOMERGE_ENABLED or not any(
-        pull_request_has_label(pull_request, label.value) for label in AutomergeLabel
+    if (
+        not SGTM_FEATURE__AUTOMERGE_ENABLED
+        or f"{pull_request.repository_owner_handle()}/{pull_request.repository_name()}"
+        in SGTM_FEATURE__AUTOMERGE_DISABLED_REPOSITORIES
+        or not any(
+            pull_request_has_label(pull_request, label.value)
+            for label in AutomergeLabel
+        )
     ):
         return
 
