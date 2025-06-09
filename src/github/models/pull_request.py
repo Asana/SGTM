@@ -118,6 +118,9 @@ class PullRequest(object):
     def repository_owner_handle(self) -> str:
         return self._raw["repository"]["owner"]["login"]
 
+    def repository_full_name(self) -> str:
+        return f"{self.repository_owner_handle()}/{self.repository_name()}"
+
     def author(self) -> User:
         return User(self._raw["author"])
 
