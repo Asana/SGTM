@@ -277,7 +277,7 @@ def maybe_add_automerge_warning_comment(pull_request: PullRequest):
 
     if (
         not SGTM_FEATURE__AUTOMERGE_ENABLED
-        or f"{pull_request.repository_owner_handle()}/{pull_request.repository_name()}"
+        or pull_request.repository_full_name()
         in SGTM_FEATURE__AUTOMERGE_DISABLED_REPOSITORIES
         or not any(
             pull_request_has_label(pull_request, label.value)
@@ -320,7 +320,7 @@ def maybe_automerge_pull_request(pull_request: PullRequest) -> bool:
     is_pull_request_ready_for_automerge = False
     if (
         not SGTM_FEATURE__AUTOMERGE_ENABLED
-        or f"{pull_request.repository_owner_handle()}/{pull_request.repository_name()}"
+        or pull_request.repository_full_name()
         in SGTM_FEATURE__AUTOMERGE_DISABLED_REPOSITORIES
         or not _pull_request_is_open(pull_request)
         or pull_request.is_in_merge_queue()
