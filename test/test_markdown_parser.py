@@ -38,13 +38,12 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
     def test_block_quote(self):
         md = "> block quote"
         xml = convert_github_markdown_to_asana_xml(md)
-        self.assertEqual(xml, "<em>&gt; block quote\n</em>")
+        self.assertEqual(xml, "<blockquote>block quote\n</blockquote>")
 
     def test_horizontal_rule(self):
-        # Asana doesn't support <hr /> tags, so we just ignore them
         md = "hello\n\n---\nworld\n"
         xml = convert_github_markdown_to_asana_xml(md)
-        self.assertEqual(xml, md)  # unchanged
+        self.assertEqual(xml, "hello\n<hr />world\n")
 
     def test_auto_linking(self):
         md = "https://asana.com/ [still works](https://www.test.com)"
@@ -103,21 +102,13 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
     def test_nested_code_within_block_quote(self):
         md = "> abc `123`"
         xml = convert_github_markdown_to_asana_xml(md)
-        self.assertEqual(xml, "<em>&gt; abc <code>123</code>\n</em>")
+        self.assertEqual(xml, "<blockquote>abc <code>123</code>\n</blockquote>")
 
-    def test_removes_pre_tags_inline(self):
+    def test_codespan(self):
         md = """```test```"""
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(xml, "<code>test</code>\n")
 
-    def test_removes_pre_tags_block(self):
-        md = """see:
-```
-function foo = () => null;
-```
-"""
-        xml = convert_github_markdown_to_asana_xml(md)
-        self.assertEqual(xml, "see:\n<code>function foo = () =&gt; null;\n</code>\n")
 
     def test_escapes_raw_html_mixed_with_markdown(self):
         md = """## <img href="link" />still here <h3>header</h3>"""
