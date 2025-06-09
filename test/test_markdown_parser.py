@@ -109,7 +109,6 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(xml, "<code>test</code>\n")
 
-
     def test_escapes_raw_html_mixed_with_markdown(self):
         md = """## <img href="link" />still here <h3>header</h3>"""
         xml = convert_github_markdown_to_asana_xml(md)
