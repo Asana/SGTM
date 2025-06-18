@@ -1,4 +1,4 @@
-from typing import Tuple, FrozenSet, Optional
+from typing import Tuple, FrozenSet, Optional, List
 from sgqlc.endpoint.http import HTTPEndpoint  # type: ignore
 from src.github.get_app_token import sgtm_github_auth
 from src.github.models import comment_factory, PullRequest, Review, Comment
@@ -9,6 +9,7 @@ from .queries import (
     GetPullRequestAndReview,
     IteratePullRequestIdsForCommitId,
     IterateReviewsForPullRequestId,
+    GetTeamMembers,
 )
 
 ####################################################################################################
@@ -155,3 +156,24 @@ def get_review_for_database_id(
                 },
             )["node"]["reviews"]["edges"]
     return None
+
+
+def get_team_members(org: str, team_slug: str) -> List[str]:
+    """Get all members of a GitHub team.
+
+    Args:
+        org: The organization name
+        team_slug: The team slug (name with hyphens instead of spaces)
+
+    Returns:
+        List of GitHub usernames of team members
+    """
+    data = _execute_graphql_query(
+        org,
+        GetTeamMembers.GetTeamMembers,
+        {"org": org, "teamSlug": team_slug},
+    )
+    team = data["organization"]["team"]
+    if not team:
+        return []
+    return [node["login"] for node in team["members"]["nodes"]]

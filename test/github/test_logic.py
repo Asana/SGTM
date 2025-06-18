@@ -1,10 +1,11 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, call
 
 import src.github.client as github_client
 import src.github.logic as github_logic
 from src.github.models import Commit, ReviewState, MergeableState
 from test.impl.builders import builder, build
+from test.impl.base_test_case_class import BaseClass
 
 
 @patch.object(github_client, "merge_pull_request")
@@ -729,6 +730,87 @@ class TestMaybeAddAutomergeWarningTitleAndComment(unittest.TestCase):
             build(pull_request_builder).to_raw()["comments"]["nodes"][1]["body"],
             github_logic.AUTOMERGE_COMMENT_WARNING_AFTER_TESTS_AND_APPROVAL,
         )
+
+
+@patch("src.github.logic.github_graphql_client")
+class TestTeamMentionExpansion(BaseClass):
+    def test_expand_team_mentions_success(self, mock_graphql_client):
+        def get_team_members_side_effect(org, team_slug):
+            if org == "org1" and team_slug == "team1":
+                return ["user1", "user2", "user3"]
+            if org == "org2" and team_slug == "team2":
+                return ["user4", "user5"]
+            return []
+
+        mock_graphql_client.get_team_members.side_effect = get_team_members_side_effect
+
+        mentions = ["org1/team1", "user4", "org2/team2", "regular-user"]
+        expanded = github_logic._expand_team_mentions(mentions)
+
+        self.assertEqual(
+            {"user1", "user2", "user3", "user4", "user5", "regular-user"}, expanded
+        )
+        mock_graphql_client.get_team_members.assert_any_call("org1", "team1")
+        mock_graphql_client.get_team_members.assert_any_call("org2", "team2")
+        # Should not try to expand regular user mentions
+        self.assertEqual(2, mock_graphql_client.get_team_members.call_count)
+
+    def test_expand_team_mentions_no_teams(self, mock_graphql_client):
+        mock_graphql_client.get_team_members.return_value = []
+
+        mentions = ["user1", "user2"]
+        expanded = github_logic._expand_team_mentions(mentions)
+
+        self.assertEqual({"user1", "user2"}, expanded)
+        # Should not try to expand regular user mentions
+        mock_graphql_client.get_team_members.assert_not_called()
+
+    def test_expand_team_mentions_error(self, mock_graphql_client):
+        mock_graphql_client.get_team_members.side_effect = Exception("API Error")
+
+        mentions = ["org1/team1", "user1"]
+        expanded = github_logic._expand_team_mentions(mentions)
+
+        self.assertEqual({"org1/team1", "user1"}, expanded)
+        mock_graphql_client.get_team_members.assert_called_once_with("org1", "team1")
+
+    def test_pull_request_body_mentions_with_teams(self, mock_graphql_client):
+        def get_team_members_side_effect(org, team_slug):
+            if org == "org1" and team_slug == "team1":
+                return ["user1", "user2"]
+            return []
+
+        mock_graphql_client.get_team_members.side_effect = get_team_members_side_effect
+        pr = build(
+            builder.pull_request().body(
+                "Hey @org1/team1 and @user3, please review this"
+            )
+        )
+        pr._raw["repository"]["owner"]["login"] = "test-org"
+        mentions = github_logic._pull_request_body_mentions(pr)
+        self.assertEqual(["user1", "user2", "user3"], mentions)
+        mock_graphql_client.get_team_members.assert_any_call("org1", "team1")
+        # Should not try to expand regular user mentions
+        self.assertEqual(1, mock_graphql_client.get_team_members.call_count)
+
+    def test_pull_request_body_mentions_with_slashed_team(self, mock_graphql_client):
+        def get_team_members_side_effect(org, team_slug):
+            if org == "test-org" and team_slug == "team-oncall":
+                return ["user1", "user2"]
+            return []
+
+        mock_graphql_client.get_team_members.side_effect = get_team_members_side_effect
+        pr = build(
+            builder.pull_request().body(
+                "Hey @test-org/team-oncall and @user3, please review this"
+            )
+        )
+        pr._raw["repository"]["owner"]["login"] = "test-org"
+        mentions = github_logic._pull_request_body_mentions(pr)
+        self.assertEqual(["user1", "user2", "user3"], mentions)
+        mock_graphql_client.get_team_members.assert_any_call("test-org", "team-oncall")
+        # Should not try to expand regular user mentions
+        self.assertEqual(1, mock_graphql_client.get_team_members.call_count)
 
 
 if __name__ == "__main__":

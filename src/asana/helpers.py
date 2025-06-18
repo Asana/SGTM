@@ -226,7 +226,9 @@ def _transform_github_mentions_to_asana_mentions(text: str) -> str:
             return asana_user_url
 
     return re.sub(
-        github_logic.GITHUB_MENTION_REGEX, _github_mention_to_asana_mention, text
+        github_logic.GITHUB_USERNAME_MENTION_REGEX,
+        _github_mention_to_asana_mention,
+        text,
     )
 
 

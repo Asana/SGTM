@@ -3,6 +3,7 @@ from src.github.graphql import client
 from src.github.graphql.queries import (
     IterateReviewsForPullRequestId,
     IteratePullRequestIdsForCommitId,
+    GetTeamMembers,
 )
 from test.impl.base_test_case_class import BaseClass
 
@@ -245,6 +246,57 @@ class TestGithubClientGetPullRequestForCommitId(BaseClass):
         )
         mock_get_pull_request.assert_called_once_with(
             self.ORG_NAME, matching_node["id"]
+        )
+
+
+@patch.object(client, "_execute_graphql_query")
+class TestGithubClientGetTeamMembers(BaseClass):
+    def test_get_team_members_success(self, mock_query):
+        mock_query.return_value = {
+            "organization": {
+                "team": {
+                    "members": {
+                        "nodes": [
+                            {"login": "user1"},
+                            {"login": "user2"},
+                            {"login": "user3"},
+                        ]
+                    }
+                }
+            }
+        }
+
+        actual = client.get_team_members("test-org", "test-team")
+
+        self.assertEqual(["user1", "user2", "user3"], actual)
+        mock_query.assert_called_once_with(
+            "test-org",
+            GetTeamMembers.GetTeamMembers,
+            {"org": "test-org", "teamSlug": "test-team"},
+        )
+
+    def test_get_team_members_no_team(self, mock_query):
+        mock_query.return_value = {"organization": {"team": None}}
+
+        actual = client.get_team_members("test-org", "non-existent-team")
+
+        self.assertEqual([], actual)
+        mock_query.assert_called_once_with(
+            "test-org",
+            GetTeamMembers.GetTeamMembers,
+            {"org": "test-org", "teamSlug": "non-existent-team"},
+        )
+
+    def test_get_team_members_empty_team(self, mock_query):
+        mock_query.return_value = {"organization": {"team": {"members": {"nodes": []}}}}
+
+        actual = client.get_team_members("test-org", "empty-team")
+
+        self.assertEqual([], actual)
+        mock_query.assert_called_once_with(
+            "test-org",
+            GetTeamMembers.GetTeamMembers,
+            {"org": "test-org", "teamSlug": "empty-team"},
         )
 
 
