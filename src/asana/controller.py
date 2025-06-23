@@ -77,7 +77,7 @@ def upsert_github_comment_to_task(comment: Comment, task_id: str):
     if asana_comment_id is None:
         logger.info(f"Adding comment {github_comment_id} to task {task_id}")
 
-        asana_helpers.create_attachments(comment.body_html(), task_id)
+        asana_helpers.sync_attachments(comment.body_html(), task_id, github_comment_id)
 
         asana_comment_id = asana_client.add_comment(
             task_id, asana_helpers.asana_comment_from_github_comment(comment)
@@ -89,6 +89,10 @@ def upsert_github_comment_to_task(comment: Comment, task_id: str):
         logger.info(
             f"Comment {github_comment_id} already synced to task {task_id}. Updating."
         )
+
+        # Sync attachments when updating comment as well
+        asana_helpers.sync_attachments(comment.body_html(), task_id, github_comment_id)
+
         asana_client.update_comment(
             asana_comment_id, asana_helpers.asana_comment_from_github_comment(comment)
         )
