@@ -1,7 +1,7 @@
 import boto3  # type: ignore
 import json
 from contextlib import closing
-from typing import Optional
+from typing import Optional, List
 
 from src.config import GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH, AWS_REGION
 from src.utils import memoize

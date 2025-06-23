@@ -1,7 +1,7 @@
 import boto3  # type: ignore
 from typing import TypedDict, List, Optional, Tuple
 
-from src.config import AWS_REGION, OBJECTS_TABLE
+from src.config import OBJECTS_TABLE, AWS_REGION
 from src.logger import logger
 
 

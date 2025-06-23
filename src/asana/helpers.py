@@ -1,10 +1,10 @@
 import re
 import collections
 import urllib.request
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from datetime import datetime, timedelta
 from html import escape
-from typing import Callable, Match, Optional, List, Dict, Set
+from typing import Callable, Match, Optional, List, Dict, Set, Union, cast
 
 import src.asana.client as asana_client
 import src.asana.logic as asana_logic
@@ -263,11 +263,14 @@ _file_extension_to_type = {
 
 _supported_file_extensions = set(_file_extension_to_type.keys())
 
+
 def _get_file_name_from_signed_url(url: str) -> str:
-    return url.split('?')[0].split('/')[-1]
+    return url.split("?")[0].split("/")[-1]
+
 
 def _get_file_extension_from_url(url: str) -> str:
-    return '.' + url.split('?')[0].split('.')[-1]
+    return "." + url.split("?")[0].split(".")[-1]
+
 
 def _extract_attachments(body_html: str) -> List[AttachmentData]:
     """
@@ -279,32 +282,39 @@ def _extract_attachments(body_html: str) -> List[AttachmentData]:
     attachments = []
 
     # Parse the body_html for img and video tags
-    matches = BeautifulSoup(body_html, 'lxml').find_all(['img', 'video'])
+    matches = BeautifulSoup(body_html, "html.parser").find_all(["img", "video"])
 
     for match in matches:
-        # data-canonical-src is set for assets hosted outside of github
-        data_canonical_src = match.get('data-canonical-src')
+        # Since we're searching for specific tag names, we can assert these are Tag objects
+        matched_tag = cast(Tag, match)
 
-        file_url = data_canonical_src if data_canonical_src else match.get('src')
-        if file_url is None:
+        # data-canonical-src is set for assets hosted outside of github
+        data_canonical_src = matched_tag.get("data-canonical-src")
+        file_url = data_canonical_src or matched_tag.get("src")
+
+        if not file_url:
             continue
 
-        file_ext = _get_file_extension_from_url(file_url)
+        file_url_str = cast(str, file_url)
+
+        file_ext = _get_file_extension_from_url(file_url_str)
         if file_ext not in _supported_file_extensions:
             logger.warning(f"Unsupported file extension: {file_ext}")
             continue
-        
+
         file_type = _file_extension_to_type[file_ext]
 
-        file_title: str = match.get('alt')
+        file_title = cast(Optional[str], matched_tag.get("alt"))
 
-        if file_title is None or file_title.strip() == "":
-            file_name = _get_file_name_from_signed_url(file_url)
+        if not file_title or not file_title.strip():
+            file_name = _get_file_name_from_signed_url(file_url_str)
         else:
             file_name = file_title + file_ext
 
         attachments.append(
-            AttachmentData(file_name=file_name, file_url=file_url, file_type=file_type)
+            AttachmentData(
+                file_name=file_name, file_url=file_url_str, file_type=file_type
+            )
         )
 
     return attachments
@@ -323,7 +333,7 @@ def create_attachments(body_html: str, task_id: str) -> None:
                     attachment.file_type,
                 )
         except Exception:
-           logger.warning("Attachment creation failed. Creating task comment anyway.")
+            logger.warning("Attachment creation failed. Creating task comment anyway.")
 
 
 _review_action_to_text_map: Dict[ReviewState, str] = {
