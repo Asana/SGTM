@@ -19,6 +19,9 @@ class Comment(object):
     def body(self) -> str:
         return self._raw["body"]
 
+    def body_html(self) -> str:
+        return self._raw["bodyHTML"]
+
     def author_handle(self) -> str:
         return self.author().login()
 

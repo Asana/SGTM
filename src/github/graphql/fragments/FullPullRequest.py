@@ -63,6 +63,7 @@ fragment FullPullRequest on PullRequest {
       }
       publishedAt
       body
+      bodyHTML
       url
     }
   }

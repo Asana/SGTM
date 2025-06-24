@@ -2,10 +2,7 @@ import boto3  # type: ignore
 import json
 from typing import List, Optional
 
-from src.config import (
-    AWS_REGION,
-    SQS_URL,
-)
+from src.config import SQS_URL, AWS_REGION
 from src.logger import logger
 
 

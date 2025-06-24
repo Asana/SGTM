@@ -21,7 +21,6 @@ from src.config import (
 
 GITHUB_USERNAME_MENTION_REGEX = r"\B@([A-Za-z0-9_\-]+)(?![A-Za-z0-9_\-]*/)"
 GITHUB_TEAM_MENTION_REGEX = r"\B@([a-zA-Z0-9_\-]+/[a-zA-Z0-9_\-]+)"
-GITHUB_ATTACHMENT_REGEX = r"!\[(.*?)\]\((.+?(\.png|\.jpg|\.jpeg|\.gif))"
 
 AUTOMERGE_COMMENT_WARNING_AFTER_TESTS_AND_APPROVAL = (
     "**:warning: Reviewer:** If you approve this PR, it will be auto-merged as soon as"

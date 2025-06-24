@@ -130,6 +130,9 @@ class PullRequest(object):
     def body(self) -> str:
         return self._raw["body"]
 
+    def body_html(self) -> str:
+        return self._raw["bodyHTML"]
+
     def set_body(self, body: str):
         self._raw = copy.deepcopy(self._raw)
         self._raw["body"] = copy.deepcopy(body)

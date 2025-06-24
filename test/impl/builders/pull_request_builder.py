@@ -26,6 +26,7 @@ class PullRequestBuilder(BuilderBaseClass):
             "id": create_uuid(),
             "number": pr_number,
             "body": body,
+            "bodyHTML": f"<p>{body}</p>",
             "baseRef": {
                 "name": create_uuid(),
                 "associatedPullRequests": {"totalCount": 0},
@@ -92,6 +93,7 @@ class PullRequestBuilder(BuilderBaseClass):
 
     def body(self, body: str):
         self.raw_pr["body"] = body
+        self.raw_pr["bodyHTML"] = f"<p>{body}</p>"
         return self
 
     def isInMergeQueue(self, is_in_merge_queue: bool):
