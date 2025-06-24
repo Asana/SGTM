@@ -140,10 +140,23 @@ class AsanaClient(object):
         attachment_content: str,
         attachment_name: str,
         attachment_type: Optional[str] = None,
-    ) -> None:
-        self.asana_api_client.attachments.create_on_task(
+    ) -> str:
+        """
+        Creates an attachment on a task and returns the attachment ID.
+        """
+        response = self.asana_api_client.attachments.create_on_task(
             task_id, attachment_content, attachment_name, attachment_type
         )
+        return response["gid"]
+
+    def delete_attachment(self, attachment_id: str) -> None:
+        """
+        Deletes an attachment by its ID.
+        """
+        validate_object_id(
+            attachment_id, "AsanaClient.delete_attachment requires an attachment_id"
+        )
+        self.asana_api_client.attachments.delete(attachment_id)
 
 
 def get_task(task_id: str) -> dict:
@@ -212,7 +225,17 @@ def create_attachment_on_task(
     attachment_content: str,
     attachment_name: str,
     attachment_type: Optional[str] = None,
-) -> None:
-    AsanaClient.singleton().create_attachment_on_task(
+) -> str:
+    """
+    Creates an attachment on a task and returns the attachment ID.
+    """
+    return AsanaClient.singleton().create_attachment_on_task(
         task_id, attachment_content, attachment_name, attachment_type
     )
+
+
+def delete_attachment(attachment_id: str) -> None:
+    """
+    Deletes an attachment by its ID.
+    """
+    AsanaClient.singleton().delete_attachment(attachment_id)

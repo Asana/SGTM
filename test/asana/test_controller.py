@@ -129,14 +129,14 @@ class TestUpsertGithubCommentToTask(BaseClass):
         return MagicMock(spec=Comment, id=MagicMock(return_value=id))
 
     @patch("src.asana.client.add_comment")
-    @patch("src.asana.helpers.create_attachments")
+    @patch("src.asana.helpers.sync_attachments")
     @patch(
         "src.aws.dynamodb_client.get_asana_id_from_github_node_id", return_value=None
     )
     def test_add_new_comment_if_not_found(
         self,
         get_asana_id_from_github_node_id_mock,
-        create_attachments_mock,
+        sync_attachments_mock,
         add_comment_mock,
         insert_github_node_to_asana_id_mapping_mock,
         task_followers_from_comment_mock,
@@ -158,10 +158,12 @@ class TestUpsertGithubCommentToTask(BaseClass):
         )
 
     @patch("src.asana.client.update_comment")
+    @patch("src.asana.helpers.sync_attachments")
     @patch("src.aws.dynamodb_client.get_asana_id_from_github_node_id")
     def test_updated_comment(
         self,
         get_asana_id_from_github_node_id_mock,
+        sync_attachments_mock,
         update_comment_mock,
         insert_github_node_to_asana_id_mapping_mock,
         task_followers_from_comment_mock,
