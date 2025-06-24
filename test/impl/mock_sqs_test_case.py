@@ -4,17 +4,14 @@ or other external resources.
 """
 
 import os
-
-# "Mock" the AWS credentials as they can't be mocked in Botocore currently
-os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
-os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
-# Set ENV to test so the config module provides proper test defaults
-os.environ.setdefault("ENV", "test")
-
 import boto3  # type: ignore
 from moto import mock_sqs  # type: ignore
 from src.config import AWS_REGION
 from .base_test_case_class import BaseClass
+
+# "Mock" the AWS credentials as they can't be mocked in Botocore currently
+os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
+os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
 
 
 @mock_sqs
