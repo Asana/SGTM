@@ -272,7 +272,7 @@ def _get_file_extension_from_url(url: str) -> str:
     return "." + url.split("?")[0].split(".")[-1]
 
 
-def _get_original_asset_id_from_url(url: str) -> Optional[str]:
+def _get_original_asset_id_from_url(url: str) -> str:
     """
     Extract original asset ID from a URL.
     For GitHub asset URLs, this extracts the UUID:
@@ -283,15 +283,14 @@ def _get_original_asset_id_from_url(url: str) -> Optional[str]:
     if "api.github.com/assets/" in url:
         # Extract the UUID from URLs like https://api.github.com/assets/long-unique-uuid.png?token=123321
         parts = url.split("/assets/")
-        if len(parts) >= 2:
-            asset_part = parts[1].split("?")[0]  # Remove query parameters
-            asset_id = asset_part.split(".")[0]  # Remove file extension
-            return asset_id
+
+        asset_id = parts[1].split(".")[0]  # Remove file extension and query params
+        return asset_id
     elif "github.com/user-attachments/assets/" in url:
         # Extract the UUID from URLs like https://github.com/user-attachments/assets/uuid-here
         parts = url.split("/assets/")
-        if len(parts) >= 2:
-            return parts[1].split("/")[0]  # Take the first part after /assets/
+
+        return parts[1].split("/")[0]  # Take the first part after /assets/
 
     # For non-GitHub URLs, use the entire URL as the asset ID
     return url
@@ -385,13 +384,13 @@ def sync_attachments(body_html: str, task_id: str, github_node_id: str) -> None:
             logger.warning(f"Failed to delete attachment {asana_attachment_id}: {e}")
 
     # Find attachments to create (exist in current content but not in DynamoDB)
-    assets_to_create = current_asset_ids - existing_asset_ids
+    to_be_created_asset_ids = current_asset_ids - existing_asset_ids
 
     # Build new attachments mapping from current content only
-    new_attachments = {}
+    new_attachments_map = {}
 
     for attachment in current_attachments:
-        if attachment.original_asset_id in assets_to_create:
+        if attachment.original_asset_id in to_be_created_asset_ids:
             # Create new attachment
             try:
                 with urllib.request.urlopen(attachment.file_url) as f:
@@ -402,7 +401,9 @@ def sync_attachments(body_html: str, task_id: str, github_node_id: str) -> None:
                         attachment.file_name,
                         attachment.file_type,
                     )
-                    new_attachments[attachment.original_asset_id] = asana_attachment_id
+                    new_attachments_map[
+                        attachment.original_asset_id
+                    ] = asana_attachment_id
                     logger.info(
                         f"Created attachment {asana_attachment_id} for asset {attachment.original_asset_id}"
                     )
@@ -412,12 +413,14 @@ def sync_attachments(body_html: str, task_id: str, github_node_id: str) -> None:
                 )
         elif attachment.original_asset_id in existing_attachments:
             # Keep existing attachment
-            new_attachments[attachment.original_asset_id] = existing_attachments[
+            new_attachments_map[attachment.original_asset_id] = existing_attachments[
                 attachment.original_asset_id
             ]
 
     # Update the attachments mapping in DynamoDB
-    dynamodb_client.update_attachments_for_github_node(github_node_id, new_attachments)
+    dynamodb_client.update_attachments_for_github_node(
+        github_node_id, new_attachments_map
+    )
 
 
 _review_action_to_text_map: Dict[ReviewState, str] = {
