@@ -25,7 +25,7 @@ from src.logger import logger
 from src.markdown_parser import convert_github_markdown_to_asana_xml
 
 AttachmentData = collections.namedtuple(
-    "AttachmentData", "file_name file_url file_type"
+    "AttachmentData", "file_name file_url file_type original_asset_id"
 )
 
 StatusReason = collections.namedtuple("StatusReason", "is_complete reason")
@@ -272,6 +272,30 @@ def _get_file_extension_from_url(url: str) -> str:
     return "." + url.split("?")[0].split(".")[-1]
 
 
+def _get_original_asset_id_from_url(url: str) -> str:
+    """
+    Extract original asset ID from a URL.
+    For GitHub asset URLs, this extracts the UUID:
+    - https://api.github.com/assets/long-unique-uuid.png?token=123321
+    - https://github.com/user-attachments/assets/uuid-here
+    For non-GitHub URLs, this returns the entire URL as the asset ID.
+    """
+    if "api.github.com/assets/" in url:
+        # Extract the UUID from URLs like https://api.github.com/assets/long-unique-uuid.png?token=123321
+        parts = url.split("/assets/")
+
+        asset_id = parts[1].split(".")[0]  # Remove file extension and query params
+        return asset_id
+    elif "github.com/user-attachments/assets/" in url:
+        # Extract the UUID from URLs like https://github.com/user-attachments/assets/uuid-here
+        parts = url.split("/assets/")
+
+        return parts[1].split("/")[0]  # Take the first part after /assets/
+
+    # For non-GitHub URLs, use the entire URL as the asset ID
+    return url
+
+
 def _extract_attachments(body_html: str) -> List[AttachmentData]:
     """
     Finds, but does not replace, all the image/video attachment URLs in the body_html. Handles:
@@ -311,29 +335,92 @@ def _extract_attachments(body_html: str) -> List[AttachmentData]:
         else:
             file_name = file_title + file_ext
 
+        # Extract original asset ID
+        original_asset_id = _get_original_asset_id_from_url(file_url_str)
+
         attachments.append(
             AttachmentData(
-                file_name=file_name, file_url=file_url_str, file_type=file_type
+                file_name=file_name,
+                file_url=file_url_str,
+                file_type=file_type,
+                original_asset_id=original_asset_id,
             )
         )
 
     return attachments
 
 
-def create_attachments(body_html: str, task_id: str) -> None:
-    attachments = _extract_attachments(body_html)
-    for attachment in attachments:
+def sync_attachments(body_html: str, task_id: str, github_node_id: str) -> None:
+    """
+    Syncs attachments between GitHub content and Asana task, tracking mappings in DynamoDB.
+    This will:
+    1. Extract current attachments from the GitHub HTML
+    2. Compare with existing tracked attachments for this GitHub node
+    3. Delete attachments that are no longer present
+    4. Create new attachments that aren't tracked
+    5. Update the DynamoDB mappings
+    """
+    current_attachments = _extract_attachments(body_html)
+    existing_attachments = dynamodb_client.get_attachments_for_github_node(
+        github_node_id
+    )
+
+    # Create sets for comparison
+    current_asset_ids = {
+        att.original_asset_id for att in current_attachments if att.original_asset_id
+    }
+    existing_asset_ids = set(existing_attachments.keys())
+
+    # Find attachments to delete (exist in DynamoDB but not in current content)
+    assets_to_delete = existing_asset_ids - current_asset_ids
+    for asset_id in assets_to_delete:
+        asana_attachment_id = existing_attachments[asset_id]
         try:
-            with urllib.request.urlopen(attachment.file_url) as f:
-                attachment_contents = f.read()
-                asana_client.create_attachment_on_task(
-                    task_id,
-                    attachment_contents,
-                    attachment.file_name,
-                    attachment.file_type,
+            asana_client.delete_attachment(asana_attachment_id)
+            logger.info(
+                f"Deleted attachment {asana_attachment_id} for asset {asset_id}"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to delete attachment {asana_attachment_id}: {e}")
+
+    # Find attachments to create (exist in current content but not in DynamoDB)
+    to_be_created_asset_ids = current_asset_ids - existing_asset_ids
+
+    # Build new attachments mapping from current content only
+    new_attachments_map = {}
+
+    for attachment in current_attachments:
+        if attachment.original_asset_id in to_be_created_asset_ids:
+            # Create new attachment
+            try:
+                with urllib.request.urlopen(attachment.file_url) as f:
+                    attachment_contents = f.read()
+                    asana_attachment_id = asana_client.create_attachment_on_task(
+                        task_id,
+                        attachment_contents,
+                        attachment.file_name,
+                        attachment.file_type,
+                    )
+                    new_attachments_map[
+                        attachment.original_asset_id
+                    ] = asana_attachment_id
+                    logger.info(
+                        f"Created attachment {asana_attachment_id} for asset {attachment.original_asset_id}"
+                    )
+            except Exception as e:
+                logger.warning(
+                    f"Attachment creation failed for {attachment.original_asset_id}: {e}"
                 )
-        except Exception:
-            logger.warning("Attachment creation failed. Creating task comment anyway.")
+        elif attachment.original_asset_id in existing_attachments:
+            # Keep existing attachment
+            new_attachments_map[attachment.original_asset_id] = existing_attachments[
+                attachment.original_asset_id
+            ]
+
+    # Update the attachments mapping in DynamoDB
+    dynamodb_client.update_attachments_for_github_node(
+        github_node_id, new_attachments_map
+    )
 
 
 _review_action_to_text_map: Dict[ReviewState, str] = {

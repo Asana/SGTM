@@ -1,5 +1,6 @@
 import boto3  # type: ignore
-from typing import TypedDict, List, Optional, Tuple
+import json
+from typing import TypedDict, List, Optional, Tuple, Dict
 
 from src.config import OBJECTS_TABLE, AWS_REGION
 from src.logger import logger
@@ -78,7 +79,7 @@ class DynamoDbClient(object):
         response = self.client.get_item(
             TableName=OBJECTS_TABLE, Key={"github-node": {"S": gh_node_id}}
         )
-        if "Item" in response:
+        if "Item" in response and "asana-id" in response["Item"]:
             return response["Item"]["asana-id"]["S"]
         else:
             logger.warning(
@@ -113,6 +114,50 @@ class DynamoDbClient(object):
             for gh_node_id, asana_id in gh_and_asana_ids
         ]
         return self.bulk_insert_items_in_batches(OBJECTS_TABLE, items)
+
+    # ATTACHMENT METHODS
+
+    def get_attachments_for_github_node(self, gh_node_id: str) -> Dict[str, str]:
+        """
+        Retrieves the attachment mappings (original asset ID -> Asana attachment ID) for a GitHub node.
+        Returns an empty dict if no attachments are found.
+        """
+        response = self.client.get_item(
+            TableName=OBJECTS_TABLE, Key={"github-node": {"S": gh_node_id}}
+        )
+        if "Item" in response and "attachments" in response["Item"]:
+            try:
+                attachments_json = response["Item"]["attachments"]["S"]
+                return json.loads(attachments_json)
+            except (json.JSONDecodeError, KeyError) as e:
+                logger.warning(f"Failed to parse attachments for {gh_node_id}: {e}")
+                return {}
+        return {}
+
+    def update_attachments_for_github_node(
+        self, gh_node_id: str, attachments: Dict[str, str]
+    ):
+        """
+        Updates the attachment mappings for a GitHub node. Creates the record if it doesn't exist.
+        """
+        attachments_json = json.dumps(attachments)
+
+        response = self.client.update_item(
+            TableName=OBJECTS_TABLE,
+            Key={"github-node": {"S": gh_node_id}},
+            UpdateExpression="SET attachments = :attachments",
+            ExpressionAttributeValues={":attachments": {"S": attachments_json}},
+            ReturnValues="UPDATED_NEW",
+        )
+
+        if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
+            logger.info(
+                f"Updated attachments for {gh_node_id}: {len(attachments)} mappings"
+            )
+        else:
+            logger.warning(
+                f"Error updating attachments for {gh_node_id}, response {response}"
+            )
 
     @staticmethod
     def _create_client():
@@ -151,4 +196,23 @@ def bulk_insert_github_node_to_asana_id_mapping(
     """
     DynamoDbClient.singleton().bulk_insert_github_node_to_asana_id_mapping(
         gh_and_asana_ids
+    )
+
+
+# Attachment convenience functions
+
+
+def get_attachments_for_github_node(gh_node_id: str) -> Dict[str, str]:
+    """
+    Retrieves the attachment mappings (original asset ID -> Asana attachment ID) for a GitHub node.
+    """
+    return DynamoDbClient.singleton().get_attachments_for_github_node(gh_node_id)
+
+
+def update_attachments_for_github_node(gh_node_id: str, attachments: Dict[str, str]):
+    """
+    Updates the attachment mappings for a GitHub node.
+    """
+    return DynamoDbClient.singleton().update_attachments_for_github_node(
+        gh_node_id, attachments
     )
