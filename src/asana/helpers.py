@@ -1,17 +1,21 @@
 import re
 import collections
 import urllib.request
+from urllib.parse import urlparse
 from bs4 import BeautifulSoup, Tag
 from datetime import datetime, timedelta
 from html import escape
-from typing import Callable, Match, Optional, List, Dict, Set, Union, cast
+from typing import Callable, Match, Optional, List, Dict, Set, cast
 
 import src.asana.client as asana_client
 import src.asana.logic as asana_logic
 import src.github.logic as github_logic
 import src.aws.dynamodb_client as dynamodb_client
 import src.aws.s3_client as s3_client
-from src.config import GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH
+from src.config import (
+    GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH,
+    EXCLUDED_ATTACHMENT_SOURCES_URLS,
+)
 from src.github.models import (
     Comment,
     PullRequest,
@@ -272,6 +276,29 @@ def _get_file_extension_from_url(url: str) -> str:
     return "." + url.split("?")[0].split(".")[-1]
 
 
+def _is_url_excluded(url: str) -> bool:
+    """
+    Returns True if the URL's host matches any value in EXCLUDED_ATTACHMENT_SOURCES_URLS.
+    Matching is done by suffix on the netloc (case-insensitive) to handle subdomains.
+    Falls back to substring match if netloc is empty.
+    """
+    try:
+        netloc = urlparse(url).netloc.lower()
+    except Exception:
+        netloc = ""
+
+    if netloc:
+        for excluded_host in EXCLUDED_ATTACHMENT_SOURCES_URLS:
+            if netloc.endswith(excluded_host.lower()):
+                return True
+    else:
+        lowered_url = url.lower()
+        for excluded_host in EXCLUDED_ATTACHMENT_SOURCES_URLS:
+            if excluded_host.lower() in lowered_url:
+                return True
+    return False
+
+
 def _extract_attachments(body_html: str) -> List[AttachmentData]:
     """
     Finds, but does not replace, all the image/video attachment URLs in the body_html. Handles:
@@ -296,6 +323,10 @@ def _extract_attachments(body_html: str) -> List[AttachmentData]:
             continue
 
         file_url_str = cast(str, file_url)
+
+        # Skip URLs from excluded sources
+        if _is_url_excluded(file_url_str):
+            continue
 
         file_ext = _get_file_extension_from_url(file_url_str)
         if file_ext not in _supported_file_extensions:

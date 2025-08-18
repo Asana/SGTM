@@ -21,6 +21,7 @@ GITHUB_APP_INSTALLATION_ACCESS_TOKEN_RETRIEVAL_URL = os.getenv(
     "GITHUB_APP_INSTALLATION_ACCESS_TOKEN_RETRIEVAL_URL", None
 )
 
+EXCLUDED_ATTACHMENT_SOURCES_URLS = ["static.graphite.dev"]
 
 # Feature flags
 def is_feature_flag_enabled(flag_name: str) -> bool:
