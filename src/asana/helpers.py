@@ -14,7 +14,7 @@ import src.aws.dynamodb_client as dynamodb_client
 import src.aws.s3_client as s3_client
 from src.config import (
     GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH,
-    EXCLUDED_ATTACHMENT_SOURCES_URLS,
+    SGTM_FEATURE__EXCLUDED_ATTACHMENT_SOURCES_URLS,
 )
 from src.github.models import (
     Comment,
@@ -278,7 +278,7 @@ def _get_file_extension_from_url(url: str) -> str:
 
 def _is_url_excluded(url: str) -> bool:
     """
-    Returns True if the URL's host matches any value in EXCLUDED_ATTACHMENT_SOURCES_URLS.
+    Returns True if the URL's host matches any value in SGTM_FEATURE__EXCLUDED_ATTACHMENT_SOURCES_URLS.
     Matching is done by suffix on the netloc (case-insensitive) to handle subdomains.
     Falls back to substring match if netloc is empty.
     """
@@ -288,12 +288,12 @@ def _is_url_excluded(url: str) -> bool:
         netloc = ""
 
     if netloc:
-        for excluded_host in EXCLUDED_ATTACHMENT_SOURCES_URLS:
+        for excluded_host in SGTM_FEATURE__EXCLUDED_ATTACHMENT_SOURCES_URLS:
             if netloc.endswith(excluded_host.lower()):
                 return True
     else:
         lowered_url = url.lower()
-        for excluded_host in EXCLUDED_ATTACHMENT_SOURCES_URLS:
+        for excluded_host in SGTM_FEATURE__EXCLUDED_ATTACHMENT_SOURCES_URLS:
             if excluded_host.lower() in lowered_url:
                 return True
     return False
