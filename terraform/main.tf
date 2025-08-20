@@ -67,6 +67,7 @@ module "sgtm-prod" {
   sgtm_feature__autocomplete_enabled             = var.sgtm_feature__autocomplete_enabled
   sgtm_feature__automerge_enabled                = var.sgtm_feature__automerge_enabled
   sgtm_feature__automerge_disabled_repositories  = var.sgtm_feature__automerge_disabled_repositories
+  sgtm_feature__excluded_attachment_sources_urls = var.sgtm_feature__excluded_attachment_sources_urls
   sgtm_feature__disable_github_team_subscription = var.sgtm_feature__disable_github_team_subscription
   sgtm_feature__followup_review_github_users     = var.sgtm_feature__followup_review_github_users
 
@@ -111,6 +112,7 @@ module "sgtm-staging" {
   sgtm_feature__autocomplete_enabled             = var.sgtm_feature__autocomplete_enabled
   sgtm_feature__automerge_enabled                = var.sgtm_feature__automerge_enabled
   sgtm_feature__automerge_disabled_repositories  = var.sgtm_feature__automerge_disabled_repositories
+  sgtm_feature__excluded_attachment_sources_urls = var.sgtm_feature__excluded_attachment_sources_urls
   sgtm_feature__disable_github_team_subscription = var.sgtm_feature__disable_github_team_subscription
   sgtm_feature__followup_review_github_users     = var.sgtm_feature__followup_review_github_users
 
