@@ -74,6 +74,12 @@ variable "sgtm_feature__automerge_disabled_repositories" {
   default     = ""
 }
 
+variable "sgtm_feature__excluded_attachment_sources_urls" {
+  type        = string
+  description = "A comma-separated list of URL hosts or substrings for which attachments should be excluded (e.g. example.com, sub.domain.com)."
+  default     = ""
+}
+
 variable "sgtm_feature__autocomplete_enabled" {
   type        = string
   description = "'true' if behavior to autocomplete linked tasks with Github labels is enabled"

@@ -35,6 +35,14 @@ class TestExtractAttachments(BaseClass):
             ],
         )
 
+    def test_extract_attachments_with_excluded_source_url(self):
+        github_html = (
+            "Ok here's the first: <img src='https://excludedsource.test.com/this.png' alt='photo' /> and "
+            "the second: <img src='https://excludedsource.test.com/this.gif' alt='photo' />"
+        )
+        attachments = asana_helpers._extract_attachments(github_html)
+        self.assertListEqual(attachments, [])
+
     def test_extract_attachments_with_double_extensions(self):
         github_html = (
             'Ok here\'s the first: <img src="www.photopng.com/this.png/this-small.png" alt="photo" /> and the'

@@ -21,7 +21,6 @@ GITHUB_APP_INSTALLATION_ACCESS_TOKEN_RETRIEVAL_URL = os.getenv(
     "GITHUB_APP_INSTALLATION_ACCESS_TOKEN_RETRIEVAL_URL", None
 )
 
-
 # Feature flags
 def is_feature_flag_enabled(flag_name: str) -> bool:
     return os.getenv(flag_name) == "true"
@@ -35,6 +34,12 @@ SGTM_FEATURE__AUTOMERGE_ENABLED = is_feature_flag_enabled(
 )
 SGTM_FEATURE__AUTOMERGE_DISABLED_REPOSITORIES = set(
     os.getenv("SGTM_FEATURE__AUTOMERGE_DISABLED_REPOSITORIES", "").split(",")
+)
+SGTM_FEATURE__EXCLUDED_ATTACHMENT_SOURCES_URLS = set(
+    os.getenv(
+        "SGTM_FEATURE__EXCLUDED_ATTACHMENT_SOURCES_URLS",
+        "",
+    ).split(",")
 )
 SGTM_FEATURE__DISABLE_GITHUB_TEAM_SUBSCRIPTION = is_feature_flag_enabled(
     "SGTM_FEATURE__DISABLE_GITHUB_TEAM_SUBSCRIPTION"
@@ -66,6 +71,7 @@ if ENV == "test":
     ASANA_API_KEY = "asana-test-key"
     GITHUB_API_KEY = "github-test-key"
     GITHUB_HMAC_SECRET = "github-test-secret"
+    SGTM_FEATURE__EXCLUDED_ATTACHMENT_SOURCES_URLS = set(["excludedsource.test.com"])
 elif __api_keys_s3_bucket and __api_keys_s3_key:
     # This means that we are running in a production environment, and we should
     # retrieve the API keys from the S3 bucket.
