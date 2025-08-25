@@ -167,6 +167,17 @@ By default SGTM will assign the task corresponding to the PR to the assignee on 
 * Set an env variable of `TF_VAR_sgtm_feature__allow_persistent_task_assignee` to `true`
 * Ensure that the PR has the `persistent task assignee` Github label attached to the PR.
 
+### Sync GitHub labels to Asana custom field
+SGTM can automatically sync GitHub labels from pull requests to a multi-select custom field in Asana. This allows you to track and filter PR tasks based on their GitHub labels (e.g., bug fixes, enhancements, documentation updates).
+
+**How to configure**:
+* Set an env variable of `TF_VAR_sgtm_feature__sync_github_labels_enabled` to `true`
+* In your Asana project, create a multi-select custom field with a name that starts with "Labels (SGTM)" (e.g., "Labels (SGTM) MyRepo")
+* Add enum options to the custom field that match the names of the GitHub labels you want to sync
+* When a PR has labels, they will be automatically synced to the Asana task. 
+
+*Note*: Only labels that have corresponding enabled options in the Asana custom field will be synced. If a GitHub label doesn't have a matching option in the custom field, it will be ignored.
+
 ## Installing a Virtual Environment for Python
 
 We recommend using `pipenv` to manage your python environment for SGTM. We've checked in a `Pipfile` and `Pipfile.lock` to make this easier for you. If you have `pipenv` installed, `cd` into the SGTM directory, and run `pipenv install` to install all dependencies. If you don't have `pipenv` installed, you can install it via `pip install pipenv`.

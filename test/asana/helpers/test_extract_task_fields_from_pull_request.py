@@ -76,6 +76,30 @@ def get_custom_fields(fields_to_disable: List[str]):
                 ],
             )
         },
+        {
+            "custom_field": CustomFieldSettingForTests(
+                name="Labels (SGTM) Hello",
+                gid="labels_sgtm",
+                resource_subtype="multi_enum",
+                enum_options=[
+                    EnumOptionSettingsForTests(
+                        name="bug",
+                        gid="bug_label",
+                        enabled="bug" not in fields_to_disable,
+                    ),
+                    EnumOptionSettingsForTests(
+                        name="enhancement",
+                        gid="enhancement_label",
+                        enabled="enhancement" not in fields_to_disable,
+                    ),
+                    EnumOptionSettingsForTests(
+                        name="documentation",
+                        gid="documentation_label",
+                        enabled="documentation" not in fields_to_disable,
+                    ),
+                ],
+            )
+        },
     ]
 
 
@@ -1032,6 +1056,62 @@ class TestExtractsCustomFieldsFromPullRequest(BaseClass):
         )
 
         self.assertNotIn("pr_status", task_fields["custom_fields"])
+
+    @patch("src.config.SGTM_FEATURE__SYNC_GITHUB_LABELS_ENABLED", True)
+    @patch(
+        "src.asana.client.get_project_custom_fields", return_value=get_custom_fields([])
+    )
+    def test_labels_sgtm_field_set_when_feature_enabled_and_labels_exist(
+        self, get_asana_id_from_github_node_id, get_project_custom_fields
+    ):
+        pull_request = build(
+            builder.pull_request().labels(
+                [builder.label().name("bug"), builder.label().name("enhancement")]
+            )
+        )
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+
+        self.assertIn("labels_sgtm", task_fields["custom_fields"])
+        self.assertIn("bug_label", task_fields["custom_fields"]["labels_sgtm"])
+        self.assertIn("enhancement_label", task_fields["custom_fields"]["labels_sgtm"])
+        self.assertNotIn(
+            "documentation_label", task_fields["custom_fields"]["labels_sgtm"]
+        )
+
+    @patch("src.config.SGTM_FEATURE__SYNC_GITHUB_LABELS_ENABLED", False)
+    @patch(
+        "src.asana.client.get_project_custom_fields", return_value=get_custom_fields([])
+    )
+    def test_labels_sgtm_field_not_set_when_feature_disabled(
+        self, get_asana_id_from_github_node_id, get_project_custom_fields
+    ):
+        pull_request = build(
+            builder.pull_request().labels(
+                [builder.label().name("bug"), builder.label().name("enhancement")]
+            )
+        )
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+
+        self.assertNotIn("labels_sgtm", task_fields["custom_fields"])
+
+    @patch("src.config.SGTM_FEATURE__SYNC_GITHUB_LABELS_ENABLED", True)
+    @patch(
+        "src.asana.client.get_project_custom_fields", return_value=get_custom_fields([])
+    )
+    def test_labels_sgtm_field_not_set_when_no_labels(
+        self, get_asana_id_from_github_node_id, get_project_custom_fields
+    ):
+        pull_request = build(builder.pull_request().labels([]))
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+
+        self.assertIn("labels_sgtm", task_fields["custom_fields"])
+        self.assertEqual([], task_fields["custom_fields"]["labels_sgtm"])
 
 
 if __name__ == "__main__":

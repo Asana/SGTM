@@ -110,6 +110,12 @@ variable "sgtm_feature__followup_review_github_users" {
   default     = ""
 }
 
+variable "sgtm_feature__sync_github_labels_enabled" {
+  type        = string
+  description = "'true' if behavior to sync GitHub labels to 'Labels (SGTM)' custom field is enabled"
+  default     = "false"
+}
+
 variable "github_app_name" {
   type        = string
   default     = null

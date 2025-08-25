@@ -55,6 +55,10 @@ SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS = {
     if github_username
 }
 
+SGTM_FEATURE__SYNC_GITHUB_LABELS_ENABLED = is_feature_flag_enabled(
+    "SGTM_FEATURE__SYNC_GITHUB_LABELS_ENABLED"
+)
+
 
 #### Particularly sensitive variables are retrieved from an S3 bucket, instead of
 # from terraform-set environment variables. When SGTM is being manually tested,

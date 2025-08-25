@@ -5,17 +5,15 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup, Tag
 from datetime import datetime, timedelta
 from html import escape
-from typing import Callable, Match, Optional, List, Dict, Set, cast
+from typing import Callable, Match, Optional, List, Dict, Set, cast, Union
+from dataclasses import dataclass
 
 import src.asana.client as asana_client
 import src.asana.logic as asana_logic
 import src.github.logic as github_logic
 import src.aws.dynamodb_client as dynamodb_client
 import src.aws.s3_client as s3_client
-from src.config import (
-    GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH,
-    SGTM_FEATURE__EXCLUDED_ATTACHMENT_SOURCES_URLS,
-)
+import src.config as config
 from src.github.models import (
     Comment,
     PullRequest,
@@ -33,6 +31,63 @@ AttachmentData = collections.namedtuple(
 )
 
 StatusReason = collections.namedtuple("StatusReason", "is_complete reason")
+
+
+@dataclass
+class CustomField:
+    """
+    Represents a custom field mapping configuration for syncing GitHub PR data to Asana.
+
+    Attributes:
+        matcher: A callable that takes a custom field name and returns True if this field should be processed
+        extractor: A callable that takes a PullRequest and returns the value to sync to the field
+        is_enabled: A callable that returns True if this field should be processed (default: always True)
+    """
+
+    matcher: Callable[[str], bool]
+    extractor: Callable[[PullRequest], Union[str, List[str], None]]
+    is_enabled: Callable[[], bool] = lambda: True
+
+    def matches(self, custom_field_name: str) -> bool:
+        """
+        Determines if this CustomField configuration matches the given custom field name.
+
+        Args:
+            custom_field_name: The name of the custom field to check
+
+        Returns:
+            True if this configuration should process the field, False otherwise
+        """
+        if not self.is_enabled():
+            return False
+
+        return self.matcher(custom_field_name)
+
+    @staticmethod
+    def exact_match(field_name: str) -> Callable[[str], bool]:
+        """
+        Creates a matcher function for exact field name matching.
+
+        Args:
+            field_name: The exact name of the field to match
+
+        Returns:
+            A matcher function that returns True only for exact matches
+        """
+        return lambda name: name == field_name
+
+    @staticmethod
+    def starts_with_match(prefix: str) -> Callable[[str], bool]:
+        """
+        Creates a matcher function for prefix matching.
+
+        Args:
+            prefix: The prefix to match against field names
+
+        Returns:
+            A matcher function that returns True if the name starts with the prefix
+        """
+        return lambda name: name.startswith(prefix)
 
 
 def task_url_from_task_id(task_id: str) -> str:
@@ -112,26 +167,57 @@ def _build_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
     return build_status.capitalize() if build_status is not None else None
 
 
+def _github_labels_from_pull_request(pull_request: PullRequest) -> List[str]:
+    """
+    Extracts GitHub labels from a pull request and returns them as a list of label names.
+    """
+
+    labels = pull_request.labels()
+    if not labels:
+        return []
+
+    return [label.name() for label in labels]
+
+
 def _author_asana_user_id_from_pull_request(pull_request: PullRequest) -> Optional[str]:
     return s3_client.get_asana_domain_user_id_from_github_handle(
         pull_request.author_handle()
     )
 
 
-_custom_fields_to_extract_map = {
-    "PR Status": _task_status_from_pull_request,
-    "Build": _build_status_from_pull_request,
-    "Author (SGTM)": _author_asana_user_id_from_pull_request,
-    "Review Status": _review_status_from_pull_request,
-}
+_custom_fields_to_extract = [
+    CustomField(
+        matcher=CustomField.exact_match("PR Status"),
+        extractor=_task_status_from_pull_request,
+    ),
+    CustomField(
+        matcher=CustomField.exact_match("Build"),
+        extractor=_build_status_from_pull_request,
+    ),
+    CustomField(
+        matcher=CustomField.exact_match("Author (SGTM)"),
+        extractor=_author_asana_user_id_from_pull_request,
+    ),
+    CustomField(
+        matcher=CustomField.exact_match("Review Status"),
+        extractor=_review_status_from_pull_request,
+    ),
+    CustomField(
+        matcher=CustomField.starts_with_match("Labels (SGTM)"),
+        is_enabled=lambda: config.SGTM_FEATURE__SYNC_GITHUB_LABELS_ENABLED,
+        extractor=_github_labels_from_pull_request,
+    ),
+]
 
 
 def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
     """
-    We currently expect the project to have three custom fields with its corresponding enum options:
+    We currently expect the project to have custom fields with their corresponding enum options:
         • PR Status: "Open", "Draft", "Closed", "Queued", "Merged"
         • Build: "Success", "Failure"
         • Review Status: "Needs Review", "Changes Requested", "Approved", "Not Ready"
+    Optionally, the project may have a "Labels (SGTM)" multi-select field that syncs GitHub labels (when this feature is enabled).
+        The field name must start with "Labels (SGTM)" (e.g., "Labels (SGTM) [my-repo-name]")
     """
     repository_id = pull_request.repository_id()
     project_id = dynamodb_client.get_asana_id_from_github_node_id(repository_id)
@@ -144,32 +230,55 @@ def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
             cf["custom_field"]["name"]: cf["custom_field"]
             for cf in asana_client.get_project_custom_fields(project_id)
         }
+
         data = {}
-        for custom_field_name, action in _custom_fields_to_extract_map.items():
-            if custom_field_name not in custom_field_map:
-                continue
+        for custom_field_config in _custom_fields_to_extract:
+            # Find all matching fields for this configuration
+            matching_fields = [
+                (name, field)
+                for name, field in custom_field_map.items()
+                if custom_field_config.matches(name)
+            ]
 
-            custom_field = custom_field_map[custom_field_name]
-            value_name = action(pull_request)
+            # Process each matching field
+            for field_name, custom_field in matching_fields:
+                value_name = custom_field_config.extractor(pull_request)
 
-            if value_name:
                 custom_field_id = custom_field["gid"]
                 custom_field_value = _get_custom_field_value(custom_field, value_name)
-                if custom_field_value:
+                if custom_field_value is not None:
                     data[custom_field_id] = custom_field_value
 
         return data
 
 
-def _get_custom_field_value(custom_field: dict, value_name: str) -> Optional[str]:
+def _get_custom_field_value(
+    custom_field: dict, value_name: Union[str, List[str], None]
+) -> Optional[Union[str, List[str]]]:
+    if value_name is None:
+        return None
+
     if custom_field["resource_subtype"] == "enum":
         enum_options = custom_field["enum_options"]
-        filtered_gid = [
+        filtered_gids = [
             enum_option["gid"]
             for enum_option in enum_options
             if enum_option["name"] == value_name and enum_option["enabled"]
         ]
-        return filtered_gid[0] if filtered_gid else None
+        return filtered_gids[0] if filtered_gids else None
+
+    elif custom_field["resource_subtype"] == "multi_enum":
+        enum_options = custom_field["enum_options"]
+        filtered_gids = []
+        for value in value_name:
+            matching_options = [
+                enum_option["gid"]
+                for enum_option in enum_options
+                if enum_option["name"] == value and enum_option["enabled"]
+            ]
+            if matching_options:
+                filtered_gids.append(matching_options[0])
+        return filtered_gids
     else:
         return value_name
 
@@ -288,12 +397,12 @@ def _is_url_excluded(url: str) -> bool:
         netloc = ""
 
     if netloc:
-        for excluded_host in SGTM_FEATURE__EXCLUDED_ATTACHMENT_SOURCES_URLS:
+        for excluded_host in config.SGTM_FEATURE__EXCLUDED_ATTACHMENT_SOURCES_URLS:
             if netloc.endswith(excluded_host.lower()):
                 return True
     else:
         lowered_url = url.lower()
-        for excluded_host in SGTM_FEATURE__EXCLUDED_ATTACHMENT_SOURCES_URLS:
+        for excluded_host in config.SGTM_FEATURE__EXCLUDED_ATTACHMENT_SOURCES_URLS:
             if excluded_host.lower() in lowered_url:
                 return True
     return False
@@ -572,7 +681,7 @@ def _task_followers_from_gh_handles(gh_handles: List[str]) -> List[str]:
     ]
     if len(followers) == 0:
         logger.warning(
-            f"No asana followers found for github users {gh_handles}. This list likely includes bots or users that are not in your {GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH}. Consider adding them to silence this warning."
+            f"No asana followers found for github users {gh_handles}. This list likely includes bots or users that are not in your {config.GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH}. Consider adding them to silence this warning."
         )
     return followers
 
