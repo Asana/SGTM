@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup, Tag
 from datetime import datetime, timedelta
 from html import escape
 from typing import Callable, Match, Optional, List, Dict, Set, cast, Union
+from dataclasses import dataclass
 
 import src.asana.client as asana_client
 import src.asana.logic as asana_logic
@@ -30,6 +31,63 @@ AttachmentData = collections.namedtuple(
 )
 
 StatusReason = collections.namedtuple("StatusReason", "is_complete reason")
+
+
+@dataclass
+class CustomField:
+    """
+    Represents a custom field mapping configuration for syncing GitHub PR data to Asana.
+
+    Attributes:
+        matcher: A callable that takes a custom field name and returns True if this field should be processed
+        extractor: A callable that takes a PullRequest and returns the value to sync to the field
+        is_enabled: A callable that returns True if this field should be processed (default: always True)
+    """
+
+    matcher: Callable[[str], bool]
+    extractor: Callable[[PullRequest], Union[str, List[str], None]]
+    is_enabled: Callable[[], bool] = lambda: True
+
+    def matches(self, custom_field_name: str) -> bool:
+        """
+        Determines if this CustomField configuration matches the given custom field name.
+
+        Args:
+            custom_field_name: The name of the custom field to check
+
+        Returns:
+            True if this configuration should process the field, False otherwise
+        """
+        if not self.is_enabled():
+            return False
+
+        return self.matcher(custom_field_name)
+
+    @staticmethod
+    def exact_match(field_name: str) -> Callable[[str], bool]:
+        """
+        Creates a matcher function for exact field name matching.
+
+        Args:
+            field_name: The exact name of the field to match
+
+        Returns:
+            A matcher function that returns True only for exact matches
+        """
+        return lambda name: name == field_name
+
+    @staticmethod
+    def starts_with_match(prefix: str) -> Callable[[str], bool]:
+        """
+        Creates a matcher function for prefix matching.
+
+        Args:
+            prefix: The prefix to match against field names
+
+        Returns:
+            A matcher function that returns True if the name starts with the prefix
+        """
+        return lambda name: name.startswith(prefix)
 
 
 def task_url_from_task_id(task_id: str) -> str:
@@ -127,24 +185,29 @@ def _author_asana_user_id_from_pull_request(pull_request: PullRequest) -> Option
     )
 
 
-def _labels_sgtm_field_matcher(custom_field_name: str) -> bool:
-    """
-    Checks if a custom field name starts with "Labels (SGTM)" and if the feature is enabled.
-    This allows for flexible naming like "Labels (SGTM) [my-repo-name]".
-    """
-    return (
-        config.SGTM_FEATURE__SYNC_GITHUB_LABELS_ENABLED
-        and custom_field_name.startswith("Labels (SGTM)")
-    )
-
-
-_custom_fields_to_extract_map = {
-    "PR Status": _task_status_from_pull_request,
-    "Build": _build_status_from_pull_request,
-    "Author (SGTM)": _author_asana_user_id_from_pull_request,
-    "Review Status": _review_status_from_pull_request,
-    _labels_sgtm_field_matcher: _github_labels_from_pull_request,
-}
+_custom_fields_to_extract = [
+    CustomField(
+        matcher=CustomField.exact_match("PR Status"),
+        extractor=_task_status_from_pull_request,
+    ),
+    CustomField(
+        matcher=CustomField.exact_match("Build"),
+        extractor=_build_status_from_pull_request,
+    ),
+    CustomField(
+        matcher=CustomField.exact_match("Author (SGTM)"),
+        extractor=_author_asana_user_id_from_pull_request,
+    ),
+    CustomField(
+        matcher=CustomField.exact_match("Review Status"),
+        extractor=_review_status_from_pull_request,
+    ),
+    CustomField(
+        matcher=CustomField.starts_with_match("Labels (SGTM)"),
+        is_enabled=lambda: config.SGTM_FEATURE__SYNC_GITHUB_LABELS_ENABLED,
+        extractor=_github_labels_from_pull_request,
+    ),
+]
 
 
 def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
@@ -169,26 +232,17 @@ def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
         }
 
         data = {}
-        for custom_field_name, action in _custom_fields_to_extract_map.items():
-            # Handle both string and function-based field matching
-            if callable(custom_field_name):
-                # Function-based matching (e.g., for Labels (SGTM))
-                matching_fields = [
-                    (name, field)
-                    for name, field in custom_field_map.items()
-                    if custom_field_name(name)
-                ]
-            else:
-                # String-based exact matching (e.g., for "PR Status")
-                if custom_field_name not in custom_field_map:
-                    continue
-                matching_fields = [
-                    (custom_field_name, custom_field_map[custom_field_name])
-                ]
+        for custom_field_config in _custom_fields_to_extract:
+            # Find all matching fields for this configuration
+            matching_fields = [
+                (name, field)
+                for name, field in custom_field_map.items()
+                if custom_field_config.matches(name)
+            ]
 
             # Process each matching field
             for field_name, custom_field in matching_fields:
-                value_name = action(pull_request)
+                value_name = custom_field_config.extractor(pull_request)
 
                 custom_field_id = custom_field["gid"]
                 custom_field_value = _get_custom_field_value(custom_field, value_name)
@@ -216,11 +270,11 @@ def _get_custom_field_value(
     elif custom_field["resource_subtype"] == "multi_enum":
         enum_options = custom_field["enum_options"]
         filtered_gids = []
-        for label_name in value_name:
+        for value in value_name:
             matching_options = [
                 enum_option["gid"]
                 for enum_option in enum_options
-                if enum_option["name"] == label_name and enum_option["enabled"]
+                if enum_option["name"] == value and enum_option["enabled"]
             ]
             if matching_options:
                 filtered_gids.append(matching_options[0])
