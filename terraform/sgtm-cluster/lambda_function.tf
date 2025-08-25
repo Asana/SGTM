@@ -26,6 +26,7 @@ resource "aws_lambda_function" "sgtm" {
       SGTM_FEATURE__ALLOW_PERSISTENT_TASK_ASSIGNEE   = var.sgtm_feature__allow_persistent_task_assignee,
       SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS     = var.sgtm_feature__followup_review_github_users,
       SGTM_FEATURE__EXCLUDED_ATTACHMENT_SOURCES_URLS = var.sgtm_feature__excluded_attachment_sources_urls,
+      SGTM_FEATURE__SYNC_GITHUB_LABELS_ENABLED       = var.sgtm_feature__sync_github_labels_enabled,
 
       # github usernames to asana IDs mapping
       GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH = var.github_usernames_to_asana_gids_s3_path

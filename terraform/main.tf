@@ -70,6 +70,7 @@ module "sgtm-prod" {
   sgtm_feature__excluded_attachment_sources_urls = var.sgtm_feature__excluded_attachment_sources_urls
   sgtm_feature__disable_github_team_subscription = var.sgtm_feature__disable_github_team_subscription
   sgtm_feature__followup_review_github_users     = var.sgtm_feature__followup_review_github_users
+  sgtm_feature__sync_github_labels_enabled       = var.sgtm_feature__sync_github_labels_enabled
 
   # API Gateway configuration
   sgtm_rest_api_id               = aws_api_gateway_rest_api.sgtm_rest_api.id
@@ -115,6 +116,7 @@ module "sgtm-staging" {
   sgtm_feature__excluded_attachment_sources_urls = var.sgtm_feature__excluded_attachment_sources_urls
   sgtm_feature__disable_github_team_subscription = var.sgtm_feature__disable_github_team_subscription
   sgtm_feature__followup_review_github_users     = var.sgtm_feature__followup_review_github_users
+  sgtm_feature__sync_github_labels_enabled       = var.sgtm_feature__sync_github_labels_enabled
 
   # API Gateway configuration
   sgtm_rest_api_id               = aws_api_gateway_rest_api.sgtm_rest_api.id
