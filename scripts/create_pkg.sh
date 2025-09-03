@@ -22,7 +22,7 @@ echo "Creating deployment package..."
 
 # install dependencies into a temporary directory other than $dist_dir_name
 # shellcheck disable=SC2154
-temp_dir=tmp"$cluster_suffix"
+temp_dir=tmp"$cluster"
 mkdir -p "$temp_dir"
 pipenv run pip install -r <(pipenv requirements) --platform manylinux2014_x86_64 --only-binary=:all: --target "$temp_dir"
 

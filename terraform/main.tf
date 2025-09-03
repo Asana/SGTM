@@ -2,8 +2,6 @@ provider "aws" {
   region = var.aws_region
 }
 
-
-
 import {
   to = module.sgtm-prod.aws_cloudwatch_log_group.main
   id = "/aws/lambda/sgtm"
@@ -86,7 +84,7 @@ module "sgtm-prod" {
 
 module "sgtm-staging" {
   source                = "./sgtm-cluster"
-  naming_cluster_suffix = "staging"
+  cluster = "staging"
 
   # API keys retrieval
   api_encryption_key_arn    = aws_kms_key.api_encryption_key.arn
@@ -202,7 +200,7 @@ terraform {
     aws = {
       source = "hashicorp/aws"
       # The lowest version that supports the aws_s3_object attribute.
-      version = ">= 4.0"
+      version = ">= 6.0"
     }
   }
 }

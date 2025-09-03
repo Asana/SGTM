@@ -1,7 +1,7 @@
 resource "aws_api_gateway_resource" "sgtm_resource" {
   rest_api_id = var.sgtm_rest_api_id
   parent_id   = var.sgtm_rest_api_root_resource_id
-  path_part   = "sgtm${local.cluster_suffix}"
+  path_part   = "sgtm${local.cluster}"
 }
 
 resource "aws_api_gateway_integration" "sgtm_lambda_integration" {
@@ -31,7 +31,6 @@ resource "aws_api_gateway_method" "sgtm_post" {
 resource "aws_api_gateway_deployment" "sgtm_deployment" {
   depends_on  = [aws_api_gateway_integration.sgtm_lambda_integration]
   rest_api_id = var.sgtm_rest_api_id
-  stage_name  = "default"
 }
 
 resource "aws_api_gateway_method_response" "proxy" {
@@ -41,14 +40,19 @@ resource "aws_api_gateway_method_response" "proxy" {
   status_code = "200"
 }
 
-output "api_gateway_deployment_invoke_url" {
-  value = "${aws_api_gateway_deployment.sgtm_deployment.invoke_url}/${aws_api_gateway_resource.sgtm_resource.path_part}"
+resource "aws_api_gateway_stage" "sgtm_stage" {
+  deployment_id = aws_api_gateway_deployment.sgtm_deployment.id
+  rest_api_id = var.sgtm_rest_api_id
+  stage_name = var.cluster != null ? "${var.cluster}" : "prod"
 }
 
+output "api_gateway_stage_invoke_url" {
+  value = "${aws_api_gateway_stage.sgtm_stage.invoke_url}/${aws_api_gateway_resource.sgtm_resource.path_part}"
+}
 
 ### Create the SQS queue
 resource "aws_sqs_queue" "sgtm-webhooks-queue-fifo" {
-  name                        = "sgtm-webhooks-queue${local.cluster_suffix}.fifo"
+  name                        = "sgtm-webhooks-queue${local.cluster}.fifo"
   fifo_queue                  = true
   content_based_deduplication = true
   visibility_timeout_seconds  = 240  # 4 minutes

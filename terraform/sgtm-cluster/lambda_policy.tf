@@ -14,7 +14,7 @@ data "aws_iam_policy_document" "assume_role" {
 }
 
 resource "aws_iam_role" "sgtm_lambda" {
-  name               = "sgtm_lambda_role${local.cluster_suffix}"
+  name               = "sgtm_lambda_role${local.cluster}"
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
 }
 
@@ -137,7 +137,7 @@ data "aws_iam_policy_document" "sgtm_lambda" {
 
 #### Create a role policy in AWS with the permissions defined in the policy document
 resource "aws_iam_policy" "sgtm_lambda" {
-  name        = "sgtm_lambda_policy${local.cluster_suffix}"
+  name        = "sgtm_lambda_policy${local.cluster}"
   description = "Policy for the SGTM Lambda function"
   policy      = data.aws_iam_policy_document.sgtm_lambda.json
 }
@@ -165,7 +165,7 @@ data "aws_s3_object" "additional_lambda_permissions" {
 
 resource "aws_iam_policy" "additional_lambda_permissions" {
   count  = var.custom_lambda_role_policy_s3_object_key != null ? 1 : 0
-  name   = "${local.cluster_suffix}_additional_lambda_permissions"
+  name   = "${local.cluster}_additional_lambda_permissions"
   policy = data.aws_s3_object.additional_lambda_permissions[0].body
 }
 

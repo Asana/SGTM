@@ -2,7 +2,7 @@
 resource "aws_lambda_function" "sgtm" {
   s3_bucket        = var.lambda_code_s3_bucket_name
   s3_key           = aws_s3_object.lambda_code_bundle.key
-  function_name    = "sgtm${local.cluster_suffix}"
+  function_name    = "sgtm${local.cluster}"
   role             = aws_iam_role.sgtm_lambda.arn
   handler          = "src.handler.handler"
   source_code_hash = data.archive_file.create_dist_pkg.output_base64sha256
@@ -39,7 +39,7 @@ resource "aws_lambda_function" "sgtm" {
 }
 
 locals {
-  dist_dir_name = "lambda_dist_pkg/pkg${local.cluster_suffix}"
+  dist_dir_name = "lambda_dist_pkg/pkg${local.cluster}"
 }
 
 resource "null_resource" "install_python_dependencies" {
@@ -57,7 +57,7 @@ resource "null_resource" "install_python_dependencies" {
       runtime          = var.lambda_runtime
       path_cwd         = path.cwd
       dist_dir_name    = local.dist_dir_name
-      cluster_suffix   = local.cluster_suffix
+      cluster   = local.cluster
     }
   }
 }
@@ -65,7 +65,7 @@ resource "null_resource" "install_python_dependencies" {
 data "archive_file" "create_dist_pkg" {
   depends_on  = [null_resource.install_python_dependencies]
   source_dir  = "${path.cwd}/${local.dist_dir_name}"
-  output_path = "build/pkg${local.cluster_suffix}/function.zip"
+  output_path = "build/pkg${local.cluster}/function.zip"
   type        = "zip"
 }
 
@@ -73,7 +73,7 @@ resource "aws_s3_object" "lambda_code_bundle" {
   ## The lambda code bundle is created by the null_resource.install_python_dependencies
   depends_on  = [null_resource.install_python_dependencies]
   bucket      = var.lambda_code_s3_bucket_name
-  key         = "sgtm_bundle${local.cluster_suffix}.zip"
+  key         = "sgtm_bundle${local.cluster}.zip"
   source      = data.archive_file.create_dist_pkg.output_path
   source_hash = data.archive_file.create_dist_pkg.output_base64sha256
 }

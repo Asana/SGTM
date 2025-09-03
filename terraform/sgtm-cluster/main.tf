@@ -1,5 +1,5 @@
 locals {
-  cluster_suffix = var.naming_cluster_suffix != null ? "_${var.naming_cluster_suffix}" : ""
+  cluster = var.cluster != null ? "_${var.cluster}" : ""
 }
 
 provider "aws" {
