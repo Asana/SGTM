@@ -24,8 +24,8 @@ variable "api_encryption_key_arn" {
   type        = string
 }
 
-variable "naming_cluster_suffix" {
-  description = "A cluster_suffix to append to the names of resources"
+variable "cluster" {
+  description = "A cluster to define stages and suffix resource names"
   type        = string
   default     = null
 }

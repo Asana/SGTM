@@ -93,7 +93,7 @@ You'll need to have a Terraform Cloud account have the workspace you want to dep
 > terragrunt init
 > terragrunt apply
 ```
-3. Save the output of `terragrunt apply`, which should print out a `api_gateway_deployment_invoke_url`. You'll need this in the next step.
+3. Save the output of `terragrunt apply`, which should print out a `api_gateway_stage_invoke_url`. You'll need this in the next step.
 4. Push your secrets to the ecrypted S3 bucket that Terraform just created. `cd` back to the root of your repository and run: `python3 ./scripts/setup.py secrets` and follow the prompts.
 
 ### Add Mapping of Github Repository -> Asana Project
@@ -106,7 +106,7 @@ For each repository that you are going to sync:
 For each repository that you want to sync to Asana through SGTM:
 1. Navigate to `https://github.com/<organization>/<repository>/settings/hooks`
 2. Click "Add webhook"
-3. Under "Payload URL", input the `api_gateway_deployment_invoke_url` from the previous step
+3. Under "Payload URL", input the `api_gateway_stage_invoke_url` from the previous step
 4. Under "Content Type", select "application/json"
 5. Under "Secret", input your secret token that you generated earlier
 6. Under "Which events would you like to trigger this webhook?", select "Let me select individual events."
