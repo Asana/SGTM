@@ -185,6 +185,11 @@ def _author_asana_user_id_from_pull_request(pull_request: PullRequest) -> Option
     )
 
 
+def _branch_name_from_pull_request(pull_request: PullRequest) -> str:
+    """Extract the source branch name from the pull request."""
+    return pull_request.head_ref_name()
+
+
 _custom_fields_to_extract = [
     CustomField(
         matcher=CustomField.exact_match("PR Status"),
@@ -207,6 +212,10 @@ _custom_fields_to_extract = [
         is_enabled=lambda: config.SGTM_FEATURE__SYNC_GITHUB_LABELS_ENABLED,
         extractor=_github_labels_from_pull_request,
     ),
+    CustomField(
+        matcher=CustomField.exact_match("Branch Name (SGTM)"),
+        extractor=_branch_name_from_pull_request,
+    ),
 ]
 
 
@@ -218,6 +227,7 @@ def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
         • Review Status: "Needs Review", "Changes Requested", "Approved", "Not Ready"
     Optionally, the project may have a "Labels (SGTM)" multi-select field that syncs GitHub labels (when this feature is enabled).
         The field name must start with "Labels (SGTM)" (e.g., "Labels (SGTM) [my-repo-name]")
+    Optionally, the project may have a "Branch Name (SGTM)" text field that syncs the source branch name of the pull request.
     """
     repository_id = pull_request.repository_id()
     project_id = dynamodb_client.get_asana_id_from_github_node_id(repository_id)

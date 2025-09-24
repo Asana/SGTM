@@ -225,3 +225,7 @@ class PullRequest(object):
 
     def base_ref_associated_pull_requests(self) -> int:
         return self._raw["baseRef"]["associatedPullRequests"]["totalCount"]
+
+    def head_ref_name(self) -> str:
+        """Returns the name of the head branch (source branch) of the pull request."""
+        return self._raw.get("headRefName") or ""

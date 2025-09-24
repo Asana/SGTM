@@ -52,6 +52,12 @@ class PeopleCustomField(CustomField):
         return "people"
 
 
+@dataclass
+class TextCustomField(CustomField):
+    def resource_subtype(self):
+        return "text"
+
+
 # If adding a new option, ensure that the color you're selecting is part of this list of colors:
 # "none" | "red" | "orange" | "yellow-orange" | "yellow" | "yellow-green" | "green" | "blue-green" |
 # "aqua" | "blue" | "indigo" | "purple" | "magenta" | "hot-pink" | "pink" | "cool-gray"
@@ -83,6 +89,7 @@ CUSTOM_FIELDS = [
             EnumOption(name="Not Ready", color="purple"),
         ],
     ),
+    TextCustomField(name="Branch Name (SGTM)"),
 ]
 
 

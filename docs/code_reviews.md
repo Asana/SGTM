@@ -21,6 +21,7 @@ Field mapping, GitHub to Asana:
 | PR participants (author + reviewers + commenters) | followers in Asana task                                      |
 | PR status (open/draft/closed/merged)              | "PR Status" custom field in Asana task
 | PR build status (pending/success/failure)         | "Build" custom field in Asana task
+| PR branch name                                    | "Branch Name (SGTM)" custom field in Asana task
 
 #### How a GitHub Pull Request looks like
 

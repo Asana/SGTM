@@ -27,6 +27,7 @@ class PullRequestBuilder(BuilderBaseClass):
             "number": pr_number,
             "body": body,
             "bodyHTML": f"<p>{body}</p>",
+            "headRefName": "feature/test-branch",
             "baseRef": {
                 "name": create_uuid(),
                 "associatedPullRequests": {"totalCount": 0},
@@ -173,6 +174,11 @@ class PullRequestBuilder(BuilderBaseClass):
         self.raw_pr["baseRef"]["associatedPullRequests"][
             "totalCount"
         ] = associated_pull_requests
+        return self
+
+    def head_ref_name(self, name: str):
+        """Set the head branch name (source branch)."""
+        self.raw_pr["headRefName"] = name
         return self
 
     def build(self) -> PullRequest:
