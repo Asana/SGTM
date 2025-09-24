@@ -5,6 +5,9 @@ from typing import FrozenSet
 _full_pull_request = """
 fragment FullPullRequest on PullRequest {
   id
+  headRef {
+    name
+  }
   baseRef {
     associatedPullRequests(states: OPEN, first: 1) {
       totalCount

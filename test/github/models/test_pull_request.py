@@ -25,6 +25,12 @@ class TestPullRequest(BaseClass):
             ["user1"], pull_request.requested_reviewers(include_team_members=False)
         )
 
+    def test_head_ref_name(self):
+        pull_request = build(
+            builder.pull_request().head_ref_name("feature/new-feature")
+        )
+        self.assertEqual("feature/new-feature", pull_request.head_ref_name())
+
 
 if __name__ == "__main__":
     from unittest import main as run_tests
