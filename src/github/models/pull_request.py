@@ -228,7 +228,4 @@ class PullRequest(object):
 
     def head_ref_name(self) -> str:
         """Returns the name of the head branch (source branch) of the pull request."""
-        head_ref = self._raw.get("headRef")
-        if head_ref is None:
-            return ""
-        return head_ref.get("name", "")
+        return self._raw.get("headRefName") or ""
