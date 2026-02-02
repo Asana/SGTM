@@ -616,12 +616,18 @@ def _task_description_from_pull_request(pull_request: PullRequest) -> str:
         author = _asana_display_name_for_github_user(github_author)
     status_reason = _task_completion_from_pull_request(pull_request)
     status = "complete" if status_reason.is_complete else "incomplete"
+
+    graphite_link = ""
+    if config.SGTM_FEATURE__GRAPHITE_LINK_ENABLED:
+        graphite_link = f"\n📚 {_link(_graphite_url_from_pull_request(pull_request))}"
+
     return _wrap_in_tag("body")(
         _wrap_in_tag("em")(
             "This is a one-way sync from GitHub to Asana. Do not edit this task or"
             " comment on it!"
         )
         + f"\n\n\uD83D\uDD17 {link_to_pr}"
+        + graphite_link
         + "\n✍️ "
         + author
         + _generate_assignee_description(pull_request.assignee())
@@ -713,3 +719,16 @@ def _wrap_in_tag(
 
 def _link(url: str) -> str:
     return _wrap_in_tag("A", {"href": url})(url)
+
+
+def _graphite_url_from_pull_request(pull_request: PullRequest) -> str:
+    """Construct Graphite URL for a pull request.
+
+    Graphite URL format: https://app.graphite.dev/github/pr/{org}/{repo}/{number}
+    """
+    return (
+        f"https://app.graphite.dev/github/pr/"
+        f"{pull_request.repository_owner_handle()}/"
+        f"{pull_request.repository_name()}/"
+        f"{pull_request.number()}"
+    )

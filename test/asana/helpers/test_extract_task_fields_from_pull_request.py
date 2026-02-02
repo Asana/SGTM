@@ -159,6 +159,47 @@ class TestExtractsMiscellaneousFieldsFromPullRequest(BaseClass):
         ]
         self.assertContainsStrings(actual, expected_strings)
 
+    @patch("src.asana.helpers.config.SGTM_FEATURE__GRAPHITE_LINK_ENABLED", True)
+    def test_html_body_contains_graphite_link_when_enabled(self):
+        pull_request = build(
+            builder.pull_request()
+            .author(builder.user("github_test_user_login"))
+            .url("https://github.com/test-org/test-repo/pull/123")
+            .body("BODY")
+            .repository_owner("test-org")
+            .repository_name("test-repo")
+            .number(123)
+        )
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+        actual = task_fields["html_notes"]
+        expected_strings = [
+            "📚",
+            '<A href="https://app.graphite.dev/github/pr/test-org/test-repo/123">'
+            "https://app.graphite.dev/github/pr/test-org/test-repo/123</A>",
+        ]
+        self.assertContainsStrings(actual, expected_strings)
+
+    @patch("src.asana.helpers.config.SGTM_FEATURE__GRAPHITE_LINK_ENABLED", False)
+    def test_html_body_no_graphite_link_when_disabled(self):
+        pull_request = build(
+            builder.pull_request()
+            .author(builder.user("github_test_user_login"))
+            .url("https://github.com/test-org/test-repo/pull/123")
+            .body("BODY")
+            .repository_owner("test-org")
+            .repository_name("test-repo")
+            .number(123)
+        )
+        task_fields = src.asana.helpers.extract_task_fields_from_pull_request(
+            pull_request
+        )
+        actual = task_fields["html_notes"]
+        # Graphite link should NOT be present
+        self.assertNotIn("app.graphite.dev", actual)
+        self.assertNotIn("📚", actual)
+
     def test_html_body_assigns_to_self(self):
         pull_request = build(
             builder.pull_request()
