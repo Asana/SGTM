@@ -69,6 +69,7 @@ module "sgtm-prod" {
   sgtm_feature__disable_github_team_subscription = var.sgtm_feature__disable_github_team_subscription
   sgtm_feature__followup_review_github_users     = var.sgtm_feature__followup_review_github_users
   sgtm_feature__sync_github_labels_enabled       = var.sgtm_feature__sync_github_labels_enabled
+  sgtm_feature__graphite_link_enabled            = var.sgtm_feature__graphite_link_enabled
 
   # API Gateway configuration
   sgtm_rest_api_id               = aws_api_gateway_rest_api.sgtm_rest_api.id
@@ -83,7 +84,7 @@ module "sgtm-prod" {
 
 
 module "sgtm-staging" {
-  source                = "./sgtm-cluster"
+  source  = "./sgtm-cluster"
   cluster = "staging"
 
   # API keys retrieval
@@ -115,6 +116,7 @@ module "sgtm-staging" {
   sgtm_feature__disable_github_team_subscription = var.sgtm_feature__disable_github_team_subscription
   sgtm_feature__followup_review_github_users     = var.sgtm_feature__followup_review_github_users
   sgtm_feature__sync_github_labels_enabled       = var.sgtm_feature__sync_github_labels_enabled
+  sgtm_feature__graphite_link_enabled            = var.sgtm_feature__graphite_link_enabled
 
   # API Gateway configuration
   sgtm_rest_api_id               = aws_api_gateway_rest_api.sgtm_rest_api.id

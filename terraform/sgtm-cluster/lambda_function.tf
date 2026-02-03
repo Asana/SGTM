@@ -27,6 +27,7 @@ resource "aws_lambda_function" "sgtm" {
       SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS     = var.sgtm_feature__followup_review_github_users,
       SGTM_FEATURE__EXCLUDED_ATTACHMENT_SOURCES_URLS = var.sgtm_feature__excluded_attachment_sources_urls,
       SGTM_FEATURE__SYNC_GITHUB_LABELS_ENABLED       = var.sgtm_feature__sync_github_labels_enabled,
+      SGTM_FEATURE__GRAPHITE_LINK_ENABLED            = var.sgtm_feature__graphite_link_enabled,
 
       # github usernames to asana IDs mapping
       GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH = var.github_usernames_to_asana_gids_s3_path
@@ -57,7 +58,7 @@ resource "null_resource" "install_python_dependencies" {
       runtime          = var.lambda_runtime
       path_cwd         = path.cwd
       dist_dir_name    = local.dist_dir_name
-      cluster   = local.cluster
+      cluster          = local.cluster
     }
   }
 }

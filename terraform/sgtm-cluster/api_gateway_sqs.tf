@@ -42,8 +42,8 @@ resource "aws_api_gateway_method_response" "proxy" {
 
 resource "aws_api_gateway_stage" "sgtm_stage" {
   deployment_id = aws_api_gateway_deployment.sgtm_deployment.id
-  rest_api_id = var.sgtm_rest_api_id
-  stage_name = var.cluster != null ? "${var.cluster}" : "default"
+  rest_api_id   = var.sgtm_rest_api_id
+  stage_name    = var.cluster != null ? "${var.cluster}" : "default"
 }
 
 output "api_gateway_stage_invoke_url" {
