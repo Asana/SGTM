@@ -59,6 +59,10 @@ SGTM_FEATURE__SYNC_GITHUB_LABELS_ENABLED = is_feature_flag_enabled(
     "SGTM_FEATURE__SYNC_GITHUB_LABELS_ENABLED"
 )
 
+SGTM_FEATURE__GRAPHITE_LINK_ENABLED = is_feature_flag_enabled(
+    "SGTM_FEATURE__GRAPHITE_LINK_ENABLED"
+)
+
 
 #### Particularly sensitive variables are retrieved from an S3 bucket, instead of
 # from terraform-set environment variables. When SGTM is being manually tested,

@@ -178,6 +178,12 @@ SGTM can automatically sync GitHub labels from pull requests to a multi-select c
 
 *Note*: Only labels that have corresponding enabled options in the Asana custom field will be synced. If a GitHub label doesn't have a matching option in the custom field, it will be ignored.
 
+### Add Graphite link to Asana tasks
+SGTM can include a Graphite link alongside the GitHub PR link in Asana task descriptions. Graphite is a Git stack management tool, and this feature makes it easy to jump directly to the Graphite view of a PR.
+
+**How to enable**:
+* Set an env variable of `TF_VAR_sgtm_feature__graphite_link_enabled` to `true`
+
 ## Installing a Virtual Environment for Python
 
 We recommend using `pipenv` to manage your python environment for SGTM. We've checked in a `Pipfile` and `Pipfile.lock` to make this easier for you. If you have `pipenv` installed, `cd` into the SGTM directory, and run `pipenv install` to install all dependencies. If you don't have `pipenv` installed, you can install it via `pip install pipenv`.

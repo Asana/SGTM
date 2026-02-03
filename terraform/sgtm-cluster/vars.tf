@@ -110,6 +110,12 @@ variable "sgtm_feature__sync_github_labels_enabled" {
   default     = "false"
 }
 
+variable "sgtm_feature__graphite_link_enabled" {
+  type        = string
+  description = "'true' if behavior to include Graphite link in Asana task is enabled"
+  default     = "false"
+}
+
 variable "sgtm_rest_api_id" {
   type        = string
   description = "The ID of the API Gateway REST API for SGTM"

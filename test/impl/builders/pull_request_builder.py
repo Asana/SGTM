@@ -181,6 +181,16 @@ class PullRequestBuilder(BuilderBaseClass):
         self.raw_pr["headRefName"] = name
         return self
 
+    def repository_owner(self, owner_login: str):
+        """Set the repository owner login."""
+        self.raw_pr["repository"]["owner"]["login"] = owner_login
+        return self
+
+    def repository_name(self, name: str):
+        """Set the repository name."""
+        self.raw_pr["repository"]["name"] = name
+        return self
+
     def build(self) -> PullRequest:
         return PullRequest(self.raw_pr)
 
