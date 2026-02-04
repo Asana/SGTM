@@ -83,7 +83,8 @@ def maybe_complete_tasks_on_merge(pull_request: PullRequest):
                 )
     else:
         logger.info(
-            f"Pull Request did not autocomplete linked tasks. One of the following conditions was not met: {SGTM_FEATURE__AUTOCOMPLETE_ENABLED}, {pull_request.merged()}, {pull_request.labels()}"
+            f"Pull Request did not autocomplete linked tasks. One of the following conditions was not met: "
+            f"{SGTM_FEATURE__AUTOCOMPLETE_ENABLED}, {pull_request.merged()}, {pull_request.labels()}"
         )
 
 
