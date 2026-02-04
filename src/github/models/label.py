@@ -11,3 +11,9 @@ class Label(object):
 
     def to_raw(self) -> Dict[str, Any]:
         return copy.deepcopy(self._raw)
+
+    def __str__(self) -> str:
+        return self.name()
+
+    def __repr__(self) -> str:
+        return self.name()

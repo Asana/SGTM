@@ -505,6 +505,7 @@ def get_linked_task_ids(pull_request: PullRequest) -> Set[str]:
     curr_line = 0
     task_ids = set()
     seen_asana_tasks_line = False
+    invalid_urls = []
 
     while curr_line < len(body_lines):
         stripped_line = body_lines[curr_line].strip()
@@ -519,6 +520,10 @@ def get_linked_task_ids(pull_request: PullRequest) -> Set[str]:
                 if maybe_id is not None:
                     line_has_task_urls = True
                     task_ids.add(maybe_id.group())
+                else:
+                    # URL found but doesn't contain a valid task ID
+                    if url.strip():  # Only collect non-empty strings
+                        invalid_urls.append(url)
 
             if line_has_task_urls:
                 curr_line += 1
@@ -527,6 +532,13 @@ def get_linked_task_ids(pull_request: PullRequest) -> Set[str]:
                 break
         else:
             curr_line += 1
+
+    # Log warning for all improperly formatted URLs found in the entire PR body
+    if invalid_urls:
+        logger.warning(
+            f"Found improperly formatted Asana task URLs in PR body. "
+            f"Expected URLs containing task IDs, but found: {invalid_urls}"
+        )
 
     return task_ids
 
