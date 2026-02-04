@@ -66,7 +66,15 @@ def maybe_complete_tasks_on_merge(pull_request: PullRequest):
     if asana_logic.should_autocomplete_tasks_on_merge(pull_request):
         task_ids_to_complete_on_merge = asana_helpers.get_linked_task_ids(pull_request)
         for complete_on_merge_task_id in task_ids_to_complete_on_merge:
-            asana_client.complete_task(complete_on_merge_task_id)
+            try:
+                asana_client.complete_task(complete_on_merge_task_id)
+                logger.info(f"Successfully completed Asana task {complete_on_merge_task_id} for merged PR {pull_request.url()}")
+            except Exception as e:
+                task_url = asana_helpers.task_url_from_task_id(complete_on_merge_task_id)
+                logger.error(
+                    f"Failed to complete Asana task {complete_on_merge_task_id} "
+                    f"({task_url}) for PR {pull_request.url()}. Error: {str(e)}"
+                )
 
 
 def upsert_github_comment_to_task(comment: Comment, task_id: str):
