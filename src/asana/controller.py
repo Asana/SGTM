@@ -4,6 +4,7 @@ import src.asana.client as asana_client
 import src.asana.helpers as asana_helpers
 import src.asana.logic as asana_logic
 import src.aws.dynamodb_client as dynamodb_client
+from src.config import SGTM_FEATURE__AUTOCOMPLETE_ENABLED
 from src.github.models import Comment, PullRequest, Review
 from src.logger import logger
 
@@ -65,6 +66,7 @@ def _new_due_on_or_none(task: dict, update_task_fields: dict) -> Optional[str]:
 def maybe_complete_tasks_on_merge(pull_request: PullRequest):
     if asana_logic.should_autocomplete_tasks_on_merge(pull_request):
         task_ids_to_complete_on_merge = asana_helpers.get_linked_task_ids(pull_request)
+        logger.info(f"Task IDs to complete on merge: {task_ids_to_complete_on_merge}")
         for complete_on_merge_task_id in task_ids_to_complete_on_merge:
             try:
                 asana_client.complete_task(complete_on_merge_task_id)
@@ -79,6 +81,10 @@ def maybe_complete_tasks_on_merge(pull_request: PullRequest):
                     f"Failed to complete Asana task {complete_on_merge_task_id} "
                     f"({task_url}) for PR {pull_request.url()}. Error: {str(e)}"
                 )
+    else:
+        logger.info(
+            f"Pull Request did not autocomplete linked tasks. One of the following conditions was not met: {SGTM_FEATURE__AUTOCOMPLETE_ENABLED}, {pull_request.merged()}, {pull_request.labels()}"
+        )
 
 
 def upsert_github_comment_to_task(comment: Comment, task_id: str):
