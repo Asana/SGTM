@@ -68,9 +68,13 @@ def maybe_complete_tasks_on_merge(pull_request: PullRequest):
         for complete_on_merge_task_id in task_ids_to_complete_on_merge:
             try:
                 asana_client.complete_task(complete_on_merge_task_id)
-                logger.info(f"Successfully completed Asana task {complete_on_merge_task_id} for merged PR {pull_request.url()}")
+                logger.info(
+                    f"Successfully completed Asana task {complete_on_merge_task_id} for merged PR {pull_request.url()}"
+                )
             except Exception as e:
-                task_url = asana_helpers.task_url_from_task_id(complete_on_merge_task_id)
+                task_url = asana_helpers.task_url_from_task_id(
+                    complete_on_merge_task_id
+                )
                 logger.error(
                     f"Failed to complete Asana task {complete_on_merge_task_id} "
                     f"({task_url}) for PR {pull_request.url()}. Error: {str(e)}"
