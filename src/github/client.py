@@ -1,13 +1,17 @@
 import requests
 from requests.auth import HTTPBasicAuth
 
-from github import PullRequest  # type: ignore
+from github import PullRequest, Repository  # type: ignore
 from src.github.get_app_token import sgtm_github_auth
 from src.logger import logger
 
 
+def _get_repo(owner: str, repository: str) -> Repository:
+    return sgtm_github_auth(owner).get_rest_client().get_repo(f"{owner}/{repository}")
+
+
 def _get_pull_request(owner: str, repository: str, number: int) -> PullRequest:  # type: ignore
-    repo = sgtm_github_auth(owner).get_rest_client().get_repo(f"{owner}/{repository}")
+    repo = _get_repo(owner, repository)
     pr = repo.get_pull(number)
     return pr  # type: ignore
 
@@ -30,21 +34,13 @@ def add_pr_comment(owner: str, repository: str, number: int, comment: str):
 def edit_comment(
     owner: str, repository: str, number: int, comment_id: int, new_body: str
 ):
-    pr = _get_pull_request(owner, repository, number)
-
-    # Find the comment with matching ID
-    for comment in pr.get_issue_comments():
-        if comment.id == comment_id:
-            comment.edit(new_body)  # type: ignore
-            logger.info(f"Successfully edited comment {comment_id}")
-            return
-
-    # If we get here, the comment wasn't found
-    logger.error(f"Comment with ID {comment_id} not found on PR #{number}")
+    repo = _get_repo(owner, repository)
+    comment = repo.get_comment(comment_id)
+    comment.edit(new_body)  # type: ignore
 
 
 def set_pull_request_assignee(owner: str, repository: str, number: int, assignee: str):
-    repo = sgtm_github_auth(owner).get_rest_client().get_repo(f"{owner}/{repository}")
+    repo = _get_repo(owner, repository)
     # Using get_issue here because get_pull returns a pull request which only
     # allows you to *add* an assignee, not set the assignee.
     pr = repo.get_issue(number)
