@@ -66,6 +66,12 @@ fragment FullPullRequest on PullRequest {
       body
       bodyHTML
       url
+      ... on IssueComment {
+        databaseId
+      }
+      ... on PullRequestReviewComment {
+        databaseId
+      }
     }
   }
   assignees(last: 20) {
