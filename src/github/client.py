@@ -27,6 +27,13 @@ def add_pr_comment(owner: str, repository: str, number: int, comment: str):
     pr.create_issue_comment(comment)  # type: ignore
 
 
+def edit_comment(owner: str, repository: str, comment_id: int, new_body: str):
+    """Edit an existing GitHub comment by ID"""
+    repo = sgtm_github_auth(owner).get_rest_client().get_repo(f"{owner}/{repository}")
+    comment = repo.get_issue_comment(comment_id)
+    comment.edit(new_body)  # type: ignore
+
+
 def set_pull_request_assignee(owner: str, repository: str, number: int, assignee: str):
     repo = sgtm_github_auth(owner).get_rest_client().get_repo(f"{owner}/{repository}")
     # Using get_issue here because get_pull returns a pull request which only

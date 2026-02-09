@@ -12,6 +12,9 @@ class Comment(object):
 
     def id(self) -> str:
         return self._raw["id"]
+    
+    def database_id(self) -> int:
+        return self._raw["databaseId"]
 
     def published_at(self) -> datetime:
         return parse_date_string(self._raw["publishedAt"])

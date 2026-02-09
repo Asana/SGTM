@@ -17,6 +17,7 @@ _full_comment = """
 fragment FullComment on Comment {
   __typename
   id
+  databaseId
   author {
     __typename
     login
