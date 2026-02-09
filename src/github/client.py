@@ -31,8 +31,16 @@ def edit_comment(
     owner: str, repository: str, number: int, comment_id: int, new_body: str
 ):
     pr = _get_pull_request(owner, repository, number)
-    comment = pr.get_issue_comment(comment_id)
-    comment.edit(new_body)  # type: ignore
+
+    # Find the comment with matching ID
+    for comment in pr.get_issue_comments():
+        if comment.id == comment_id:
+            comment.edit(new_body)  # type: ignore
+            logger.info(f"Successfully edited comment {comment_id}")
+            return
+
+    # If we get here, the comment wasn't found
+    logger.error(f"Comment with ID {comment_id} not found on PR #{number}")
 
 
 def set_pull_request_assignee(owner: str, repository: str, number: int, assignee: str):
