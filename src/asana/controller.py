@@ -6,7 +6,10 @@ import src.asana.logic as asana_logic
 import src.aws.dynamodb_client as dynamodb_client
 from src.config import SGTM_FEATURE__AUTOCOMPLETE_ENABLED
 from src.github.models import Comment, PullRequest, Review
-from src.github.logic import maybe_add_autocomplete_failure_comment
+from src.github.logic import (
+    maybe_add_autocomplete_failure_comment,
+    maybe_remove_autocomplete_failure_comment,
+)
 from src.logger import logger
 
 
@@ -75,6 +78,7 @@ def maybe_complete_tasks_on_merge(pull_request: PullRequest):
                 logger.info(
                     f"Successfully completed Asana task {complete_on_merge_task_id} for merged PR {pull_request.url()}"
                 )
+                maybe_remove_autocomplete_failure_comment(pull_request)
             except Exception as e:
                 task_url = asana_helpers.task_url_from_task_id(
                     complete_on_merge_task_id

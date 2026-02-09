@@ -39,6 +39,12 @@ def edit_comment(
     comment.edit(body=new_body)  # type: ignore
 
 
+def delete_comment(owner: str, repository: str, number: int, comment_id: int):
+    pr = _get_pull_request(owner, repository, number)
+    comment = pr.get_issue_comment(comment_id)  # type: ignore
+    comment.delete()  # type: ignore
+
+
 def set_pull_request_assignee(owner: str, repository: str, number: int, assignee: str):
     repo = _get_repo(owner, repository)
     # Using get_issue here because get_pull returns a pull request which only
