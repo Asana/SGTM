@@ -274,8 +274,8 @@ def pull_request_participants(pull_request: PullRequest) -> List[str]:
 
 
 def maybe_remove_autocomplete_failure_comment(pull_request: PullRequest):
-    existing_comment_info = _find_existing_autocomplete_failure_comment(pull_request)
-    if existing_comment_info is not None:
+    existing_comment_infos = _find_existing_autocomplete_failure_comments(pull_request)
+    for existing_comment_info in existing_comment_infos:
         try:
             github_client.delete_comment(
                 owner=pull_request.repository_owner_handle(),
@@ -299,9 +299,9 @@ def maybe_add_autocomplete_failure_comment(
     )
 
     # Check if there's already an autocomplete failure comment
-    existing_comment_info = _find_existing_autocomplete_failure_comment(pull_request)
+    existing_comment_infos = _find_existing_autocomplete_failure_comments(pull_request)
 
-    if existing_comment_info is None:
+    if len(existing_comment_infos) == 0:
         # No existing autocomplete failure comment, add new one
         github_client.add_pr_comment(
             owner=pull_request.repository_owner_handle(),
@@ -309,8 +309,9 @@ def maybe_add_autocomplete_failure_comment(
             number=pull_request.number(),
             comment=new_autocomplete_comment,
         )
-    elif existing_comment_info.body() != new_autocomplete_comment:
+    else:
         # Existing comment has different error message, edit it
+        existing_comment_info = existing_comment_infos[0]
         try:
             github_client.edit_comment(
                 owner=pull_request.repository_owner_handle(),
@@ -334,22 +335,23 @@ def maybe_add_autocomplete_failure_comment(
                 owner=pull_request.repository_owner_handle(),
                 repository=pull_request.repository_name(),
                 number=pull_request.number(),
-                comment=f"{new_autocomplete_comment}\n\n*(Updated - could not edit original comment)*",
+                comment=new_autocomplete_comment,
             )
 
 
-def _find_existing_autocomplete_failure_comment(
+def _find_existing_autocomplete_failure_comments(
     pull_request: PullRequest,
-) -> Optional[Comment]:
+) -> List[Comment]:
     """
     Find existing autocomplete failure comments by looking for the error message pattern.
     Returns the Comment object if found, None otherwise.
     """
-    for comment in pull_request.comments():
-        if comment.body().startswith(AUTOCOMPLETE_COMMENT_ERROR_MESSAGE):
-            return comment
 
-    return None
+    return [
+        comment
+        for comment in pull_request.comments()
+        if comment.body().startswith(AUTOCOMPLETE_COMMENT_ERROR_MESSAGE)
+    ]
 
 
 def maybe_add_automerge_warning_comment(pull_request: PullRequest):

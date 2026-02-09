@@ -59,6 +59,7 @@ fragment FullPullRequest on PullRequest {
   comments(last: 20) {
     nodes {
       id
+      databaseId
       author {
         login
       }
@@ -66,12 +67,6 @@ fragment FullPullRequest on PullRequest {
       body
       bodyHTML
       url
-      ... on IssueComment {
-        databaseId
-      }
-      ... on PullRequestReviewComment {
-        databaseId
-      }
     }
   }
   assignees(last: 20) {
