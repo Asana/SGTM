@@ -68,6 +68,7 @@ def maybe_complete_tasks_on_merge(pull_request: PullRequest):
     if asana_logic.should_autocomplete_tasks_on_merge(pull_request):
         task_ids_to_complete_on_merge = asana_helpers.get_linked_task_ids(pull_request)
         logger.info(f"Task IDs to complete on merge: {task_ids_to_complete_on_merge}")
+        failed_tasks = []
         for complete_on_merge_task_id in task_ids_to_complete_on_merge:
             try:
                 asana_client.complete_task(complete_on_merge_task_id)
@@ -82,8 +83,9 @@ def maybe_complete_tasks_on_merge(pull_request: PullRequest):
                     f"Failed to complete Asana task {complete_on_merge_task_id} "
                     f"({task_url}) for PR {pull_request.url()}. Error: {str(e)}"
                 )
-                maybe_add_autocomplete_failure_comment(pull_request, str(e))
-
+                failed_tasks.append((complete_on_merge_task_id, str(e)))
+        if len(failed_tasks) > 0:
+            maybe_add_autocomplete_failure_comment(pull_request, failed_tasks)
     else:
         logger.info(
             f"Pull Request did not autocomplete linked tasks. One of the following conditions was not met: "

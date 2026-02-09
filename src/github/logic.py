@@ -1,5 +1,5 @@
 import re
-from typing import List, Set, Optional
+from typing import List, Set, Optional, Tuple
 from src.logger import logger
 
 from . import client as github_client
@@ -274,9 +274,15 @@ def pull_request_participants(pull_request: PullRequest) -> List[str]:
 
 
 def maybe_add_autocomplete_failure_comment(
-    pull_request: PullRequest, error_message: str
+    pull_request: PullRequest, failed_tasks: List[Tuple[str, str]]
 ):
-    new_autocomplete_comment = AUTOCOMPLETE_COMMENT_ERROR_MESSAGE + " " + error_message
+    new_autocomplete_comment = (
+        AUTOCOMPLETE_COMMENT_ERROR_MESSAGE
+        + "\n\n"
+        + "\n".join(
+            [f"- {task_id}: {error_message}" for task_id, error_message in failed_tasks]
+        )
+    )
 
     # Check if there's already an autocomplete failure comment
     existing_comment_info = _find_existing_autocomplete_failure_comment(pull_request)
