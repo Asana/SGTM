@@ -40,9 +40,8 @@ AUTOMERGE_COMMENT_WARNING_OPEN_BASE_REF_PRS = (
     " this PR will be eligible for auto-merge."
 )
 
-AUTOCOMPLETE_COMMENT_ERROR_MESSAGE = (
-    "**:error: Asana Task:** This PR has linked Asana tasks that did not get completed due to %s"
-)
+AUTOCOMPLETE_COMMENT_ERROR_MESSAGE = "**:error: Asana Task:** This PR has linked Asana tasks that did not get completed due to %s"
+
 
 @unique
 class AutomergeLabel(Enum):
@@ -274,12 +273,14 @@ def pull_request_participants(pull_request: PullRequest) -> List[str]:
     )
 
 
-def maybe_add_autocomplete_failure_comment(pull_request: PullRequest, error_message: str):
+def maybe_add_autocomplete_failure_comment(
+    pull_request: PullRequest, error_message: str
+):
     new_autocomplete_comment = AUTOCOMPLETE_COMMENT_ERROR_MESSAGE.format(error_message)
-    
+
     # Check if there's already an autocomplete failure comment
     existing_comment_info = _find_existing_autocomplete_failure_comment(pull_request)
-    
+
     if existing_comment_info is None:
         # No existing autocomplete failure comment, add new one
         github_client.add_pr_comment(
@@ -297,9 +298,13 @@ def maybe_add_autocomplete_failure_comment(pull_request: PullRequest, error_mess
                 comment_id=existing_comment_info.database_id(),
                 new_body=new_autocomplete_comment,
             )
-            logger.info(f"Successfully updated autocomplete failure comment using databaseId: {existing_comment_info.database_id()}")
+            logger.info(
+                f"Successfully updated autocomplete failure comment using databaseId: {existing_comment_info.database_id()}"
+            )
         except Exception as e:
-            logger.error(f"Failed to edit comment using databaseId {existing_comment_info.database_id()}: {e}")
+            logger.error(
+                f"Failed to edit comment using databaseId {existing_comment_info.database_id()}: {e}"
+            )
             logger.info(f"Comment had node_id: {existing_comment_info.id()}")
             # NOTE: PyGithub's get_issue_comment() expects REST API numeric ID, which should be databaseId
             # If this fails consistently, we may need to investigate ID format conversion
@@ -312,19 +317,20 @@ def maybe_add_autocomplete_failure_comment(pull_request: PullRequest, error_mess
             )
 
 
-def _find_existing_autocomplete_failure_comment(pull_request: PullRequest) -> Optional[Comment]:
+def _find_existing_autocomplete_failure_comment(
+    pull_request: PullRequest,
+) -> Optional[Comment]:
     """
     Find existing autocomplete failure comments by looking for the error message pattern.
     Returns a dict with comment body, database_id, and node_id if found, None otherwise.
     """
     autocomplete_comment_prefix = "**:error: Asana Task:** This PR has linked Asana tasks that did not get completed due to"
-    
+
     for comment in pull_request.comments():
         if comment.body().startswith(autocomplete_comment_prefix):
             return comment
-    
+
     return None
-    
 
 
 def maybe_add_automerge_warning_comment(pull_request: PullRequest):

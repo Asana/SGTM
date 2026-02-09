@@ -12,7 +12,7 @@ class Comment(object):
 
     def id(self) -> str:
         return self._raw["id"]
-    
+
     def database_id(self) -> int:
         return self._raw["databaseId"]
 
