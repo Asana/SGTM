@@ -40,7 +40,7 @@ AUTOMERGE_COMMENT_WARNING_OPEN_BASE_REF_PRS = (
     " this PR will be eligible for auto-merge."
 )
 
-AUTOCOMPLETE_COMMENT_ERROR_MESSAGE = "**:error: Asana Task:** This PR has linked Asana tasks that did not get completed due to %s"
+AUTOCOMPLETE_COMMENT_ERROR_MESSAGE = "**:error: Asana Task:** This PR has linked Asana tasks that did not get completed due to"
 
 
 @unique
@@ -276,7 +276,7 @@ def pull_request_participants(pull_request: PullRequest) -> List[str]:
 def maybe_add_autocomplete_failure_comment(
     pull_request: PullRequest, error_message: str
 ):
-    new_autocomplete_comment = AUTOCOMPLETE_COMMENT_ERROR_MESSAGE.format(error_message)
+    new_autocomplete_comment = AUTOCOMPLETE_COMMENT_ERROR_MESSAGE + " " + error_message
 
     # Check if there's already an autocomplete failure comment
     existing_comment_info = _find_existing_autocomplete_failure_comment(pull_request)
@@ -295,6 +295,7 @@ def maybe_add_autocomplete_failure_comment(
             github_client.edit_comment(
                 owner=pull_request.repository_owner_handle(),
                 repository=pull_request.repository_name(),
+                number=pull_request.number(),
                 comment_id=existing_comment_info.database_id(),
                 new_body=new_autocomplete_comment,
             )
@@ -322,12 +323,10 @@ def _find_existing_autocomplete_failure_comment(
 ) -> Optional[Comment]:
     """
     Find existing autocomplete failure comments by looking for the error message pattern.
-    Returns a dict with comment body, database_id, and node_id if found, None otherwise.
+    Returns the Comment object if found, None otherwise.
     """
-    autocomplete_comment_prefix = "**:error: Asana Task:** This PR has linked Asana tasks that did not get completed due to"
-
     for comment in pull_request.comments():
-        if comment.body().startswith(autocomplete_comment_prefix):
+        if comment.body().startswith(AUTOCOMPLETE_COMMENT_ERROR_MESSAGE):
             return comment
 
     return None
