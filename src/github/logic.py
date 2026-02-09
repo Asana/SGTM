@@ -276,12 +276,15 @@ def pull_request_participants(pull_request: PullRequest) -> List[str]:
 def maybe_remove_autocomplete_failure_comment(pull_request: PullRequest):
     existing_comment_info = _find_existing_autocomplete_failure_comment(pull_request)
     if existing_comment_info is not None:
-        github_client.delete_comment(
-            owner=pull_request.repository_owner_handle(),
-            repository=pull_request.repository_name(),
-            number=pull_request.number(),
-            comment_id=existing_comment_info.database_id(),
-        )
+        try:
+            github_client.delete_comment(
+                owner=pull_request.repository_owner_handle(),
+                repository=pull_request.repository_name(),
+                number=pull_request.number(),
+                comment_id=existing_comment_info.database_id(),
+            )
+        except Exception as e:
+            logger.error(f"Failed to delete autocomplete failure comment: {e}")
 
 
 def maybe_add_autocomplete_failure_comment(

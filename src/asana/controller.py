@@ -78,7 +78,6 @@ def maybe_complete_tasks_on_merge(pull_request: PullRequest):
                 logger.info(
                     f"Successfully completed Asana task {complete_on_merge_task_id} for merged PR {pull_request.url()}"
                 )
-                maybe_remove_autocomplete_failure_comment(pull_request)
             except Exception as e:
                 task_url = asana_helpers.task_url_from_task_id(
                     complete_on_merge_task_id
@@ -90,6 +89,8 @@ def maybe_complete_tasks_on_merge(pull_request: PullRequest):
                 failed_tasks.append((complete_on_merge_task_id, str(e)))
         if len(failed_tasks) > 0:
             maybe_add_autocomplete_failure_comment(pull_request, failed_tasks)
+        else:
+            maybe_remove_autocomplete_failure_comment(pull_request)
     else:
         logger.info(
             f"Pull Request did not autocomplete linked tasks. One of the following conditions was not met: "

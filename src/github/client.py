@@ -1,5 +1,6 @@
 import requests
 from requests.auth import HTTPBasicAuth
+from typing import Optional
 
 from github import PullRequest  # type: ignore
 from src.github.get_app_token import sgtm_github_auth
@@ -32,14 +33,18 @@ def add_pr_comment(owner: str, repository: str, number: int, comment: str):
 
 
 def edit_comment(
-    owner: str, repository: str, number: int, comment_id: int, new_body: str
+    owner: str, repository: str, number: int, comment_id: Optional[int], new_body: str
 ):
+    if comment_id is None:
+        raise ValueError("Comment ID is required")
     pr = _get_pull_request(owner, repository, number)
     comment = pr.get_issue_comment(comment_id)  # type: ignore
     comment.edit(body=new_body)  # type: ignore
 
 
-def delete_comment(owner: str, repository: str, number: int, comment_id: int):
+def delete_comment(owner: str, repository: str, number: int, comment_id: Optional[int]):
+    if comment_id is None:
+        raise ValueError("Comment ID is required")
     pr = _get_pull_request(owner, repository, number)
     comment = pr.get_issue_comment(comment_id)  # type: ignore
     comment.delete()  # type: ignore

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from src.utils import parse_date_string
 from .user import User
 
@@ -13,8 +13,11 @@ class Comment(object):
     def id(self) -> str:
         return self._raw["id"]
 
-    def database_id(self) -> int:
-        return self._raw["databaseId"]
+    def database_id(self) -> Optional[int]:
+        if "databaseId" in self._raw:
+            return self._raw["databaseId"]
+        else:
+            return None
 
     def published_at(self) -> datetime:
         return parse_date_string(self._raw["publishedAt"])
