@@ -1,12 +1,12 @@
 import requests
 from requests.auth import HTTPBasicAuth
 
-from github import PullRequest, Repository  # type: ignore
+from github import PullRequest  # type: ignore
 from src.github.get_app_token import sgtm_github_auth
 from src.logger import logger
 
 
-def _get_repo(owner: str, repository: str) -> Repository:
+def _get_repo(owner: str, repository: str):  # type: ignore
     return sgtm_github_auth(owner).get_rest_client().get_repo(f"{owner}/{repository}")
 
 
@@ -34,9 +34,9 @@ def add_pr_comment(owner: str, repository: str, number: int, comment: str):
 def edit_comment(
     owner: str, repository: str, number: int, comment_id: int, new_body: str
 ):
-    repo = _get_repo(owner, repository)
-    comment = repo.get_comment(comment_id)
-    comment.edit(new_body)  # type: ignore
+    pr = _get_pull_request(owner, repository, number)
+    comment = pr.get_issue_comment(comment_id)  # type: ignore
+    comment.edit(body=new_body)  # type: ignore
 
 
 def set_pull_request_assignee(owner: str, repository: str, number: int, assignee: str):
