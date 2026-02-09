@@ -17,7 +17,6 @@ _full_comment = """
 fragment FullComment on Comment {
   __typename
   id
-  databaseId
   author {
     __typename
     login
@@ -28,9 +27,11 @@ fragment FullComment on Comment {
   body
   bodyHTML
   ... on IssueComment {
+    databaseId
     url
   }
   ... on PullRequestReviewComment {
+    databaseId
     url
   }
 }
