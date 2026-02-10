@@ -294,7 +294,10 @@ def maybe_add_autocomplete_failure_comment(
         AUTOCOMPLETE_COMMENT_ERROR_MESSAGE
         + "\n\n"
         + "\n".join(
-            [f"- {task_link}: {error_message}" for task_link, error_message in failed_tasks]
+            [
+                f"- {task_link}: {error_message}"
+                for task_link, error_message in failed_tasks
+            ]
         )
     )
 

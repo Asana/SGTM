@@ -814,33 +814,35 @@ class TestTeamMentionExpansion(BaseClass):
 
 
 @patch.object(github_client, "delete_comment")
-@patch.object(github_client, "edit_comment")  
+@patch.object(github_client, "edit_comment")
 @patch.object(github_client, "add_pr_comment")
 class TestAutocompleteFailureComments(BaseClass):
-    def test_add_comment_when_none_exists(self, mock_add_pr_comment, mock_edit_comment, mock_delete_comment):
+    def test_add_comment_when_none_exists(
+        self, mock_add_pr_comment, mock_edit_comment, mock_delete_comment
+    ):
         pull_request = build(
-            builder.pull_request()
-            .comments([builder.comment().body("Regular comment")])
+            builder.pull_request().comments([builder.comment().body("Regular comment")])
         )
 
         # Test single task
         single_task = [("https://app.asana.com/0/0/123", "Task not found")]
         github_logic.maybe_add_autocomplete_failure_comment(pull_request, single_task)
-        
+
         mock_add_pr_comment.assert_called_once()
         mock_edit_comment.assert_not_called()
 
-    def test_edit_existing_comment_when_content_differs(self, mock_add_pr_comment, mock_edit_comment, mock_delete_comment):
+    def test_edit_existing_comment_when_content_differs(
+        self, mock_add_pr_comment, mock_edit_comment, mock_delete_comment
+    ):
         existing_comment = build(
             builder.comment()
-            .body("**:error: Asana Task:** This PR has linked Asana tasks that did not get completed due to\n\n- Old error")
+            .body(
+                "**:error: Asana Task:** This PR has linked Asana tasks that did not get completed due to\n\n- Old error"
+            )
             .database_id(789)
         )
-        
-        pull_request = build(
-            builder.pull_request()
-            .comments([existing_comment])
-        )
+
+        pull_request = build(builder.pull_request().comments([existing_comment]))
 
         failed_tasks = [("https://app.asana.com/0/0/123", "New error")]
         github_logic.maybe_add_autocomplete_failure_comment(pull_request, failed_tasks)
@@ -849,43 +851,57 @@ class TestAutocompleteFailureComments(BaseClass):
         mock_add_pr_comment.assert_not_called()
         mock_delete_comment.assert_not_called()
 
-    def test_remove_comments_and_find_logic(self, mock_add_pr_comment, mock_edit_comment, mock_delete_comment):
+    def test_remove_comments_and_find_logic(
+        self, mock_add_pr_comment, mock_edit_comment, mock_delete_comment
+    ):
         autocomplete_comment1 = build(
             builder.comment()
-            .body("**:error: Asana Task:** This PR has linked Asana tasks that did not get completed due to error 1")
+            .body(
+                "**:error: Asana Task:** This PR has linked Asana tasks that did not get completed due to error 1"
+            )
             .database_id(123)
         )
-        
+
         autocomplete_comment2 = build(
             builder.comment()
-            .body("**:error: Asana Task:** This PR has linked Asana tasks that did not get completed due to error 2") 
+            .body(
+                "**:error: Asana Task:** This PR has linked Asana tasks that did not get completed due to error 2"
+            )
             .database_id(456)
         )
-        
+
         pull_request_with_comments = build(
-            builder.pull_request()
-            .comments([
-                builder.comment().body("Regular comment"),
-                autocomplete_comment1,
-                builder.comment().body("**:error: Other Task:** Different error"),  # Should not match
-                autocomplete_comment2,
-                builder.comment().body("Some text **:error: Asana Task:** Not at start"),  # Should not match
-            ])
+            builder.pull_request().comments(
+                [
+                    builder.comment().body("Regular comment"),
+                    autocomplete_comment1,
+                    builder.comment().body(
+                        "**:error: Other Task:** Different error"
+                    ),  # Should not match
+                    autocomplete_comment2,
+                    builder.comment().body(
+                        "Some text **:error: Asana Task:** Not at start"
+                    ),  # Should not match
+                ]
+            )
         )
-        
+
         # Test removal
-        github_logic.maybe_remove_autocomplete_failure_comment(pull_request_with_comments)
+        github_logic.maybe_remove_autocomplete_failure_comment(
+            pull_request_with_comments
+        )
         self.assertEqual(mock_delete_comment.call_count, 2)
-        
+
         # Test empty scenarios
         empty_pull_request = build(
-            builder.pull_request()
-            .comments([
-                builder.comment().body("Regular comment 1"),
-                builder.comment().body("**:warning:** Some other error"),
-            ])
+            builder.pull_request().comments(
+                [
+                    builder.comment().body("Regular comment 1"),
+                    builder.comment().body("**:warning:** Some other error"),
+                ]
+            )
         )
-        
+
         # Reset and test removal with no comments
         mock_delete_comment.reset_mock()
         github_logic.maybe_remove_autocomplete_failure_comment(empty_pull_request)

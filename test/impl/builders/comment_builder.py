@@ -16,7 +16,7 @@ class CommentBuilder(BuilderBaseClass):
         }
 
     def database_id(self, database_id: int):
-        self.raw_comment["databaseId"] = database_id
+        self.raw_comment["databaseId"] = str(database_id)
         return self
 
     def body(self, body: str):
