@@ -86,7 +86,7 @@ def maybe_complete_tasks_on_merge(pull_request: PullRequest):
                     f"Failed to complete Asana task {complete_on_merge_task_id} "
                     f"({task_url}) for PR {pull_request.url()}. Error: {str(e)}"
                 )
-                failed_tasks.append((complete_on_merge_task_id, str(e)))
+                failed_tasks.append((task_url, str(e)))
         if len(failed_tasks) > 0:
             maybe_add_autocomplete_failure_comment(pull_request, failed_tasks)
         else:
