@@ -1,13 +1,18 @@
 import requests
 from requests.auth import HTTPBasicAuth
+from typing import Optional
 
 from github import PullRequest  # type: ignore
 from src.github.get_app_token import sgtm_github_auth
 from src.logger import logger
 
 
+def _get_repo(owner: str, repository: str):  # type: ignore
+    return sgtm_github_auth(owner).get_rest_client().get_repo(f"{owner}/{repository}")
+
+
 def _get_pull_request(owner: str, repository: str, number: int) -> PullRequest:  # type: ignore
-    repo = sgtm_github_auth(owner).get_rest_client().get_repo(f"{owner}/{repository}")
+    repo = _get_repo(owner, repository)
     pr = repo.get_pull(number)
     return pr  # type: ignore
 
@@ -27,8 +32,26 @@ def add_pr_comment(owner: str, repository: str, number: int, comment: str):
     pr.create_issue_comment(comment)  # type: ignore
 
 
+def edit_comment(
+    owner: str, repository: str, number: int, comment_id: Optional[int], new_body: str
+):
+    if comment_id is None:
+        raise ValueError("Comment ID is required")
+    pr = _get_pull_request(owner, repository, number)
+    comment = pr.get_issue_comment(comment_id)  # type: ignore
+    comment.edit(body=new_body)  # type: ignore
+
+
+def delete_comment(owner: str, repository: str, number: int, comment_id: Optional[int]):
+    if comment_id is None:
+        raise ValueError("Comment ID is required")
+    pr = _get_pull_request(owner, repository, number)
+    comment = pr.get_issue_comment(comment_id)  # type: ignore
+    comment.delete()  # type: ignore
+
+
 def set_pull_request_assignee(owner: str, repository: str, number: int, assignee: str):
-    repo = sgtm_github_auth(owner).get_rest_client().get_repo(f"{owner}/{repository}")
+    repo = _get_repo(owner, repository)
     # Using get_issue here because get_pull returns a pull request which only
     # allows you to *add* an assignee, not set the assignee.
     pr = repo.get_issue(number)

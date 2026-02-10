@@ -27,9 +27,11 @@ fragment FullComment on Comment {
   body
   bodyHTML
   ... on IssueComment {
+    databaseId
     url
   }
   ... on PullRequestReviewComment {
+    databaseId
     url
   }
 }

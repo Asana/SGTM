@@ -1,5 +1,5 @@
 import re
-from typing import List, Set
+from typing import List, Set, Optional, Tuple
 from src.logger import logger
 
 from . import client as github_client
@@ -11,7 +11,7 @@ from src.github.models import (
     Review,
 )
 from enum import Enum, unique
-from src.github.helpers import pull_request_has_label
+from src.github.helpers import pull_request_has_label, pull_request_has_comment
 from src.config import (
     SGTM_FEATURE__AUTOMERGE_ENABLED,
     SGTM_FEATURE__DISABLE_GITHUB_TEAM_SUBSCRIPTION,
@@ -39,6 +39,8 @@ AUTOMERGE_COMMENT_WARNING_OPEN_BASE_REF_PRS = (
     " least one open PR associated with it. Once the associated PRs are merged or closed,"
     " this PR will be eligible for auto-merge."
 )
+
+AUTOCOMPLETE_COMMENT_ERROR_MESSAGE = "**:error: Asana Task:** This PR has linked Asana tasks that did not get completed due to"
 
 
 @unique
@@ -271,6 +273,90 @@ def pull_request_participants(pull_request: PullRequest) -> List[str]:
     )
 
 
+def maybe_remove_autocomplete_failure_comment(pull_request: PullRequest):
+    existing_comment_infos = _find_existing_autocomplete_failure_comments(pull_request)
+    for existing_comment_info in existing_comment_infos:
+        try:
+            github_client.delete_comment(
+                owner=pull_request.repository_owner_handle(),
+                repository=pull_request.repository_name(),
+                number=pull_request.number(),
+                comment_id=existing_comment_info.database_id(),
+            )
+        except Exception as e:
+            logger.error(f"Failed to delete autocomplete failure comment: {e}")
+
+
+def maybe_add_autocomplete_failure_comment(
+    pull_request: PullRequest, failed_tasks: List[Tuple[str, str]]
+):
+    new_autocomplete_comment = (
+        AUTOCOMPLETE_COMMENT_ERROR_MESSAGE
+        + "\n\n"
+        + "\n".join(
+            [
+                f"- {task_link}: {error_message}"
+                for task_link, error_message in failed_tasks
+            ]
+        )
+    )
+
+    # Check if there's already an autocomplete failure comment
+    existing_comment_infos = _find_existing_autocomplete_failure_comments(pull_request)
+
+    if len(existing_comment_infos) == 0:
+        # No existing autocomplete failure comment, add new one
+        github_client.add_pr_comment(
+            owner=pull_request.repository_owner_handle(),
+            repository=pull_request.repository_name(),
+            number=pull_request.number(),
+            comment=new_autocomplete_comment,
+        )
+    else:
+        # Existing comment has different error message, edit it
+        existing_comment_info = existing_comment_infos[0]
+        try:
+            github_client.edit_comment(
+                owner=pull_request.repository_owner_handle(),
+                repository=pull_request.repository_name(),
+                number=pull_request.number(),
+                comment_id=existing_comment_info.database_id(),
+                new_body=new_autocomplete_comment,
+            )
+            logger.info(
+                f"Successfully updated autocomplete failure comment using databaseId: {existing_comment_info.database_id()}"
+            )
+        except Exception as e:
+            logger.error(
+                f"Failed to edit comment using databaseId {existing_comment_info.database_id()}: {e}"
+            )
+            logger.info(f"Comment had node_id: {existing_comment_info.id()}")
+            # NOTE: PyGithub's get_issue_comment() expects REST API numeric ID, which should be databaseId
+            # If this fails consistently, we may need to investigate ID format conversion
+            # For now, fall back to adding a new comment
+            github_client.add_pr_comment(
+                owner=pull_request.repository_owner_handle(),
+                repository=pull_request.repository_name(),
+                number=pull_request.number(),
+                comment=new_autocomplete_comment,
+            )
+
+
+def _find_existing_autocomplete_failure_comments(
+    pull_request: PullRequest,
+) -> List[Comment]:
+    """
+    Find existing autocomplete failure comments by looking for the error message pattern.
+    Returns the Comment object if found, None otherwise.
+    """
+
+    return [
+        comment
+        for comment in pull_request.comments()
+        if comment.body().startswith(AUTOCOMPLETE_COMMENT_ERROR_MESSAGE)
+    ]
+
+
 def maybe_add_automerge_warning_comment(pull_request: PullRequest):
     """Adds comment warnings if automerge label is enabled"""
 
@@ -302,9 +388,7 @@ def maybe_add_automerge_warning_comment(pull_request: PullRequest):
         automerge_comment
         and not pull_request.is_approved()
         and _pull_request_is_open(pull_request)
-        and not any(
-            comment.body() == automerge_comment for comment in pull_request.comments()
-        )
+        and not pull_request_has_comment(pull_request, automerge_comment)
     ):
         github_client.add_pr_comment(
             owner=pull_request.repository_owner_handle(),

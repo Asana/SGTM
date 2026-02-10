@@ -6,6 +6,10 @@ import src.asana.logic as asana_logic
 import src.aws.dynamodb_client as dynamodb_client
 from src.config import SGTM_FEATURE__AUTOCOMPLETE_ENABLED
 from src.github.models import Comment, PullRequest, Review
+from src.github.logic import (
+    maybe_add_autocomplete_failure_comment,
+    maybe_remove_autocomplete_failure_comment,
+)
 from src.logger import logger
 
 
@@ -67,6 +71,7 @@ def maybe_complete_tasks_on_merge(pull_request: PullRequest):
     if asana_logic.should_autocomplete_tasks_on_merge(pull_request):
         task_ids_to_complete_on_merge = asana_helpers.get_linked_task_ids(pull_request)
         logger.info(f"Task IDs to complete on merge: {task_ids_to_complete_on_merge}")
+        failed_tasks = []
         for complete_on_merge_task_id in task_ids_to_complete_on_merge:
             try:
                 asana_client.complete_task(complete_on_merge_task_id)
@@ -81,6 +86,11 @@ def maybe_complete_tasks_on_merge(pull_request: PullRequest):
                     f"Failed to complete Asana task {complete_on_merge_task_id} "
                     f"({task_url}) for PR {pull_request.url()}. Error: {str(e)}"
                 )
+                failed_tasks.append((task_url, str(e)))
+        if len(failed_tasks) > 0:
+            maybe_add_autocomplete_failure_comment(pull_request, failed_tasks)
+        else:
+            maybe_remove_autocomplete_failure_comment(pull_request)
     else:
         logger.info(
             f"Pull Request did not autocomplete linked tasks. One of the following conditions was not met: "

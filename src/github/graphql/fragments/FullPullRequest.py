@@ -59,6 +59,7 @@ fragment FullPullRequest on PullRequest {
   comments(last: 20) {
     nodes {
       id
+      databaseId
       author {
         login
       }
