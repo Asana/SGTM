@@ -1,7 +1,11 @@
+import time
+from typing import Dict, Any
+
 import src.asana.controller as asana_controller
 import src.asana.helpers as asana_helpers
 import src.github.logic as github_logic
 import src.github.client as github_client
+import src.github.graphql.client as github_graphql_client
 import src.aws.dynamodb_client as dynamodb_client
 import src.aws.sqs_client as sqs_client
 from src.config import (
@@ -10,9 +14,48 @@ from src.config import (
 from src.github.models import Comment, PullRequest, Review
 from src.logger import logger
 
+SGTM_SUNSET_TEAM_SLUG = "sgtm-sunset"
+_TEAM_CACHE_TTL_SECONDS = 300
+
+_team_members_cache: Dict[str, Any] = {}
+
+
+def _get_sunset_team_members(org: str) -> list:
+    cache_key = f"{org}/{SGTM_SUNSET_TEAM_SLUG}"
+    now = time.monotonic()
+    cached = _team_members_cache.get(cache_key)
+    if cached and (now - cached["ts"]) < _TEAM_CACHE_TTL_SECONDS:
+        logger.info(f"Using cached team members for {cache_key}")
+        return cached["members"]
+
+    members = github_graphql_client.get_team_members(org, SGTM_SUNSET_TEAM_SLUG)
+    _team_members_cache[cache_key] = {"members": members, "ts": now}
+    logger.info(f"Fetched and cached {len(members)} members for {cache_key}")
+    return members
+
+
+def _is_author_in_sunset_team(pull_request: PullRequest) -> bool:
+    """Check if PR author is a member of the sgtm-sunset team."""
+    try:
+        org = pull_request.repository_owner_handle()
+        team_members = _get_sunset_team_members(org)
+        return pull_request.author_handle() in team_members
+    except Exception as e:
+        logger.warning(f"Failed to check sgtm-sunset team membership: {e}")
+        return False
+
 
 def upsert_pull_request(pull_request: PullRequest):
     pull_request_id = pull_request.id()
+
+    # Skip task creation for users in the sgtm-sunset team
+    if _is_author_in_sunset_team(pull_request):
+        logger.info(
+            f"Skipping task creation for PR {pull_request_id} - author "
+            f"{pull_request.author_handle()} is in {SGTM_SUNSET_TEAM_SLUG} team"
+        )
+        return
+
     task_id = dynamodb_client.get_asana_id_from_github_node_id(pull_request_id)
     if task_id is None:
         task_id = asana_controller.create_task(pull_request.repository_id())
