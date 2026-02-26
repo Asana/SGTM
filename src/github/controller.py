@@ -20,15 +20,15 @@ _TEAM_CACHE_TTL_SECONDS = 300
 _team_members_cache: Dict[str, Any] = {}
 
 
-def _get_skip_team_members(org: str) -> List[str]:
-    cache_key = f"{org}/{SGTM_FEATURE__SKIP_TEAM_SLUG}"
+def _get_skip_team_members(org: str, team_slug: str) -> List[str]:
+    cache_key = f"{org}/{team_slug}"
     now = time.monotonic()
     cached = _team_members_cache.get(cache_key)
     if cached and (now - cached["ts"]) < _TEAM_CACHE_TTL_SECONDS:
         logger.info(f"Using cached team members for {cache_key}")
         return cached["members"]
 
-    members = github_graphql_client.get_team_members(org, SGTM_FEATURE__SKIP_TEAM_SLUG)
+    members = github_graphql_client.get_team_members(org, team_slug)
     _team_members_cache[cache_key] = {"members": members, "ts": now}
     logger.info(f"Fetched and cached {len(members)} members for {cache_key}")
     return members
@@ -44,7 +44,7 @@ def _should_skip_task_creation(pull_request: PullRequest) -> bool:
         return False
     try:
         org = pull_request.repository_owner_handle()
-        team_members = _get_skip_team_members(org)
+        team_members = _get_skip_team_members(org, SGTM_FEATURE__SKIP_TEAM_SLUG)
         return pull_request.author_handle() in team_members
     except Exception as e:
         logger.warning(
