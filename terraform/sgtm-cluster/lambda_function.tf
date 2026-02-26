@@ -28,6 +28,7 @@ resource "aws_lambda_function" "sgtm" {
       SGTM_FEATURE__EXCLUDED_ATTACHMENT_SOURCES_URLS = var.sgtm_feature__excluded_attachment_sources_urls,
       SGTM_FEATURE__SYNC_GITHUB_LABELS_ENABLED       = var.sgtm_feature__sync_github_labels_enabled,
       SGTM_FEATURE__GRAPHITE_LINK_ENABLED            = var.sgtm_feature__graphite_link_enabled,
+      SGTM_FEATURE__SKIP_TEAM_SLUG                   = var.sgtm_feature__skip_team_slug,
 
       # github usernames to asana IDs mapping
       GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH = var.github_usernames_to_asana_gids_s3_path
