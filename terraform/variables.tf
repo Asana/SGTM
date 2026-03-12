@@ -122,6 +122,12 @@ variable "sgtm_feature__graphite_link_enabled" {
   default     = "false"
 }
 
+variable "sgtm_feature__skip_team_slug" {
+  type        = string
+  description = "GitHub team slug whose members should skip Asana task creation. Leave empty to disable."
+  default     = ""
+}
+
 variable "github_app_name" {
   type        = string
   default     = null

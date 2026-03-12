@@ -64,6 +64,8 @@ SGTM_FEATURE__GRAPHITE_LINK_ENABLED = is_feature_flag_enabled(
     "SGTM_FEATURE__GRAPHITE_LINK_ENABLED"
 )
 
+SGTM_FEATURE__SKIP_TEAM_SLUG = os.getenv("SGTM_FEATURE__SKIP_TEAM_SLUG", None)
+
 
 #### Particularly sensitive variables are retrieved from an S3 bucket, instead of
 # from terraform-set environment variables. When SGTM is being manually tested,
