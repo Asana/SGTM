@@ -7,15 +7,10 @@ from .builder_base_class import BuilderBaseClass
 class UserBuilder(BuilderBaseClass):
     LOGIN_COUNTER = 0
 
-    def __init__(self, login: Optional[str] = None, name: Optional[str] = None):
+    def __init__(self, login: Optional[str] = None, name: str = ""):
         if login is None:
             login = UserBuilder.next_login()
-        self.raw_user = {
-            "__typename": "Bot" if name is None else "User",
-            "id": create_uuid(),
-            "login": login,
-            "name": name,
-        }
+        self.raw_user = {"id": create_uuid(), "login": login, "name": name}
 
     @staticmethod
     def next_login():
@@ -29,7 +24,6 @@ class UserBuilder(BuilderBaseClass):
 
     def name(self, name: str):
         self.raw_user["name"] = name
-        self.raw_user["__typename"] = "User"
         return self
 
     def build(self) -> User:
