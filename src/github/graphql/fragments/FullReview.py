@@ -6,7 +6,6 @@ _full_review = """
 fragment FullReview on PullRequestReview {
   id
   author {
-    __typename
     login
     ... on User {
       name
