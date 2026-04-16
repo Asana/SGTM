@@ -35,6 +35,18 @@ _ASANA_ALLOWED_ATTRS = {
     "a": frozenset({"href", "data-asana-gid", "data-asana-dynamic"}),
 }
 
+# URL schemes considered safe for href/src attributes.
+_SAFE_URL_SCHEMES = frozenset({"http", "https", "mailto"})
+
+
+def _is_safe_url(url: str) -> bool:
+    """Check that a URL uses a safe scheme (http, https, mailto)."""
+    try:
+        parsed = urlparse(url)
+        return parsed.scheme.lower() in _SAFE_URL_SCHEMES
+    except Exception:
+        return False
+
 
 class _AsanaHTMLSanitizer(HTMLParser):
     """Sanitizes raw HTML for Asana's rich text API.
@@ -45,6 +57,7 @@ class _AsanaHTMLSanitizer(HTMLParser):
     - Converts <br> to newlines
     - Passes through <hr />
     - Removes HTML comments entirely
+    - Validates URL schemes (only http/https/mailto allowed)
     """
 
     def __init__(self) -> None:
@@ -56,16 +69,22 @@ class _AsanaHTMLSanitizer(HTMLParser):
         if tag_lower in _ASANA_SUPPORTED_TAGS:
             allowed = _ASANA_ALLOWED_ATTRS.get(tag_lower, frozenset())
             safe_attrs = []
+            seen_keys = set()
             for k, v in attrs:
-                if k.lower() in allowed and v is not None:
+                k_lower = k.lower()
+                if k_lower in allowed and k_lower not in seen_keys and v is not None:
+                    # Validate URL attributes against safe schemes
+                    if k_lower == "href" and not _is_safe_url(v):
+                        continue
                     safe_attrs.append(f'{k}="{escape(v)}"')
+                    seen_keys.add(k_lower)
             attr_str = (" " + " ".join(safe_attrs)) if safe_attrs else ""
             self._parts.append(f"<{tag_lower}{attr_str}>")
         elif tag_lower == "img":
             attrs_dict = dict(attrs)
             src = attrs_dict.get("src", "")
             alt = attrs_dict.get("alt", "")
-            if src:
+            if src and _is_safe_url(src):
                 self._parts.append(
                     f'<a href="{escape(src)}">{escape(alt or src)}</a>'
                 )

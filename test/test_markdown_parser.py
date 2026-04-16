@@ -266,6 +266,47 @@ class TestSanitizeHtmlForAsana(unittest.TestCase):
         html = "before<!-- multi\nline\ncomment -->after"
         self.assertEqual(sanitize_html_for_asana(html), "beforeafter")
 
+    # --- URL scheme validation ---
+
+    def test_blocks_javascript_url_in_href(self):
+        html = '<a href="javascript:alert(1)">click</a>'
+        result = sanitize_html_for_asana(html)
+        self.assertNotIn("javascript:", result)
+        # Tag still emitted but without href
+        self.assertIn("<a>", result)
+
+    def test_blocks_data_url_in_href(self):
+        html = '<a href="data:text/html,payload">click</a>'
+        result = sanitize_html_for_asana(html)
+        self.assertNotIn("data:", result)
+
+    def test_blocks_javascript_url_in_img_src(self):
+        html = '<img src="javascript:alert(1)" alt="xss" />'
+        result = sanitize_html_for_asana(html)
+        self.assertNotIn("javascript:", result)
+        self.assertEqual(result, "")
+
+    def test_allows_https_url_in_href(self):
+        html = '<a href="https://example.com">link</a>'
+        self.assertEqual(
+            sanitize_html_for_asana(html),
+            '<a href="https://example.com">link</a>',
+        )
+
+    def test_allows_mailto_url_in_href(self):
+        html = '<a href="mailto:user@example.com">email</a>'
+        self.assertEqual(
+            sanitize_html_for_asana(html),
+            '<a href="mailto:user@example.com">email</a>',
+        )
+
+    def test_deduplicates_href_attributes(self):
+        """Only the first href is kept if an element has duplicates."""
+        html = '<a href="https://first.com" href="https://second.com">link</a>'
+        result = sanitize_html_for_asana(html)
+        self.assertIn("https://first.com", result)
+        self.assertNotIn("https://second.com", result)
+
     # --- Text escaping ---
 
     def test_escapes_special_chars_in_text(self):
