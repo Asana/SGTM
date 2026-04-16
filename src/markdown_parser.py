@@ -63,9 +63,32 @@ _BLOCK_LEVEL_TAGS = frozenset(
     }
 )
 
-# Regex to detect HTML tags in text (used to distinguish indented HTML from
-# genuine code blocks).
-_HTML_TAG_RE = re.compile(r"<[a-zA-Z][^>]*>")
+# Known HTML tag names, used to distinguish indented bot HTML from genuine
+# code blocks.  A simple regex like `<[a-zA-Z]...>` would false-positive on
+# C++ templates (vector<int>), angle-bracket strings, etc.  Checking against
+# actual HTML tag names avoids those cases.
+_KNOWN_HTML_TAG_NAMES = frozenset(
+    {
+        "a", "abbr", "article", "aside", "b", "blockquote", "br", "button",
+        "caption", "code", "col", "colgroup", "dd", "del", "details", "div",
+        "dl", "dt", "em", "figcaption", "figure", "footer", "form",
+        "h1", "h2", "h3", "h4", "h5", "h6",
+        "header", "hr", "i", "iframe", "img", "input", "ins", "label", "li",
+        "main", "nav", "ol", "option", "p", "picture", "pre", "s", "section",
+        "select", "source", "span", "strong", "sub", "summary", "sup",
+        "table", "tbody", "td", "textarea", "tfoot", "th", "thead", "tr",
+        "u", "ul", "video",
+    }
+)
+_TAG_NAME_RE = re.compile(r"<([a-zA-Z][a-zA-Z0-9]*)")
+
+
+def _contains_html_tags(text: str) -> bool:
+    """Return True if *text* contains what looks like a known HTML tag."""
+    for m in _TAG_NAME_RE.finditer(text):
+        if m.group(1).lower() in _KNOWN_HTML_TAG_NAMES:
+            return True
+    return False
 
 
 def _urlreplace(matchobj: Match[str]) -> str:
@@ -226,7 +249,7 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
         # Indented code blocks (info=None) that contain HTML tags are likely
         # bot comments with cosmetic leading whitespace, not actual code —
         # sanitize them instead of rendering as <pre>.
-        if info is None and _HTML_TAG_RE.search(code):
+        if info is None and _contains_html_tags(code):
             return sanitize_html_for_asana(code)
         return "<pre>" + escape(code) + "</pre>"
 

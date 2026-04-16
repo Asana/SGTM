@@ -1,7 +1,11 @@
 import unittest
 
 from html import escape
-from src.markdown_parser import convert_github_markdown_to_asana_xml, sanitize_html_for_asana
+from src.markdown_parser import (
+    convert_github_markdown_to_asana_xml,
+    sanitize_html_for_asana,
+    _contains_html_tags,
+)
 
 
 class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
@@ -427,6 +431,22 @@ class TestSanitizeHtmlForAsana(unittest.TestCase):
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertIn("<pre>", xml)
         self.assertIn("x = 1", xml)
+
+    def test_indented_cpp_templates_stay_as_code(self):
+        """C++ templates with angle brackets should NOT trigger HTML detection."""
+        md = "    vector<int> v;\n    std::map<string, int> m;\n"
+        xml = convert_github_markdown_to_asana_xml(md)
+        self.assertIn("<pre>", xml)
+        self.assertIn("vector", xml)
+
+    def test_html_detection_ignores_non_html_tag_names(self):
+        """_contains_html_tags only matches known HTML tag names."""
+        self.assertFalse(_contains_html_tags("vector<int> v;"))
+        self.assertFalse(_contains_html_tags("dict['<key>']"))
+        self.assertFalse(_contains_html_tags("template<class T>"))
+        self.assertTrue(_contains_html_tags('<a href="x">link</a>'))
+        self.assertTrue(_contains_html_tags("<details>content</details>"))
+        self.assertTrue(_contains_html_tags('<img src="x.png"/>'))
 
     def test_bare_urls_in_block_html_are_autolinked(self):
         """Bare URLs inside block-level HTML should become clickable links."""
