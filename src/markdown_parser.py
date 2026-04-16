@@ -38,6 +38,11 @@ _ASANA_ALLOWED_ATTRS = {
 # URL schemes considered safe for href/src attributes.
 _SAFE_URL_SCHEMES = frozenset({"http", "https", "mailto"})
 
+# Table cell/row tags get special treatment: " | " between cells, "\n" at row
+# boundaries, so stripped table text doesn't run together.
+_TABLE_CELL_TAGS = frozenset({"td", "th"})
+_TABLE_ROW_TAG = "tr"
+
 # Block-level HTML elements that should emit a newline when their closing tag
 # is stripped, so adjacent blocks don't run together (e.g. "TitleBody" → "Title\nBody").
 _BLOCK_LEVEL_TAGS = frozenset(
@@ -119,11 +124,6 @@ class _AsanaHTMLSanitizer(HTMLParser):
     - Validates URL schemes (only http/https/mailto allowed)
     """
 
-    # Tags whose boundaries deserve a visible separator so that adjacent
-    # cell text doesn't run together (e.g. "<td>A</td><td>B</td>" → "A | B").
-    _TABLE_CELL_TAGS = frozenset({"td", "th"})
-    _TABLE_ROW_TAG = "tr"
-
     def __init__(self) -> None:
         super().__init__(convert_charrefs=False)
         self._parts: list = []
@@ -132,12 +132,12 @@ class _AsanaHTMLSanitizer(HTMLParser):
     def handle_starttag(self, tag: str, attrs: list) -> None:
         tag_lower = tag.lower()
         # Table structure: insert separators so cell text doesn't run together.
-        if tag_lower in self._TABLE_CELL_TAGS:
+        if tag_lower in _TABLE_CELL_TAGS:
             if self._cell_count_in_row > 0:
                 self._parts.append(" | ")
             self._cell_count_in_row += 1
             return
-        if tag_lower == self._TABLE_ROW_TAG:
+        if tag_lower == _TABLE_ROW_TAG:
             self._cell_count_in_row = 0
             return
         if tag_lower in _ASANA_SUPPORTED_TAGS:
@@ -171,16 +171,19 @@ class _AsanaHTMLSanitizer(HTMLParser):
 
     def handle_endtag(self, tag: str) -> None:
         tag_lower = tag.lower()
-        if tag_lower == self._TABLE_ROW_TAG:
+        if tag_lower == _TABLE_ROW_TAG:
             self._parts.append("\n")
             self._cell_count_in_row = 0
             return
-        if tag_lower in self._TABLE_CELL_TAGS:
+        if tag_lower in _TABLE_CELL_TAGS:
             return  # closing </td>/</th> needs no output
         if tag_lower in _ASANA_SUPPORTED_TAGS:
             self._parts.append(f"</{tag_lower}>")
         elif tag_lower in _BLOCK_LEVEL_TAGS:
-            self._parts.append("\n")
+            # Avoid consecutive newlines from deeply nested block elements
+            # (e.g. </p></div></div> should not emit three newlines).
+            if not self._parts or not self._parts[-1].endswith("\n"):
+                self._parts.append("\n")
 
     def handle_data(self, data: str) -> None:
         text = escape(data, quote=False)

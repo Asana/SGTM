@@ -1,6 +1,5 @@
 import unittest
 
-from html import escape
 from src.markdown_parser import (
     convert_github_markdown_to_asana_xml,
     sanitize_html_for_asana,
