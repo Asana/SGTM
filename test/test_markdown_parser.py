@@ -1,7 +1,7 @@
 import unittest
 
 from html import escape
-from src.markdown_parser import convert_github_markdown_to_asana_xml
+from src.markdown_parser import convert_github_markdown_to_asana_xml, sanitize_html_for_asana
 
 
 class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
@@ -109,43 +109,250 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(xml, "<code>test</code>\n")
 
-    def test_escapes_raw_html_mixed_with_markdown(self):
+    def test_sanitizes_raw_html_mixed_with_markdown(self):
+        """Unsupported tags are stripped but content preserved inside markdown."""
         md = """## <img href="link" />still here <h3>header</h3>"""
         xml = convert_github_markdown_to_asana_xml(md)
-        self.assertEqual(
-            xml,
-            "\n<b>"
-            + escape('<img href="link" />')
-            + "still here "
-            + escape("<h3>header</h3>")
-            + "</b>\n",
-        )
+        # <img> without src is stripped; <h3> tags stripped, content kept
+        self.assertEqual(xml, "\n<b>still here header</b>\n")
 
-    def test_escapes_raw_html_on_own_lines(self):
+    def test_sanitizes_raw_html_on_own_lines(self):
+        """Block-level raw HTML is sanitized, not escaped."""
         md = """## blah blah blah
 <img href="link">
 still here <h3>header</h3>"""
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(
             xml,
-            "\n<b>blah blah blah</b>\n"
-            + escape('<img href="link">\n')
-            + "still here "
-            + escape("<h3>header</h3>"),
+            "\n<b>blah blah blah</b>\n" + "\n" + "still here header",
         )
 
-    def test_escapes_raw_html(self):
+    def test_sanitizes_raw_html(self):
+        """Inline raw HTML tags are sanitized: unsupported stripped, content kept."""
         md = """<img href="link" />still here <h3>header</h3>"""
         xml = convert_github_markdown_to_asana_xml(md)
-        self.assertEqual(
-            xml,
-            escape('<img href="link" />') + "still here " + escape("<h3>header</h3>\n"),
-        )
+        self.assertEqual(xml, "still here header\n")
 
     def test_removes_images(self):
         md = """![image](https://image.com)"""
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(xml, '<a href="https://image.com">image</a>\n')
+
+
+class TestSanitizeHtmlForAsana(unittest.TestCase):
+    """Tests for the HTML sanitizer that converts raw HTML to Asana-compatible markup."""
+
+    # --- Asana-supported tags pass through ---
+
+    def test_preserves_anchor_tag_with_href(self):
+        html = '<a href="https://example.com">click here</a>'
+        self.assertEqual(
+            sanitize_html_for_asana(html),
+            '<a href="https://example.com">click here</a>',
+        )
+
+    def test_strips_unsupported_attrs_from_anchor(self):
+        html = '<a href="https://example.com" target="_blank" rel="noopener">link</a>'
+        self.assertEqual(
+            sanitize_html_for_asana(html),
+            '<a href="https://example.com">link</a>',
+        )
+
+    def test_preserves_bold_tags(self):
+        self.assertEqual(
+            sanitize_html_for_asana("<b>bold</b>"),
+            "<b>bold</b>",
+        )
+        self.assertEqual(
+            sanitize_html_for_asana("<strong>bold</strong>"),
+            "<strong>bold</strong>",
+        )
+
+    def test_preserves_emphasis_tags(self):
+        self.assertEqual(
+            sanitize_html_for_asana("<em>italic</em>"),
+            "<em>italic</em>",
+        )
+        self.assertEqual(
+            sanitize_html_for_asana("<i>italic</i>"),
+            "<i>italic</i>",
+        )
+
+    def test_preserves_list_tags(self):
+        html = "<ul><li>one</li><li>two</li></ul>"
+        self.assertEqual(sanitize_html_for_asana(html), html)
+
+    def test_preserves_code_tags(self):
+        self.assertEqual(
+            sanitize_html_for_asana("<code>foo()</code>"),
+            "<code>foo()</code>",
+        )
+        self.assertEqual(
+            sanitize_html_for_asana("<pre>block</pre>"),
+            "<pre>block</pre>",
+        )
+
+    def test_preserves_strikethrough_and_underline(self):
+        self.assertEqual(sanitize_html_for_asana("<s>old</s>"), "<s>old</s>")
+        self.assertEqual(sanitize_html_for_asana("<u>new</u>"), "<u>new</u>")
+
+    def test_preserves_blockquote(self):
+        self.assertEqual(
+            sanitize_html_for_asana("<blockquote>quoted</blockquote>"),
+            "<blockquote>quoted</blockquote>",
+        )
+
+    # --- Unsupported tags stripped, content preserved ---
+
+    def test_strips_details_summary(self):
+        html = "<details><summary>Click to expand</summary>Hidden content</details>"
+        self.assertEqual(
+            sanitize_html_for_asana(html),
+            "Click to expandHidden content",
+        )
+
+    def test_strips_div_span(self):
+        html = '<div class="wrapper"><span>text</span></div>'
+        self.assertEqual(sanitize_html_for_asana(html), "text")
+
+    def test_strips_heading_tags(self):
+        for level in range(1, 7):
+            html = f"<h{level}>Heading</h{level}>"
+            self.assertEqual(sanitize_html_for_asana(html), "Heading")
+
+    def test_strips_table_tags_preserves_text(self):
+        html = "<table><tr><th>Name</th><th>Status</th></tr><tr><td>foo</td><td>OK</td></tr></table>"
+        self.assertEqual(sanitize_html_for_asana(html), "NameStatusfooOK")
+
+    def test_strips_p_tags(self):
+        html = "<p>paragraph text</p>"
+        self.assertEqual(sanitize_html_for_asana(html), "paragraph text")
+
+    # --- Special tag conversions ---
+
+    def test_converts_img_with_src_to_link(self):
+        html = '<img src="https://example.com/image.png" alt="Logo" />'
+        self.assertEqual(
+            sanitize_html_for_asana(html),
+            '<a href="https://example.com/image.png">Logo</a>',
+        )
+
+    def test_converts_img_without_alt_uses_src(self):
+        html = '<img src="https://example.com/pic.png" />'
+        self.assertEqual(
+            sanitize_html_for_asana(html),
+            '<a href="https://example.com/pic.png">https://example.com/pic.png</a>',
+        )
+
+    def test_strips_img_without_src(self):
+        html = '<img alt="no source" />'
+        self.assertEqual(sanitize_html_for_asana(html), "")
+
+    def test_converts_br_to_newline(self):
+        self.assertEqual(sanitize_html_for_asana("line1<br>line2"), "line1\nline2")
+        self.assertEqual(sanitize_html_for_asana("line1<br />line2"), "line1\nline2")
+
+    def test_passes_through_hr(self):
+        self.assertEqual(sanitize_html_for_asana("<hr>"), "<hr />")
+        self.assertEqual(sanitize_html_for_asana("<hr />"), "<hr />")
+
+    # --- HTML comments ---
+
+    def test_strips_html_comments(self):
+        html = "<!-- this is a comment -->visible text"
+        self.assertEqual(sanitize_html_for_asana(html), "visible text")
+
+    def test_strips_multiline_html_comments(self):
+        html = "before<!-- multi\nline\ncomment -->after"
+        self.assertEqual(sanitize_html_for_asana(html), "beforeafter")
+
+    # --- Text escaping ---
+
+    def test_escapes_special_chars_in_text(self):
+        html = "<div>1 < 2 & 3 > 0</div>"
+        result = sanitize_html_for_asana(html)
+        self.assertIn("1 &lt; 2 &amp; 3 &gt; 0", result)
+
+    def test_preserves_entity_refs(self):
+        html = "&amp; &lt; &gt;"
+        self.assertEqual(sanitize_html_for_asana(html), "&amp; &lt; &gt;")
+
+    # --- Real-world bot comment patterns ---
+
+    def test_spacelift_comment(self):
+        """Spacelift-style collapsible status with nested list and links."""
+        html = (
+            "<!-- spacelift_id -->"
+            "Commit: abc123\n"
+            "<details><summary>Stacks affected:</summary>"
+            '<ul><li>stack-a: <a href="https://spacelift.io/a">link</a></li></ul>'
+            "</details>"
+        )
+        result = sanitize_html_for_asana(html)
+        self.assertNotIn("<!--", result)
+        self.assertNotIn("<details>", result)
+        self.assertNotIn("<summary>", result)
+        self.assertIn("Commit: abc123", result)
+        self.assertIn("Stacks affected:", result)
+        self.assertIn("<ul>", result)
+        self.assertIn("<li>", result)
+        self.assertIn('<a href="https://spacelift.io/a">link</a>', result)
+
+    def test_graphite_comment(self):
+        """Graphite-style comment with images and styled links."""
+        html = (
+            '<a href="https://graphite.dev" target="_blank">'
+            '<img src="https://graphite.dev/logo.png" alt="Graphite" width="10" />'
+            "</a> "
+            '<a href="https://graphite.dev"><b>Graphite</b></a>'
+        )
+        result = sanitize_html_for_asana(html)
+        self.assertNotIn("target=", result)
+        self.assertNotIn("<img", result)
+        self.assertIn('<a href="https://graphite.dev">', result)
+        self.assertIn("<b>Graphite</b>", result)
+
+    def test_cursor_agent_badges(self):
+        """Cursor agent badge HTML with picture/source/div elements."""
+        html = (
+            '<div><a href="https://cursor.com/agent">'
+            "<picture>"
+            '<source media="(prefers-color-scheme: dark)" srcset="dark.png">'
+            '<img alt="Open" src="light.png">'
+            "</picture></a></div>"
+        )
+        result = sanitize_html_for_asana(html)
+        self.assertNotIn("<div>", result)
+        self.assertNotIn("<picture>", result)
+        self.assertNotIn("<source", result)
+        self.assertIn('<a href="https://cursor.com/agent">', result)
+
+    # --- End-to-end through the markdown parser ---
+
+    def test_markdown_with_details_block(self):
+        """GitHub markdown containing a <details> block renders cleanly."""
+        md = "Summary\n\n<details><summary>Details</summary>\n\nHidden\n\n</details>"
+        xml = convert_github_markdown_to_asana_xml(md)
+        self.assertNotIn("&lt;details&gt;", xml)
+        self.assertNotIn("&lt;summary&gt;", xml)
+        self.assertIn("Summary", xml)
+        self.assertIn("Details", xml)
+        self.assertIn("Hidden", xml)
+
+    def test_markdown_with_html_comment(self):
+        """HTML comments in markdown are stripped entirely."""
+        md = "<!-- hidden -->visible text"
+        xml = convert_github_markdown_to_asana_xml(md)
+        self.assertNotIn("<!--", xml)
+        self.assertNotIn("hidden", xml)
+        self.assertIn("visible text", xml)
+
+    def test_markdown_with_inline_html_link(self):
+        """Raw <a> tags in markdown pass through with sanitized attributes."""
+        md = 'Click <a href="https://example.com" target="_blank">here</a> now'
+        xml = convert_github_markdown_to_asana_xml(md)
+        self.assertIn('<a href="https://example.com">here</a>', xml)
+        self.assertNotIn("target=", xml)
 
 
 if __name__ == "__main__":

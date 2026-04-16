@@ -1,5 +1,6 @@
 import re
 from html import escape, unescape
+from html.parser import HTMLParser
 from typing import Match
 from urllib.parse import urlparse
 
@@ -7,6 +8,104 @@ import mistune  # type: ignore
 
 # https://gist.github.com/gruber/8891611
 URL_REGEX = r"""(?i)([^"\>\<\/\.]|^)\b((?:https?:(/{1,3}))(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))"""
+
+
+# Tags that Asana's rich text API supports.
+# https://developers.asana.com/docs/rich-text
+_ASANA_SUPPORTED_TAGS = frozenset(
+    {
+        "a",
+        "b",
+        "strong",
+        "em",
+        "i",
+        "s",
+        "u",
+        "code",
+        "pre",
+        "ol",
+        "ul",
+        "li",
+        "blockquote",
+    }
+)
+
+# Per-tag allowlist of HTML attributes that Asana accepts.
+_ASANA_ALLOWED_ATTRS = {
+    "a": frozenset({"href", "data-asana-gid", "data-asana-dynamic"}),
+}
+
+
+class _AsanaHTMLSanitizer(HTMLParser):
+    """Sanitizes raw HTML for Asana's rich text API.
+
+    - Passes through Asana-supported tags with sanitized attributes
+    - Strips unsupported wrapper tags but preserves their text content
+    - Converts <img> tags to <a> links using src/alt attributes
+    - Converts <br> to newlines
+    - Passes through <hr />
+    - Removes HTML comments entirely
+    """
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=False)
+        self._parts: list = []
+
+    def handle_starttag(self, tag: str, attrs: list) -> None:
+        tag_lower = tag.lower()
+        if tag_lower in _ASANA_SUPPORTED_TAGS:
+            allowed = _ASANA_ALLOWED_ATTRS.get(tag_lower, frozenset())
+            safe_attrs = []
+            for k, v in attrs:
+                if k.lower() in allowed and v is not None:
+                    safe_attrs.append(f'{k}="{escape(v)}"')
+            attr_str = (" " + " ".join(safe_attrs)) if safe_attrs else ""
+            self._parts.append(f"<{tag_lower}{attr_str}>")
+        elif tag_lower == "img":
+            attrs_dict = dict(attrs)
+            src = attrs_dict.get("src", "")
+            alt = attrs_dict.get("alt", "")
+            if src:
+                self._parts.append(
+                    f'<a href="{escape(src)}">{escape(alt or src)}</a>'
+                )
+        elif tag_lower == "br":
+            self._parts.append("\n")
+        elif tag_lower == "hr":
+            self._parts.append("<hr />")
+        # All other tags (details, summary, div, table, h1-h6, etc.):
+        # silently strip the tag; text content is preserved via handle_data.
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag.lower() in _ASANA_SUPPORTED_TAGS:
+            self._parts.append(f"</{tag.lower()}>")
+
+    def handle_data(self, data: str) -> None:
+        self._parts.append(escape(data, quote=False))
+
+    def handle_entityref(self, name: str) -> None:
+        self._parts.append(f"&{name};")
+
+    def handle_charref(self, name: str) -> None:
+        self._parts.append(f"&#{name};")
+
+    def handle_comment(self, data: str) -> None:
+        pass  # Strip HTML comments entirely
+
+    def get_result(self) -> str:
+        return "".join(self._parts)
+
+
+def sanitize_html_for_asana(html: str) -> str:
+    """Sanitize raw HTML for Asana's rich text API.
+
+    Converts a block of raw HTML (e.g. from a GitHub bot comment) into
+    Asana-compatible markup by keeping supported tags, stripping unsupported
+    wrapper tags while preserving their text, and removing HTML comments.
+    """
+    sanitizer = _AsanaHTMLSanitizer()
+    sanitizer.feed(html)
+    return sanitizer.get_result()
 
 
 class GithubToAsanaRenderer(mistune.HTMLRenderer):
@@ -26,10 +125,10 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
         return "<hr />"
 
     def inline_html(self, html) -> str:
-        return escape(html)
+        return sanitize_html_for_asana(html)
 
     def block_html(self, html) -> str:
-        return escape(html)
+        return sanitize_html_for_asana(html)
 
     def linebreak(self) -> str:
         return "\n"
