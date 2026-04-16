@@ -60,12 +60,27 @@ class _AsanaHTMLSanitizer(HTMLParser):
     - Validates URL schemes (only http/https/mailto allowed)
     """
 
+    # Tags whose boundaries deserve a visible separator so that adjacent
+    # cell text doesn't run together (e.g. "<td>A</td><td>B</td>" → "A | B").
+    _TABLE_CELL_TAGS = frozenset({"td", "th"})
+    _TABLE_ROW_TAG = "tr"
+
     def __init__(self) -> None:
         super().__init__(convert_charrefs=False)
         self._parts: list = []
+        self._cell_count_in_row = 0  # tracks cell position within a <tr>
 
     def handle_starttag(self, tag: str, attrs: list) -> None:
         tag_lower = tag.lower()
+        # Table structure: insert separators so cell text doesn't run together.
+        if tag_lower in self._TABLE_CELL_TAGS:
+            if self._cell_count_in_row > 0:
+                self._parts.append(" | ")
+            self._cell_count_in_row += 1
+            return
+        if tag_lower == self._TABLE_ROW_TAG:
+            self._cell_count_in_row = 0
+            return
         if tag_lower in _ASANA_SUPPORTED_TAGS:
             allowed = _ASANA_ALLOWED_ATTRS.get(tag_lower, frozenset())
             safe_attrs = []
@@ -96,8 +111,15 @@ class _AsanaHTMLSanitizer(HTMLParser):
         # silently strip the tag; text content is preserved via handle_data.
 
     def handle_endtag(self, tag: str) -> None:
-        if tag.lower() in _ASANA_SUPPORTED_TAGS:
-            self._parts.append(f"</{tag.lower()}>")
+        tag_lower = tag.lower()
+        if tag_lower == self._TABLE_ROW_TAG:
+            self._parts.append("\n")
+            self._cell_count_in_row = 0
+            return
+        if tag_lower in self._TABLE_CELL_TAGS:
+            return  # closing </td>/</th> needs no output
+        if tag_lower in _ASANA_SUPPORTED_TAGS:
+            self._parts.append(f"</{tag_lower}>")
 
     def handle_data(self, data: str) -> None:
         self._parts.append(escape(data, quote=False))

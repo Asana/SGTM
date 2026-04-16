@@ -220,9 +220,19 @@ class TestSanitizeHtmlForAsana(unittest.TestCase):
             html = f"<h{level}>Heading</h{level}>"
             self.assertEqual(sanitize_html_for_asana(html), "Heading")
 
-    def test_strips_table_tags_preserves_text(self):
+    def test_strips_table_tags_preserves_text_with_separators(self):
         html = "<table><tr><th>Name</th><th>Status</th></tr><tr><td>foo</td><td>OK</td></tr></table>"
-        self.assertEqual(sanitize_html_for_asana(html), "NameStatusfooOK")
+        self.assertEqual(
+            sanitize_html_for_asana(html), "Name | Status\nfoo | OK\n"
+        )
+
+    def test_single_cell_row_has_no_leading_separator(self):
+        html = "<table><tr><td>only cell</td></tr></table>"
+        self.assertEqual(sanitize_html_for_asana(html), "only cell\n")
+
+    def test_three_column_table(self):
+        html = "<table><tr><td>A</td><td>B</td><td>C</td></tr></table>"
+        self.assertEqual(sanitize_html_for_asana(html), "A | B | C\n")
 
     def test_strips_p_tags(self):
         html = "<p>paragraph text</p>"
