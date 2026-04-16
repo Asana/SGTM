@@ -113,8 +113,8 @@ class TestConvertGithubMarkdownToAsanaXml(unittest.TestCase):
         """Unsupported tags are stripped but content preserved inside markdown."""
         md = """## <img href="link" />still here <h3>header</h3>"""
         xml = convert_github_markdown_to_asana_xml(md)
-        # <img> without src is stripped; <h3> tags stripped, content kept
-        self.assertEqual(xml, "\n<b>still here header</b>\n")
+        # <img> without src is stripped; <h3> tags stripped with block newline
+        self.assertEqual(xml, "\n<b>still here header\n</b>\n")
 
     def test_sanitizes_raw_html_on_own_lines(self):
         """Block-level raw HTML is sanitized, not escaped."""
@@ -124,14 +124,14 @@ still here <h3>header</h3>"""
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(
             xml,
-            "\n<b>blah blah blah</b>\n" + "\n" + "still here header",
+            "\n<b>blah blah blah</b>\n" + "\n" + "still here header\n",
         )
 
     def test_sanitizes_raw_html(self):
         """Inline raw HTML tags are sanitized: unsupported stripped, content kept."""
         md = """<img href="link" />still here <h3>header</h3>"""
         xml = convert_github_markdown_to_asana_xml(md)
-        self.assertEqual(xml, "still here header\n")
+        self.assertEqual(xml, "still here header\n\n")
 
     def test_removes_images(self):
         md = """![image](https://image.com)"""
@@ -204,21 +204,21 @@ class TestSanitizeHtmlForAsana(unittest.TestCase):
 
     # --- Unsupported tags stripped, content preserved ---
 
-    def test_strips_details_summary(self):
+    def test_strips_details_summary_with_newlines(self):
         html = "<details><summary>Click to expand</summary>Hidden content</details>"
         self.assertEqual(
             sanitize_html_for_asana(html),
-            "Click to expandHidden content",
+            "Click to expand\nHidden content\n",
         )
 
-    def test_strips_div_span(self):
+    def test_strips_div_with_newline(self):
         html = '<div class="wrapper"><span>text</span></div>'
-        self.assertEqual(sanitize_html_for_asana(html), "text")
+        self.assertEqual(sanitize_html_for_asana(html), "text\n")
 
-    def test_strips_heading_tags(self):
+    def test_strips_heading_tags_with_newlines(self):
         for level in range(1, 7):
             html = f"<h{level}>Heading</h{level}>"
-            self.assertEqual(sanitize_html_for_asana(html), "Heading")
+            self.assertEqual(sanitize_html_for_asana(html), "Heading\n")
 
     def test_strips_table_tags_preserves_text_with_separators(self):
         html = "<table><tr><th>Name</th><th>Status</th></tr><tr><td>foo</td><td>OK</td></tr></table>"
@@ -234,9 +234,9 @@ class TestSanitizeHtmlForAsana(unittest.TestCase):
         html = "<table><tr><td>A</td><td>B</td><td>C</td></tr></table>"
         self.assertEqual(sanitize_html_for_asana(html), "A | B | C\n")
 
-    def test_strips_p_tags(self):
+    def test_strips_p_tags_with_newline(self):
         html = "<p>paragraph text</p>"
-        self.assertEqual(sanitize_html_for_asana(html), "paragraph text")
+        self.assertEqual(sanitize_html_for_asana(html), "paragraph text\n")
 
     # --- Special tag conversions ---
 
@@ -404,6 +404,62 @@ class TestSanitizeHtmlForAsana(unittest.TestCase):
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertIn('<a href="https://example.com">here</a>', xml)
         self.assertNotIn("target=", xml)
+
+    def test_indented_html_is_sanitized_not_code_blocked(self):
+        """Indented HTML (common in bot comments) is sanitized, not treated as <pre>."""
+        md = '        #123 <a href="https://graphite.dev" target="_blank">View</a>\n\n        next-master\n'
+        xml = convert_github_markdown_to_asana_xml(md)
+        # Should NOT be wrapped in <pre> tags
+        self.assertNotIn("<pre>", xml)
+        # The link should be sanitized (target stripped, href kept)
+        self.assertIn('<a href="https://graphite.dev">View</a>', xml)
+
+    def test_fenced_code_block_with_html_stays_as_code(self):
+        """Fenced code blocks should remain as <pre> even if they contain HTML."""
+        md = '```html\n<div>example</div>\n```'
+        xml = convert_github_markdown_to_asana_xml(md)
+        self.assertIn("<pre>", xml)
+        self.assertIn("&lt;div&gt;", xml)
+
+    def test_indented_code_without_html_stays_as_code(self):
+        """Plain indented code (no HTML tags) should remain as <pre>."""
+        md = "    x = 1\n    y = 2\n"
+        xml = convert_github_markdown_to_asana_xml(md)
+        self.assertIn("<pre>", xml)
+        self.assertIn("x = 1", xml)
+
+    def test_bare_urls_in_block_html_are_autolinked(self):
+        """Bare URLs inside block-level HTML should become clickable links."""
+        html = "<details><summary>Links</summary>Visit https://example.com for info</details>"
+        xml = convert_github_markdown_to_asana_xml(html)
+        self.assertIn('<a href="https://example.com">', xml)
+
+    def test_markdown_link_with_javascript_url_is_escaped(self):
+        """Markdown [text](javascript:...) links should be escaped, not rendered."""
+        md = '[click](javascript:alert(1))'
+        xml = convert_github_markdown_to_asana_xml(md)
+        self.assertNotIn("javascript:", xml)
+        self.assertIn("click", xml)
+
+    def test_graphite_full_comment(self):
+        """Full Graphite stack comment — indented HTML + block HTML + comment."""
+        md = (
+            '        #389132 <a href="https://graphite.dev/pr/123" target="_blank">'
+            '<img src="https://graphite.dev/icon.png" alt="Graphite" width="10"/></a>'
+            '\n\n        next-master\n\n    \n'
+            '<h2></h2>Managed by <a href="https://graphite.dev"><b>Graphite</b></a>.\n'
+            '<!-- deps -->'
+        )
+        xml = convert_github_markdown_to_asana_xml(md)
+        # Indented section: HTML sanitized, not code-blocked
+        self.assertNotIn("<pre>", xml)
+        self.assertIn('<a href="https://graphite.dev/pr/123">', xml)
+        self.assertNotIn("target=", xml)
+        # Block HTML section: h2 stripped, bold/link preserved, comment removed
+        self.assertNotIn("<h2>", xml)
+        self.assertIn("<b>Graphite</b>", xml)
+        self.assertNotIn("<!-- deps -->", xml)
+        self.assertNotIn("deps", xml)
 
 
 if __name__ == "__main__":

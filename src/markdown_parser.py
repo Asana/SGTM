@@ -38,6 +38,42 @@ _ASANA_ALLOWED_ATTRS = {
 # URL schemes considered safe for href/src attributes.
 _SAFE_URL_SCHEMES = frozenset({"http", "https", "mailto"})
 
+# Block-level HTML elements that should emit a newline when their closing tag
+# is stripped, so adjacent blocks don't run together (e.g. "TitleBody" → "Title\nBody").
+_BLOCK_LEVEL_TAGS = frozenset(
+    {
+        "p",
+        "div",
+        "section",
+        "summary",
+        "details",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "header",
+        "footer",
+        "nav",
+        "article",
+        "aside",
+        "figure",
+        "figcaption",
+    }
+)
+
+# Regex to detect HTML tags in text (used to distinguish indented HTML from
+# genuine code blocks).
+_HTML_TAG_RE = re.compile(r"<[a-zA-Z][^>]*>")
+
+
+def _urlreplace(matchobj: Match[str]) -> str:
+    """Replace a bare URL match with an <a> tag. Used by both the markdown
+    renderer's text() method and the HTML sanitizer's handle_data()."""
+    url = unescape(matchobj.group(2))
+    return matchobj.group(1) + f'<a href="{escape(url, quote=False)}">{url}</a>'
+
 
 def _is_safe_url(url: str) -> bool:
     """Check that a URL uses a safe scheme (http, https, mailto)."""
@@ -120,9 +156,15 @@ class _AsanaHTMLSanitizer(HTMLParser):
             return  # closing </td>/</th> needs no output
         if tag_lower in _ASANA_SUPPORTED_TAGS:
             self._parts.append(f"</{tag_lower}>")
+        elif tag_lower in _BLOCK_LEVEL_TAGS:
+            self._parts.append("\n")
 
     def handle_data(self, data: str) -> None:
-        self._parts.append(escape(data, quote=False))
+        text = escape(data, quote=False)
+        # Auto-link bare URLs, matching the behavior of the markdown
+        # renderer's text() method.
+        text = re.sub(URL_REGEX, _urlreplace, text)
+        self._parts.append(text)
 
     def handle_entityref(self, name: str) -> None:
         self._parts.append(f"&{name};")
@@ -180,16 +222,17 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
     def block_code(self, code, info=None):
         #  Strip the '\r\n' from the end of the code text that Github automatically adds
         code = code.rstrip("\r\n")
+        # Fenced code blocks (info is set, e.g. ```python) are always real code.
+        # Indented code blocks (info=None) that contain HTML tags are likely
+        # bot comments with cosmetic leading whitespace, not actual code —
+        # sanitize them instead of rendering as <pre>.
+        if info is None and _HTML_TAG_RE.search(code):
+            return sanitize_html_for_asana(code)
         return "<pre>" + escape(code) + "</pre>"
 
     def text(self, text) -> str:
         text = escape(text, quote=False)
-
-        def urlreplace(matchobj: Match[str]) -> str:
-            url = unescape(matchobj.group(2))
-            return matchobj.group(1) + f'<a href="{escape(url, quote=False)}">{url}</a>'
-
-        return re.sub(URL_REGEX, urlreplace, text)
+        return re.sub(URL_REGEX, _urlreplace, text)
 
     def link(self, link, text=None, title=None):
         # the parser may pass in `title`, but Asana's API does not allow the
@@ -200,7 +243,7 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
         asana_tags = 'data-asana-dynamic="false" ' if is_asana_vanity_link else ""
 
         safe_url = self._safe_url(link)
-        if self._is_valid_url(safe_url):
+        if _is_safe_url(safe_url):
             return f'<a {asana_tags}href="{safe_url}">{text or safe_url}</a>'
         else:
             return escape(text or safe_url, quote=False)
@@ -208,14 +251,6 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
     # Asana's API can't handle img tags
     def image(self, src, alt="", title=None) -> str:
         return self.link(src, text=alt, title=title)
-
-    def _is_valid_url(self, url: str) -> bool:
-        try:
-            result = urlparse(url)
-            return all([result.scheme, result.netloc])
-        except:
-            # invalid URL
-            return False
 
 
 def convert_github_markdown_to_asana_xml(text: str) -> str:
