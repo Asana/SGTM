@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from src.asana import helpers as asana_helpers
 from test.impl.base_test_case_class import BaseClass
 
@@ -35,6 +37,10 @@ class TestExtractAttachments(BaseClass):
             ],
         )
 
+    @patch(
+        "src.asana.helpers.config.SGTM_FEATURE__EXCLUDED_ATTACHMENT_SOURCES_URLS",
+        {"excludedsource.test.com"},
+    )
     def test_extract_attachments_with_excluded_source_url(self):
         github_html = (
             "Ok here's the first: <img src='https://excludedsource.test.com/this.png' alt='photo' /> and "
