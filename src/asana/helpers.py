@@ -559,7 +559,10 @@ def asana_comment_from_github_review(review: Review) -> str:
         # even though nothing in github looks like a review
         # If that's the case, there is no meaningful review state ("commented" isn't helpful)
         # and the link to it will either not point anywhere, or be less useful than the individual links on each comment.
-        review_action = _wrap_in_tag("strong")("left inline comments:\n")
+        # Note: this stays as plain text — the outer header wraps the full
+        # phrase in <strong> already; pre-wrapping here would produce
+        # <strong>NAME <strong>left inline comments:</strong></strong>.
+        review_action = "left inline comments:\n"
     else:
         review_action = _wrap_in_tag("A", attrs={"href": review.url()})(
             _review_action_to_text_map.get(review.state(), "commented")
