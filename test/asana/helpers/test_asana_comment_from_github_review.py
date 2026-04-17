@@ -242,6 +242,28 @@ class TestAsanaCommentFromGitHubReview(MockDynamoDbTestCase):
         )
         self.assertContainsStrings(asana_review_comment, [f'<A href="{url}">'])
 
+    def test_just_comments_review_does_not_double_wrap_strong(self):
+        """When is_just_comments() is True (e.g. Cursor Bugbot inline reviews),
+        the 'left inline comments:' phrase must not be pre-wrapped in <strong>
+        because the outer header already wraps the whole phrase."""
+        # A review with state=COMMENTED and no body → is_just_comments() is True
+        github_comment = build(builder.comment().body("an inline comment"))
+        github_review = build(
+            builder.review()
+            .state(ReviewState.COMMENTED)
+            .body("")  # empty body triggers is_just_comments
+            .comment(github_comment)
+        )
+        asana_review_comment = asana_helpers.asana_comment_from_github_review(
+            github_review
+        )
+        # The header section should contain exactly ONE pair of <strong> tags
+        # around "NAME left inline comments:" — not nested <strong><strong>.
+        self.assertNotIn("<strong><strong>", asana_review_comment)
+        self.assertNotIn("</strong></strong>", asana_review_comment)
+        # Sanity: the phrase is still emitted
+        self.assertContainsStrings(asana_review_comment, ["left inline comments:"])
+
 
 if __name__ == "__main__":
     from unittest import main as run_tests

@@ -1,9 +1,9 @@
+import re
 import unittest
 
 from src.markdown_parser import (
     convert_github_markdown_to_asana_xml,
     sanitize_html_for_asana,
-    _contains_html_tags,
 )
 
 
@@ -408,44 +408,19 @@ class TestSanitizeHtmlForAsana(unittest.TestCase):
         self.assertIn('<a href="https://example.com">here</a>', xml)
         self.assertNotIn("target=", xml)
 
-    def test_indented_html_is_sanitized_not_code_blocked(self):
-        """Indented HTML (common in bot comments) is sanitized, not treated as <pre>."""
-        md = '        #123 <a href="https://graphite.dev" target="_blank">View</a>\n\n        next-master\n'
-        xml = convert_github_markdown_to_asana_xml(md)
-        # Should NOT be wrapped in <pre> tags
-        self.assertNotIn("<pre>", xml)
-        # The link should be sanitized (target stripped, href kept)
-        self.assertIn('<a href="https://graphite.dev">View</a>', xml)
-
-    def test_fenced_code_block_with_html_stays_as_code(self):
-        """Fenced code blocks should remain as <pre> even if they contain HTML."""
+    def test_fenced_code_block_preserves_html_as_code(self):
+        """Fenced code blocks remain as <pre> with HTML escaped — unchanged mistune default."""
         md = '```html\n<div>example</div>\n```'
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertIn("<pre>", xml)
         self.assertIn("&lt;div&gt;", xml)
 
-    def test_indented_code_without_html_stays_as_code(self):
-        """Plain indented code (no HTML tags) should remain as <pre>."""
+    def test_indented_code_stays_as_code(self):
+        """Plain indented code remains as <pre> — unchanged mistune default."""
         md = "    x = 1\n    y = 2\n"
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertIn("<pre>", xml)
         self.assertIn("x = 1", xml)
-
-    def test_indented_cpp_templates_stay_as_code(self):
-        """C++ templates with angle brackets should NOT trigger HTML detection."""
-        md = "    vector<int> v;\n    std::map<string, int> m;\n"
-        xml = convert_github_markdown_to_asana_xml(md)
-        self.assertIn("<pre>", xml)
-        self.assertIn("vector", xml)
-
-    def test_html_detection_ignores_non_html_tag_names(self):
-        """_contains_html_tags only matches known HTML tag names."""
-        self.assertFalse(_contains_html_tags("vector<int> v;"))
-        self.assertFalse(_contains_html_tags("dict['<key>']"))
-        self.assertFalse(_contains_html_tags("template<class T>"))
-        self.assertTrue(_contains_html_tags('<a href="x">link</a>'))
-        self.assertTrue(_contains_html_tags("<details>content</details>"))
-        self.assertTrue(_contains_html_tags('<img src="x.png"/>'))
 
     def test_bare_urls_in_block_html_are_autolinked(self):
         """Bare URLs inside block-level HTML should become clickable links."""
@@ -460,25 +435,100 @@ class TestSanitizeHtmlForAsana(unittest.TestCase):
         self.assertNotIn("javascript:", xml)
         self.assertIn("click", xml)
 
-    def test_graphite_full_comment(self):
-        """Full Graphite stack comment — indented HTML + block HTML + comment."""
+
+class TestAnchorFlatteningAcrossInlineCalls(unittest.TestCase):
+    """Nested <a> tags must be flattened regardless of whether the tags are
+    tokenized by mistune as one block or split into per-tag inline_html calls."""
+
+    def test_graphite_stack_list_item_flattens_nested_anchors(self):
+        """Real Graphite stack source: list item with <a href><img></a>.
+
+        Mistune tokenizes this as per-tag inline_html calls (one call each
+        for <a>, <img>, </a>).  Without renderer-level anchor tracking the
+        <img> would convert to a second <a> nested inside the outer one.
+        """
+        # Exact source pulled from GitHub (issue comment 4270446033)
         md = (
-            '        #389132 <a href="https://graphite.dev/pr/123" target="_blank">'
-            '<img src="https://graphite.dev/icon.png" alt="Graphite" width="10"/></a>'
-            '\n\n        next-master\n\n    \n'
-            '<h2></h2>Managed by <a href="https://graphite.dev"><b>Graphite</b></a>.\n'
-            '<!-- deps -->'
+            '* **#389656** '
+            '<a href="https://app.graphite.com/github/pr/Asana/codez/389656" target="_blank">'
+            '<img src="https://static.graphite.dev/graphite-32x32-black.png" alt="Graphite" width="10px" height="10px"/>'
+            '</a>'
+            ' 👈 '
+            '<a href="https://app.graphite.com/github/pr/Asana/codez/389656?utm_source=stack-comment-view-in-graphite" target="_blank">(View in Graphite)</a>\n'
+            '* `next-master`\n'
         )
         xml = convert_github_markdown_to_asana_xml(md)
-        # Indented section: HTML sanitized, not code-blocked
-        self.assertNotIn("<pre>", xml)
-        self.assertIn('<a href="https://graphite.dev/pr/123">', xml)
-        self.assertNotIn("target=", xml)
-        # Block HTML section: h2 stripped, bold/link preserved, comment removed
-        self.assertNotIn("<h2>", xml)
-        self.assertIn("<b>Graphite</b>", xml)
-        self.assertNotIn("<!-- deps -->", xml)
-        self.assertNotIn("deps", xml)
+
+        # Assert: no nested <a> — the critical property
+        nested = re.findall(r'<a[^>]*>(?:(?!</a>).)*<a\b', xml, flags=re.DOTALL)
+        self.assertEqual(
+            nested, [], f"Unexpected nested anchors in output:\n{xml}"
+        )
+        # Outer anchor should still be present with its Graphite label text
+        self.assertIn(
+            '<a href="https://app.graphite.com/github/pr/Asana/codez/389656">Graphite</a>',
+            xml,
+        )
+        # Second (text) link unchanged
+        self.assertIn("(View in Graphite)</a>", xml)
+
+    def test_cursor_bugbot_fix_button_in_paragraph_flattens_nested_anchors(self):
+        """Real Cursor Bugbot pattern: <a href><picture><source><img></picture></a>
+        as a paragraph of per-tag inline_html calls."""
+        md = (
+            '<!-- BUGBOT_FIX_ALL -->\n'
+            '<a href="https://cursor.com/open?data=JWT" target="_blank" rel="noopener noreferrer">'
+            '<picture>'
+            '<source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/fix-dark.png">'
+            '<source media="(prefers-color-scheme: light)" srcset="https://cursor.com/fix-light.png">'
+            '<img alt="Fix All in Cursor" width="115" height="28" src="https://cursor.com/fix-dark.png">'
+            '</picture></a>\n'
+            '<!-- /BUGBOT_FIX_ALL -->\n'
+        )
+        xml = convert_github_markdown_to_asana_xml(md)
+        nested = re.findall(r'<a[^>]*>(?:(?!</a>).)*<a\b', xml, flags=re.DOTALL)
+        self.assertEqual(
+            nested, [], f"Unexpected nested anchors in output:\n{xml}"
+        )
+        # Outer Cursor link preserved with alt text as the label
+        self.assertIn('<a href="https://cursor.com/open?data=JWT">', xml)
+        self.assertIn("Fix All in Cursor", xml)
+
+    def test_anchor_depth_resets_between_top_level_renders(self):
+        """Two separate convert_github_markdown_to_asana_xml() calls must not
+        share anchor depth — each should start fresh."""
+        # First call leaves depth at 0 (balanced)
+        xml1 = convert_github_markdown_to_asana_xml('<a href="https://a.com">one</a>')
+        # Second call should render a standalone link normally
+        xml2 = convert_github_markdown_to_asana_xml('<a href="https://b.com">two</a>')
+        self.assertIn('<a href="https://a.com">one</a>', xml1)
+        self.assertIn('<a href="https://b.com">two</a>', xml2)
+
+    def test_bare_url_inside_anchor_is_not_auto_linked(self):
+        """A bare URL as the text content of an <a> must NOT be re-wrapped
+        in another <a> by the URL auto-linker — that produces nested anchors.
+        Real-world trigger: Spacelift's <a href='URL'>URL</a> inside <details>
+        and Graphite-style inline tags with a URL between them."""
+        # Case 1: url inside inline <a> (mistune's text() path)
+        md = '<a href="https://example.com">visit https://example.com/path</a>'
+        xml = convert_github_markdown_to_asana_xml(md)
+        self.assertEqual(
+            0, len(re.findall(r'<a[^>]*>(?:(?!</a>).)*<a\b', xml, flags=re.DOTALL)),
+            f"nested anchors in: {xml}",
+        )
+
+        # Case 2: url inside <a> in block HTML (sanitizer's handle_data path)
+        md2 = "<div><a href='https://example.com'>https://example.com</a></div>"
+        xml2 = convert_github_markdown_to_asana_xml(md2)
+        self.assertEqual(
+            0, len(re.findall(r'<a[^>]*>(?:(?!</a>).)*<a\b', xml2, flags=re.DOTALL)),
+            f"nested anchors in: {xml2}",
+        )
+
+        # Sanity: bare URL outside any anchor still auto-links
+        md3 = "See https://example.com for info"
+        xml3 = convert_github_markdown_to_asana_xml(md3)
+        self.assertIn('<a href="https://example.com">https://example.com</a>', xml3)
 
 
 if __name__ == "__main__":

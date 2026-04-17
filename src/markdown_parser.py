@@ -68,34 +68,6 @@ _BLOCK_LEVEL_TAGS = frozenset(
     }
 )
 
-# Known HTML tag names, used to distinguish indented bot HTML from genuine
-# code blocks.  A simple regex like `<[a-zA-Z]...>` would false-positive on
-# C++ templates (vector<int>), angle-bracket strings, etc.  Checking against
-# actual HTML tag names avoids those cases.
-_KNOWN_HTML_TAG_NAMES = frozenset(
-    {
-        "a", "abbr", "article", "aside", "b", "blockquote", "br", "button",
-        "caption", "code", "col", "colgroup", "dd", "del", "details", "div",
-        "dl", "dt", "em", "figcaption", "figure", "footer", "form",
-        "h1", "h2", "h3", "h4", "h5", "h6",
-        "header", "hr", "i", "iframe", "img", "input", "ins", "label", "li",
-        "main", "nav", "ol", "option", "p", "picture", "pre", "s", "section",
-        "select", "source", "span", "strong", "sub", "summary", "sup",
-        "table", "tbody", "td", "textarea", "tfoot", "th", "thead", "tr",
-        "u", "ul", "video",
-    }
-)
-_TAG_NAME_RE = re.compile(r"<([a-zA-Z][a-zA-Z0-9]*)")
-
-
-def _contains_html_tags(text: str) -> bool:
-    """Return True if *text* contains what looks like a known HTML tag."""
-    for m in _TAG_NAME_RE.finditer(text):
-        if m.group(1).lower() in _KNOWN_HTML_TAG_NAMES:
-            return True
-    return False
-
-
 def _urlreplace(matchobj: Match[str]) -> str:
     """Replace a bare URL match with an <a> tag. Used by both the markdown
     renderer's text() method and the HTML sanitizer's handle_data()."""
@@ -122,12 +94,17 @@ class _AsanaHTMLSanitizer(HTMLParser):
     - Passes through <hr />
     - Removes HTML comments entirely
     - Validates URL schemes (only http/https/mailto allowed)
+    - Flattens nested <a> tags — keeping only the outermost — because
+      Asana's rich text parser rejects invalid nested anchors.  The
+      caller may seed anchor_depth so tracking carries across sanitizer
+      invocations (e.g. per-tag inline_html calls within one document).
     """
 
-    def __init__(self) -> None:
+    def __init__(self, anchor_depth: int = 0) -> None:
         super().__init__(convert_charrefs=False)
         self._parts: list = []
         self._cell_count_in_row = 0  # tracks cell position within a <tr>
+        self.anchor_depth = anchor_depth  # nested <a> depth; public for cross-call carry
 
     def handle_starttag(self, tag: str, attrs: list) -> None:
         tag_lower = tag.lower()
@@ -141,6 +118,10 @@ class _AsanaHTMLSanitizer(HTMLParser):
             self._cell_count_in_row = 0
             return
         if tag_lower in _ASANA_SUPPORTED_TAGS:
+            if tag_lower == "a":
+                self.anchor_depth += 1
+                if self.anchor_depth > 1:
+                    return  # Suppress nested <a>; keep only the outermost
             allowed = _ASANA_ALLOWED_ATTRS.get(tag_lower, frozenset())
             safe_attrs = []
             seen_keys = set()
@@ -158,7 +139,12 @@ class _AsanaHTMLSanitizer(HTMLParser):
             attrs_dict = dict(attrs)
             src = attrs_dict.get("src", "")
             alt = attrs_dict.get("alt", "")
-            if src and _is_safe_url(src):
+            if self.anchor_depth > 0:
+                # Already inside an <a>; emit alt text only (no wrapping anchor)
+                # to avoid producing nested anchors.
+                if alt:
+                    self._parts.append(escape(alt, quote=False))
+            elif src and _is_safe_url(src):
                 self._parts.append(
                     f'<a href="{escape(src)}">{escape(alt or src)}</a>'
                 )
@@ -178,6 +164,12 @@ class _AsanaHTMLSanitizer(HTMLParser):
         if tag_lower in _TABLE_CELL_TAGS:
             return  # closing </td>/</th> needs no output
         if tag_lower in _ASANA_SUPPORTED_TAGS:
+            if tag_lower == "a" and self.anchor_depth > 0:
+                self.anchor_depth -= 1
+                if self.anchor_depth > 0:
+                    return  # Inner </a>; the outer <a> is still open
+            # If anchor_depth is already 0, this </a> may pair with an <a>
+            # emitted by a previous inline_html() call, so emit it anyway.
             self._parts.append(f"</{tag_lower}>")
         elif tag_lower in _BLOCK_LEVEL_TAGS:
             # Avoid consecutive newlines from deeply nested block elements
@@ -188,8 +180,11 @@ class _AsanaHTMLSanitizer(HTMLParser):
     def handle_data(self, data: str) -> None:
         text = escape(data, quote=False)
         # Auto-link bare URLs, matching the behavior of the markdown
-        # renderer's text() method.
-        text = re.sub(URL_REGEX, _urlreplace, text)
+        # renderer's text() method — but skip when we're already inside an
+        # <a> element, otherwise we'd wrap a URL inside another anchor and
+        # produce invalid nested <a><a>...</a></a>.
+        if self.anchor_depth == 0:
+            text = re.sub(URL_REGEX, _urlreplace, text)
         self._parts.append(text)
 
     def handle_entityref(self, name: str) -> None:
@@ -218,6 +213,16 @@ def sanitize_html_for_asana(html: str) -> str:
 
 
 class GithubToAsanaRenderer(mistune.HTMLRenderer):
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        # Mistune's inline parser splits inline HTML into one inline_html()
+        # call per tag (e.g. <a>, <img>, </a> are three separate calls).  To
+        # flatten nested anchors that span those calls (Graphite stack
+        # comments and Cursor Bugbot "Fix in Cursor" buttons both produce
+        # <a href="..."><img src="..."/></a> in list items / paragraphs),
+        # we carry anchor depth across sanitize invocations on this renderer.
+        self._inline_anchor_depth = 0
+
     def paragraph(self, text) -> str:
         return text + "\n"
 
@@ -234,9 +239,17 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
         return "<hr />"
 
     def inline_html(self, html) -> str:
-        return sanitize_html_for_asana(html)
+        # Use the sanitizer class directly (not the simple helper) so we can
+        # thread anchor_depth across successive inline_html() calls.
+        sanitizer = _AsanaHTMLSanitizer(anchor_depth=self._inline_anchor_depth)
+        sanitizer.feed(html)
+        self._inline_anchor_depth = sanitizer.anchor_depth
+        return sanitizer.get_result()
 
     def block_html(self, html) -> str:
+        # Block HTML is handled as a complete unit — a fresh sanitizer is
+        # fine since everything between the opening and closing tags of the
+        # block is passed as one string.
         return sanitize_html_for_asana(html)
 
     def linebreak(self) -> str:
@@ -248,17 +261,16 @@ class GithubToAsanaRenderer(mistune.HTMLRenderer):
     def block_code(self, code, info=None):
         #  Strip the '\r\n' from the end of the code text that Github automatically adds
         code = code.rstrip("\r\n")
-        # Fenced code blocks (info is set, e.g. ```python) are always real code.
-        # Indented code blocks (info=None) that contain HTML tags are likely
-        # bot comments with cosmetic leading whitespace, not actual code —
-        # sanitize them instead of rendering as <pre>.
-        if info is None and _contains_html_tags(code):
-            return sanitize_html_for_asana(code)
         return "<pre>" + escape(code) + "</pre>"
 
     def text(self, text) -> str:
         text = escape(text, quote=False)
-        return re.sub(URL_REGEX, _urlreplace, text)
+        # Skip bare-URL auto-linking when we're inside an <a> emitted by a
+        # previous inline_html() call — otherwise the URL would be wrapped
+        # in a second <a>, producing invalid nested anchors.
+        if self._inline_anchor_depth == 0:
+            text = re.sub(URL_REGEX, _urlreplace, text)
+        return text
 
     def link(self, link, text=None, title=None):
         # the parser may pass in `title`, but Asana's API does not allow the
