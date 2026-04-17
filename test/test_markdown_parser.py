@@ -261,6 +261,62 @@ class TestSanitizeHtmlForAsana(unittest.TestCase):
         html = '<img alt="no source" />'
         self.assertEqual(sanitize_html_for_asana(html), "")
 
+    def test_img_inside_anchor_becomes_alt_text(self):
+        """<img> inside <a> should emit alt text only (no nested anchor)."""
+        html = '<a href="https://example.com"><img src="https://example.com/icon.png" alt="Click me" /></a>'
+        self.assertEqual(
+            sanitize_html_for_asana(html),
+            '<a href="https://example.com">Click me</a>',
+        )
+
+    def test_cursor_bugbot_fix_button(self):
+        """Real Cursor Bugbot pattern: <a><picture><img></picture></a>."""
+        html = (
+            '<a href="https://cursor.com/open?data=jwt" target="_blank">'
+            '<picture>'
+            '<source media="(prefers-color-scheme: dark)" srcset="dark.png">'
+            '<source media="(prefers-color-scheme: light)" srcset="light.png">'
+            '<img alt="Fix in Cursor" width="115" height="28" src="https://cursor.com/dark.png">'
+            '</picture></a>'
+        )
+        result = sanitize_html_for_asana(html)
+        # Single anchor with the Cursor link, not a nested pair
+        self.assertEqual(
+            result,
+            '<a href="https://cursor.com/open?data=jwt">Fix in Cursor</a>',
+        )
+        # Sanity: no nested anchors
+        self.assertEqual(result.count("<a"), 1)
+        self.assertEqual(result.count("</a>"), 1)
+
+    def test_nested_anchors_are_flattened(self):
+        """Explicitly nested <a> tags collapse to the outermost."""
+        html = '<a href="https://outer.com">outer <a href="https://inner.com">inner</a> back</a>'
+        result = sanitize_html_for_asana(html)
+        self.assertEqual(
+            result,
+            '<a href="https://outer.com">outer inner back</a>',
+        )
+        self.assertEqual(result.count("<a"), 1)
+        self.assertEqual(result.count("</a>"), 1)
+
+    def test_unmatched_closing_anchor_passes_through(self):
+        """An unmatched </a> may be paired with an <a> from an earlier
+        inline_html() call, so it's still emitted."""
+        self.assertEqual(
+            sanitize_html_for_asana("text</a> more"),
+            "text</a> more",
+        )
+
+    def test_img_without_alt_inside_anchor_contributes_nothing(self):
+        """<img> with no alt inside <a> should not break the outer link."""
+        html = '<a href="https://example.com">before<img src="https://example.com/pic.png">after</a>'
+        # No alt, so inside-anchor <img> contributes no text; outer link intact.
+        self.assertEqual(
+            sanitize_html_for_asana(html),
+            '<a href="https://example.com">beforeafter</a>',
+        )
+
     def test_converts_br_to_newline(self):
         self.assertEqual(sanitize_html_for_asana("line1<br>line2"), "line1\nline2")
         self.assertEqual(sanitize_html_for_asana("line1<br />line2"), "line1\nline2")

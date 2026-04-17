@@ -128,6 +128,10 @@ class _AsanaHTMLSanitizer(HTMLParser):
         super().__init__(convert_charrefs=False)
         self._parts: list = []
         self._cell_count_in_row = 0  # tracks cell position within a <tr>
+        # Tracks nested <a> depth so we can flatten nested anchors
+        # (e.g. Cursor Bugbot's <a><picture><img></picture></a> → nested <a>
+        # after <img>→<a> conversion).  Nested anchors are invalid HTML.
+        self._anchor_depth = 0
 
     def handle_starttag(self, tag: str, attrs: list) -> None:
         tag_lower = tag.lower()
@@ -141,6 +145,10 @@ class _AsanaHTMLSanitizer(HTMLParser):
             self._cell_count_in_row = 0
             return
         if tag_lower in _ASANA_SUPPORTED_TAGS:
+            if tag_lower == "a":
+                self._anchor_depth += 1
+                if self._anchor_depth > 1:
+                    return  # Suppress nested <a> (keep only the outermost)
             allowed = _ASANA_ALLOWED_ATTRS.get(tag_lower, frozenset())
             safe_attrs = []
             seen_keys = set()
@@ -158,7 +166,12 @@ class _AsanaHTMLSanitizer(HTMLParser):
             attrs_dict = dict(attrs)
             src = attrs_dict.get("src", "")
             alt = attrs_dict.get("alt", "")
-            if src and _is_safe_url(src):
+            if self._anchor_depth > 0:
+                # Already inside an <a>; emit alt text only so we don't
+                # produce nested anchors.
+                if alt:
+                    self._parts.append(escape(alt, quote=False))
+            elif src and _is_safe_url(src):
                 self._parts.append(
                     f'<a href="{escape(src)}">{escape(alt or src)}</a>'
                 )
@@ -178,6 +191,12 @@ class _AsanaHTMLSanitizer(HTMLParser):
         if tag_lower in _TABLE_CELL_TAGS:
             return  # closing </td>/</th> needs no output
         if tag_lower in _ASANA_SUPPORTED_TAGS:
+            if tag_lower == "a" and self._anchor_depth > 0:
+                self._anchor_depth -= 1
+                if self._anchor_depth > 0:
+                    return  # Inner </a>; the outer <a> is still open
+            # If anchor_depth is already 0, this </a> may pair with an <a>
+            # emitted by a previous inline_html() call, so emit it anyway.
             self._parts.append(f"</{tag_lower}>")
         elif tag_lower in _BLOCK_LEVEL_TAGS:
             # Avoid consecutive newlines from deeply nested block elements
