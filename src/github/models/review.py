@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 from enum import Enum, unique
 
@@ -67,6 +67,11 @@ class Review(object):
 
     def url(self) -> str:
         return self._raw["url"]
+
+    def commit_oid(self) -> Optional[str]:
+        """The sha of the commit this review was submitted against, if known."""
+        commit = self._raw.get("commit") or {}
+        return commit.get("oid")
 
     def is_just_comments(self) -> bool:
         """Return true if this review is not a meaningful state and doesn't contain a body.

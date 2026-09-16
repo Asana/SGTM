@@ -1,8 +1,8 @@
 import requests
 from requests.auth import HTTPBasicAuth
-from typing import Optional
+from typing import List, Optional
 
-from github import PullRequest  # type: ignore
+from github import PullRequest, UnknownObjectException  # type: ignore
 from src.github.get_app_token import sgtm_github_auth
 from src.logger import logger
 
@@ -56,6 +56,32 @@ def set_pull_request_assignee(owner: str, repository: str, number: int, assignee
     # allows you to *add* an assignee, not set the assignee.
     pr = repo.get_issue(number)
     pr.edit(assignee=assignee)  # type: ignore
+
+
+def request_reviewers(owner: str, repository: str, number: int, reviewers: List[str]):
+    """Ask the given users to review the pull request.
+
+    GitHub ignores users who already reviewed or were already requested, and
+    rejects the pull request author, so callers should filter the author out.
+    """
+    if not reviewers:
+        return
+    pr = _get_pull_request(owner, repository, number)
+    pr.create_review_request(reviewers=reviewers)  # type: ignore
+
+
+def ensure_label(owner: str, repository: str, name: str, color: str, description: str):
+    """Create the label in the repository if it does not exist yet.
+
+    `color` is a hex string without the leading `#`. Creating labels only
+    needs the Pull requests: write permission SGTM already has.
+    """
+    repo = _get_repo(owner, repository)
+    try:
+        repo.get_label(name)
+    except UnknownObjectException:
+        logger.info(f"Creating label '{name}' in {owner}/{repository}")
+        repo.create_label(name=name, color=color, description=description)
 
 
 def merge_pull_request(owner: str, repository: str, number: int, title: str, body: str):

@@ -7,6 +7,8 @@ from .queries import (
     GetPullRequestByRepositoryAndNumber,
     GetPullRequestAndComment,
     GetPullRequestAndReview,
+    GetPullRequestFiles,
+    GetRepositoryFileContent,
     IteratePullRequestIdsForCommitId,
     IterateReviewsForPullRequestId,
     GetTeamMembers,
@@ -156,6 +158,65 @@ def get_review_for_database_id(
                 },
             )["node"]["reviews"]["edges"]
     return None
+
+
+def get_pull_request_files(
+    org_name: str, pull_request_id: str, cursor: Optional[str] = None
+) -> Tuple[List[str], Optional[str]]:
+    """Fetch one page of a pull request's changed file paths.
+
+    Returns the paths on that page and the cursor for the next page, or None
+    when this was the last page.
+    """
+    variables: dict = {"pullRequestId": pull_request_id}
+    if cursor is not None:
+        variables["cursor"] = cursor
+    files = _execute_graphql_query(org_name, GetPullRequestFiles, variables)[
+        "pullRequest"
+    ]["files"]
+    paths = [node["path"] for node in files["nodes"]]
+    page_info = files["pageInfo"]
+    next_cursor = page_info["endCursor"] if page_info["hasNextPage"] else None
+    return paths, next_cursor
+
+
+def load_all_changed_files(org_name: str, pull_request: PullRequest) -> None:
+    """Make sure `pull_request.changed_files()` holds every changed file.
+
+    The FullPullRequest fragment carries the first 100 files; this pages
+    through the rest for larger pull requests and stores the complete list on
+    the object.
+    """
+    if not pull_request.has_unloaded_changed_files():
+        return
+    paths = list(pull_request.changed_files())
+    cursor = pull_request.changed_files_end_cursor()
+    while cursor is not None:
+        page, cursor = get_pull_request_files(org_name, pull_request.id(), cursor)
+        paths.extend(page)
+    pull_request.set_changed_files(paths)
+
+
+def get_repository_file_content(
+    org_name: str, owner: str, repository: str, ref: str, path: str
+) -> Optional[str]:
+    """Return the text of a file at `ref`, or None if it does not exist.
+
+    Used to read CODEOWNERS from a pull request's base branch. Requires the
+    GitHub App to have read access to repository contents.
+    """
+    data = _execute_graphql_query(
+        org_name,
+        GetRepositoryFileContent,
+        {"owner": owner, "name": repository, "expression": f"{ref}:{path}"},
+    )
+    repository_data = data.get("repository") or {}
+    blob = repository_data.get("object")
+    if not blob or blob.get("__typename") != "Blob" or blob.get("text") is None:
+        return None
+    if blob.get("isTruncated"):
+        raise ValueError(f"{path} at {ref} is too large to read via GraphQL")
+    return blob["text"]
 
 
 def get_team_members(org: str, team_slug: str) -> List[str]:

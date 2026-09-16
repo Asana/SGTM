@@ -1,5 +1,6 @@
+from datetime import datetime
 from typing import Any, Dict, List, Union
-from .helpers import create_uuid
+from .helpers import create_uuid, transform_datetime
 from src.github.models import Commit, CheckSuite
 from .builder_base_class import BuilderBaseClass
 from .check_suite_builder import CheckSuiteBuilder
@@ -11,12 +12,24 @@ class CommitBuilder(BuilderBaseClass):
             "commit": {
                 "statusCheckRollup": {"state": status},
                 "node_id": create_uuid(),
+                "oid": create_uuid(),
+                "committedDate": "2026-01-01T00:00:00Z",
                 "checkSuites": {"nodes": []},
             }
         }
 
     def status(self, status: str) -> Union["CommitBuilder", Commit]:
         self.raw_commit["commit"]["statusCheckRollup"]["state"] = status
+        return self
+
+    def oid(self, oid: str) -> Union["CommitBuilder", Commit]:
+        self.raw_commit["commit"]["oid"] = oid
+        return self
+
+    def committed_date(
+        self, committed_date: Union[str, datetime]
+    ) -> Union["CommitBuilder", Commit]:
+        self.raw_commit["commit"]["committedDate"] = transform_datetime(committed_date)
         return self
 
     def check_suites(

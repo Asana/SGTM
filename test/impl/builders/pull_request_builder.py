@@ -1,5 +1,5 @@
 from random import randint
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 from datetime import datetime
 from .helpers import transform_datetime, create_uuid
 from src.github.models import (
@@ -28,9 +28,16 @@ class PullRequestBuilder(BuilderBaseClass):
             "body": body,
             "bodyHTML": f"<p>{body}</p>",
             "headRefName": "feature/test-branch",
+            "headRefOid": create_uuid(),
+            "baseRefName": "master",
             "baseRef": {
-                "name": create_uuid(),
+                "name": "master",
                 "associatedPullRequests": {"totalCount": 0},
+            },
+            "stack": None,
+            "files": {
+                "pageInfo": {"hasNextPage": False, "endCursor": None},
+                "nodes": [],
             },
             "title": create_uuid(),
             "url": "https://www.github.com/foo/pulls/" + str(pr_number),
@@ -41,6 +48,8 @@ class PullRequestBuilder(BuilderBaseClass):
                         "commit": {
                             "statusCheckRollup": {"state": Commit.BUILD_PENDING},
                             "node_id": create_uuid(),
+                            "oid": create_uuid(),
+                            "committedDate": "2026-01-01T00:00:00Z",
                             "checkSuites": {"nodes": []},
                         }
                     }
@@ -133,13 +142,19 @@ class PullRequestBuilder(BuilderBaseClass):
             self.raw_pr["assignees"]["nodes"].append(assignee.to_raw())  # type: ignore
         return self
 
-    def requested_reviewer(self, requested_reviewer: Union[UserBuilder, User]):
-        return self.requested_reviewers([requested_reviewer])
+    def requested_reviewer(
+        self,
+        requested_reviewer: Union[UserBuilder, User],
+        as_code_owner: bool = False,
+    ):
+        return self.requested_reviewers([requested_reviewer], as_code_owner)
 
-    def requested_reviewers(self, reviewers: List[Union[User, UserBuilder]]):
+    def requested_reviewers(
+        self, reviewers: List[Union[User, UserBuilder]], as_code_owner: bool = False
+    ):
         for reviewer in reviewers:
             self.raw_pr["reviewRequests"]["nodes"].append(  # type: ignore
-                {"requestedReviewer": reviewer.to_raw()}
+                {"asCodeOwner": as_code_owner, "requestedReviewer": reviewer.to_raw()}
             )
         return self
 
@@ -159,15 +174,51 @@ class PullRequestBuilder(BuilderBaseClass):
             self.raw_pr["labels"]["nodes"].append(label.to_raw())  # type: ignore
         return self
 
-    def requested_reviewer_team(self, team_name: str, member_logins: List[str]):
+    def requested_reviewer_team(
+        self,
+        team_name: str,
+        member_logins: List[str],
+        combined_slug: Optional[str] = None,
+        as_code_owner: bool = False,
+    ):
+        combined_slug = combined_slug or f"org/{team_name}"
         self.raw_pr["reviewRequests"]["nodes"].append(  # type: ignore
             {
+                "asCodeOwner": as_code_owner,
                 "requestedReviewer": {
                     "name": team_name,
+                    "slug": combined_slug.split("/", 1)[-1],
+                    "combinedSlug": combined_slug,
                     "members": {"nodes": [{"login": login} for login in member_logins]},
-                }
+                },
             }
         )
+        return self
+
+    def base_ref_name(self, name: str):
+        self.raw_pr["baseRefName"] = name
+        self.raw_pr["baseRef"]["name"] = name
+        return self
+
+    def head_ref_oid(self, oid: str):
+        self.raw_pr["headRefOid"] = oid
+        return self
+
+    def stack_base_ref_name(self, name: str):
+        """Mark the PR as part of a GitHub-native stack targeting `name`."""
+        self.raw_pr["stack"] = {"baseRefName": name}
+        return self
+
+    def files(
+        self,
+        paths: List[str],
+        has_next_page: bool = False,
+        end_cursor: Optional[str] = None,
+    ):
+        self.raw_pr["files"] = {
+            "pageInfo": {"hasNextPage": has_next_page, "endCursor": end_cursor},
+            "nodes": [{"path": path} for path in paths],
+        }
         return self
 
     def base_ref_associated_pull_requests(self, associated_pull_requests: int):

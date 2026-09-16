@@ -1,5 +1,11 @@
 from typing import Dict, Any
-from .pull_request import PullRequest, MergeableState, Assignee, AssigneeReason
+from .pull_request import (
+    PullRequest,
+    MergeableState,
+    Assignee,
+    AssigneeReason,
+    ReviewRequest,
+)
 from .review import Review, ReviewState
 from .comment import Comment, IssueComment, PullRequestReviewComment, comment_factory
 from .user import User
