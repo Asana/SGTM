@@ -225,9 +225,7 @@ class TestSanitizeHtmlForAsana(unittest.TestCase):
 
     def test_strips_table_tags_preserves_text_with_separators(self):
         html = "<table><tr><th>Name</th><th>Status</th></tr><tr><td>foo</td><td>OK</td></tr></table>"
-        self.assertEqual(
-            sanitize_html_for_asana(html), "Name | Status\nfoo | OK\n"
-        )
+        self.assertEqual(sanitize_html_for_asana(html), "Name | Status\nfoo | OK\n")
 
     def test_single_cell_row_has_no_leading_separator(self):
         html = "<table><tr><td>only cell</td></tr></table>"
@@ -410,7 +408,7 @@ class TestSanitizeHtmlForAsana(unittest.TestCase):
 
     def test_fenced_code_block_preserves_html_as_code(self):
         """Fenced code blocks remain as <pre> with HTML escaped — unchanged mistune default."""
-        md = '```html\n<div>example</div>\n```'
+        md = "```html\n<div>example</div>\n```"
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertIn("<pre>", xml)
         self.assertIn("&lt;div&gt;", xml)
@@ -430,7 +428,7 @@ class TestSanitizeHtmlForAsana(unittest.TestCase):
 
     def test_markdown_link_with_javascript_url_is_escaped(self):
         """Markdown [text](javascript:...) links should be escaped, not rendered."""
-        md = '[click](javascript:alert(1))'
+        md = "[click](javascript:alert(1))"
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertNotIn("javascript:", xml)
         self.assertIn("click", xml)
@@ -449,21 +447,19 @@ class TestAnchorFlatteningAcrossInlineCalls(unittest.TestCase):
         """
         # Exact source pulled from GitHub (issue comment 4270446033)
         md = (
-            '* **#389656** '
+            "* **#389656** "
             '<a href="https://app.graphite.com/github/pr/Asana/codez/389656" target="_blank">'
             '<img src="https://static.graphite.dev/graphite-32x32-black.png" alt="Graphite" width="10px" height="10px"/>'
-            '</a>'
-            ' 👈 '
+            "</a>"
+            " 👈 "
             '<a href="https://app.graphite.com/github/pr/Asana/codez/389656?utm_source=stack-comment-view-in-graphite" target="_blank">(View in Graphite)</a>\n'
-            '* `next-master`\n'
+            "* `next-master`\n"
         )
         xml = convert_github_markdown_to_asana_xml(md)
 
         # Assert: no nested <a> — the critical property
-        nested = re.findall(r'<a[^>]*>(?:(?!</a>).)*<a\b', xml, flags=re.DOTALL)
-        self.assertEqual(
-            nested, [], f"Unexpected nested anchors in output:\n{xml}"
-        )
+        nested = re.findall(r"<a[^>]*>(?:(?!</a>).)*<a\b", xml, flags=re.DOTALL)
+        self.assertEqual(nested, [], f"Unexpected nested anchors in output:\n{xml}")
         # Outer anchor should still be present with its Graphite label text
         self.assertIn(
             '<a href="https://app.graphite.com/github/pr/Asana/codez/389656">Graphite</a>',
@@ -476,20 +472,18 @@ class TestAnchorFlatteningAcrossInlineCalls(unittest.TestCase):
         """Real Cursor Bugbot pattern: <a href><picture><source><img></picture></a>
         as a paragraph of per-tag inline_html calls."""
         md = (
-            '<!-- BUGBOT_FIX_ALL -->\n'
+            "<!-- BUGBOT_FIX_ALL -->\n"
             '<a href="https://cursor.com/open?data=JWT" target="_blank" rel="noopener noreferrer">'
-            '<picture>'
+            "<picture>"
             '<source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/fix-dark.png">'
             '<source media="(prefers-color-scheme: light)" srcset="https://cursor.com/fix-light.png">'
             '<img alt="Fix All in Cursor" width="115" height="28" src="https://cursor.com/fix-dark.png">'
-            '</picture></a>\n'
-            '<!-- /BUGBOT_FIX_ALL -->\n'
+            "</picture></a>\n"
+            "<!-- /BUGBOT_FIX_ALL -->\n"
         )
         xml = convert_github_markdown_to_asana_xml(md)
-        nested = re.findall(r'<a[^>]*>(?:(?!</a>).)*<a\b', xml, flags=re.DOTALL)
-        self.assertEqual(
-            nested, [], f"Unexpected nested anchors in output:\n{xml}"
-        )
+        nested = re.findall(r"<a[^>]*>(?:(?!</a>).)*<a\b", xml, flags=re.DOTALL)
+        self.assertEqual(nested, [], f"Unexpected nested anchors in output:\n{xml}")
         # Outer Cursor link preserved with alt text as the label
         self.assertIn('<a href="https://cursor.com/open?data=JWT">', xml)
         self.assertIn("Fix All in Cursor", xml)
@@ -513,7 +507,8 @@ class TestAnchorFlatteningAcrossInlineCalls(unittest.TestCase):
         md = '<a href="https://example.com">visit https://example.com/path</a>'
         xml = convert_github_markdown_to_asana_xml(md)
         self.assertEqual(
-            0, len(re.findall(r'<a[^>]*>(?:(?!</a>).)*<a\b', xml, flags=re.DOTALL)),
+            0,
+            len(re.findall(r"<a[^>]*>(?:(?!</a>).)*<a\b", xml, flags=re.DOTALL)),
             f"nested anchors in: {xml}",
         )
 
@@ -521,7 +516,8 @@ class TestAnchorFlatteningAcrossInlineCalls(unittest.TestCase):
         md2 = "<div><a href='https://example.com'>https://example.com</a></div>"
         xml2 = convert_github_markdown_to_asana_xml(md2)
         self.assertEqual(
-            0, len(re.findall(r'<a[^>]*>(?:(?!</a>).)*<a\b', xml2, flags=re.DOTALL)),
+            0,
+            len(re.findall(r"<a[^>]*>(?:(?!</a>).)*<a\b", xml2, flags=re.DOTALL)),
             f"nested anchors in: {xml2}",
         )
 

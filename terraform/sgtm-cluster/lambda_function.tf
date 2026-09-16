@@ -30,6 +30,17 @@ resource "aws_lambda_function" "sgtm" {
       SGTM_FEATURE__GRAPHITE_LINK_ENABLED            = var.sgtm_feature__graphite_link_enabled,
       SGTM_FEATURE__SKIP_TEAM_SLUG                   = var.sgtm_feature__skip_team_slug,
 
+      # Codeowner tasks (docs/codeowner_tasks.md)
+      SGTM_FEATURE__CODEOWNER_TASKS_ENABLED            = var.sgtm_feature__codeowner_tasks_enabled,
+      SGTM_FEATURE__CODEOWNER_TASKS_PROJECT_ID         = var.sgtm_feature__codeowner_tasks_project_id,
+      SGTM_FEATURE__CODEOWNER_TASKS_OPT_IN_S3_PATH     = var.sgtm_feature__codeowner_tasks_opt_in_s3_path,
+      SGTM_FEATURE__CODEOWNER_TASKS_LABEL              = var.sgtm_feature__codeowner_tasks_label,
+      SGTM_FEATURE__CODEOWNER_TASKS_IDLE_BUSINESS_DAYS = var.sgtm_feature__codeowner_tasks_idle_business_days,
+      SGTM_FEATURE__CODEOWNER_TASKS_ASANA_WORKSPACE_ID = var.sgtm_feature__codeowner_tasks_asana_workspace_id,
+      SGTM_FEATURE__CODEOWNER_TASKS_DOCS_URL           = var.sgtm_feature__codeowner_tasks_docs_url,
+      SGTM_FEATURE__CODEOWNER_TASKS_ORG_DOCS_URL       = var.sgtm_feature__codeowner_tasks_org_docs_url,
+      SGTM_FEATURE__CODEOWNER_TASKS_OPT_IN_COMMAND     = var.sgtm_feature__codeowner_tasks_opt_in_command,
+
       # github usernames to asana IDs mapping
       GITHUB_USERNAMES_TO_ASANA_GIDS_S3_PATH = var.github_usernames_to_asana_gids_s3_path
 
