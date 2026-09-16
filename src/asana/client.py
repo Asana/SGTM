@@ -1,3 +1,4 @@
+from datetime import date
 from typing import List, Iterator, Dict, Optional
 from typing_extensions import Literal
 import asana  # type: ignore
@@ -145,6 +146,34 @@ class AsanaClient(object):
             task_id, attachment_content, attachment_name, attachment_type
         )
 
+    def get_out_of_office_entries(
+        self, user_id: str, workspace_id: str, start_date: str, end_date: str
+    ) -> List[Dict]:
+        """
+        Lists the user's out-of-office entries overlapping [start_date, end_date]
+        (YYYY-MM-DD). See https://developers.asana.com/reference/getoooentries.
+        """
+        validate_object_id(
+            user_id, "AsanaClient.get_out_of_office_entries requires a user_id"
+        )
+        validate_object_id(
+            workspace_id,
+            "AsanaClient.get_out_of_office_entries requires a workspace_id",
+        )
+        return list(
+            self.asana_api_client.get_collection(
+                "/ooo_entries",
+                {
+                    "user": user_id,
+                    "workspace": workspace_id,
+                    "start_date": start_date,
+                    "end_date": end_date,
+                },
+                # asana 0.9.1 joins `fields` into the opt_fields query parameter.
+                fields=["start_date", "end_date"],
+            )
+        )
+
 
 def get_task(task_id: str) -> dict:
     """
@@ -216,3 +245,23 @@ def create_attachment_on_task(
     AsanaClient.singleton().create_attachment_on_task(
         task_id, attachment_content, attachment_name, attachment_type
     )
+
+
+def out_of_office_until(user_id: str, workspace_id: str, today: date) -> Optional[date]:
+    """
+    If the user is out of office in Asana on `today`, returns the last day of that
+    absence (date.max for an open-ended entry); otherwise None.
+    """
+    today_str = today.isoformat()
+    entries = AsanaClient.singleton().get_out_of_office_entries(
+        user_id, workspace_id, today_str, today_str
+    )
+    for entry in entries:
+        start = entry.get("start_date")
+        end = entry.get("end_date")
+        if start and start > today_str:
+            continue
+        if end and end < today_str:
+            continue
+        return date.fromisoformat(end) if end else date.max
+    return None
