@@ -1,6 +1,7 @@
 from typing import Tuple, FrozenSet, Optional, List
 from sgqlc.endpoint.http import HTTPEndpoint  # type: ignore
 from src.github.get_app_token import sgtm_github_auth
+from src.logger import logger
 from src.github.models import comment_factory, PullRequest, Review, Comment
 from .queries import (
     GetPullRequest,
@@ -233,21 +234,26 @@ def get_repository_file_content(
 
 
 def get_team_members(org: str, team_slug: str) -> List[str]:
-    """Get all members of a GitHub team.
+    """All members of a GitHub team, paging through teams larger than 100.
 
-    Args:
-        org: The organization name
-        team_slug: The team slug (name with hyphens instead of spaces)
-
-    Returns:
-        List of GitHub usernames of team members
+    Returns an empty list, and logs an error, when the team does not exist or
+    is not visible to SGTM (the GitHub App needs Members: Read on the
+    organization).
     """
-    data = _execute_graphql_query(
-        org,
-        GetTeamMembers.GetTeamMembers,
-        {"org": org, "teamSlug": team_slug},
-    )
-    team = data["organization"]["team"]
-    if not team:
-        return []
-    return [node["login"] for node in team["members"]["nodes"]]
+    logins: List[str] = []
+    variables: dict = {"org": org, "teamSlug": team_slug}
+    while True:
+        data = _execute_graphql_query(org, GetTeamMembers.GetTeamMembers, variables)
+        team = data["organization"]["team"]
+        if not team:
+            logger.error(
+                f"GitHub team {org}/{team_slug} was not found or is not visible to"
+                " SGTM; treating it as having no members"
+            )
+            return []
+        members = team["members"]
+        logins.extend(node["login"] for node in members["nodes"])
+        page_info = members.get("pageInfo") or {}
+        if not page_info.get("hasNextPage"):
+            return logins
+        variables = {**variables, "cursor": page_info["endCursor"]}
