@@ -4,6 +4,7 @@ from unittest.mock import patch
 from src.codeowners.codeowners_file import parse_codeowners
 from src.codeowners.requirements import OwnerSet, requirements_for_files
 from src.codeowners.status import (
+    RequirementEvaluation,
     REVIEW_STATUS_NEEDS_CODEOWNER_APPROVAL,
     CodeownerSummary,
     FileStatus,
@@ -106,7 +107,7 @@ class TestEvaluateRequirement(BaseClass):
         )
         self.assertIs(evaluation.status, RequirementStatus.NEEDED)
 
-    def test_later_changes_requested_wins_and_later_approval_wins(self):
+    def test_an_active_request_for_changes_blocks_whatever_the_order(self):
         requirement = requirement_for(AUTO_APPROVER)
         cr_last = [
             review("jordan", ReviewState.APPROVED, t(10)),
@@ -116,6 +117,7 @@ class TestEvaluateRequirement(BaseClass):
             evaluate_requirement(requirement, resolve_pool, cr_last, "author").status,
             RequirementStatus.CHANGES_REQUESTED,
         )
+        # Another owner approving does not clear eli's request, as on GitHub.
         approval_last = [
             review("eli", ReviewState.CHANGES_REQUESTED, t(10)),
             review("jordan", ReviewState.APPROVED, t(11)),
@@ -124,12 +126,23 @@ class TestEvaluateRequirement(BaseClass):
             evaluate_requirement(
                 requirement, resolve_pool, approval_last, "author"
             ).status,
+            RequirementStatus.CHANGES_REQUESTED,
+        )
+        # The same owner approving after their own request does.
+        same_owner = [
+            review("eli", ReviewState.CHANGES_REQUESTED, t(10)),
+            review("eli", ReviewState.APPROVED, t(11)),
+        ]
+        self.assertIs(
+            evaluate_requirement(
+                requirement, resolve_pool, same_owner, "author"
+            ).status,
             RequirementStatus.APPROVED,
         )
 
     def test_dismissed_approval_is_stale(self):
         reviews = [
-            review("eli", ReviewState.CHANGES_REQUESTED, t(9)),
+            review("jordan", ReviewState.APPROVED, t(9)),
             review("jordan", ReviewState.DISMISSED, t(11)),
         ]
         evaluation = evaluate_requirement(
@@ -139,6 +152,36 @@ class TestEvaluateRequirement(BaseClass):
         stale = evaluation.stale_review()
         assert stale is not None
         self.assertEqual(stale.author_handle(), "jordan")
+
+    def test_dismissed_review_does_not_hide_an_active_request_for_changes(self):
+        reviews = [
+            review("eli", ReviewState.CHANGES_REQUESTED, t(9)),
+            review("jordan", ReviewState.APPROVED, t(10)),
+            review("jordan", ReviewState.DISMISSED, t(11)),
+        ]
+        evaluation = evaluate_requirement(
+            requirement_for(AUTO_APPROVER), resolve_pool, reviews, "author"
+        )
+        self.assertIs(evaluation.status, RequirementStatus.CHANGES_REQUESTED)
+
+    def test_logins_compare_case_insensitively(self):
+        reviews = [review("JORDAN", ReviewState.APPROVED, t(10))]
+        evaluation = evaluate_requirement(
+            requirement_for(AUTO_APPROVER), resolve_pool, reviews, "Author"
+        )
+        self.assertIs(evaluation.status, RequirementStatus.APPROVED)
+        own_pr = evaluate_requirement(
+            requirement_for(AUTO_APPROVER), resolve_pool, reviews, "Jordan"
+        )
+        self.assertIs(own_pr.status, RequirementStatus.NEEDED)
+
+    @patch("src.codeowners.status.SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS", {"pete"})
+    def test_followup_users_do_not_satisfy_requirements(self):
+        reviews = [review("pete", ReviewState.APPROVED, t(10))]
+        evaluation = evaluate_requirement(
+            requirement_for(AUTO_APPROVER), resolve_pool, reviews, "author"
+        )
+        self.assertIs(evaluation.status, RequirementStatus.NEEDED)
 
     def test_non_owner_reviews_are_ignored(self):
         reviews = [review("dharmesh", ReviewState.APPROVED, t(10))]
@@ -175,9 +218,7 @@ class TestEvaluateRequirement(BaseClass):
 
 class TestParentStatus(BaseClass):
     def evaluation(self, status):
-        return evaluate_requirement(
-            requirement_for(AUTO_APPROVER), resolve_pool, [], "author"
-        ).__class__(requirement_for(AUTO_APPROVER), status)
+        return RequirementEvaluation(requirement_for(AUTO_APPROVER), status)
 
     def test_states(self):
         self.assertIs(
@@ -327,6 +368,26 @@ class TestPrimaryReviewAndReviewStatus(BaseClass):
         self.assertEqual(
             review_status(self.pull_request(with_cr), self.summary(with_cr)),
             "Changes Requested",
+        )
+
+    def test_review_status_is_unchanged_until_the_label_is_added(self):
+        # A codeowner GitHub auto-requested approves an unlabeled PR: today's
+        # rule ("Approved") still applies.
+        codeowner_only = [review("jordan", ReviewState.APPROVED, t(10))]
+        self.assertEqual(
+            review_status(
+                self.pull_request(codeowner_only),
+                self.summary(codeowner_only, tasks_requested=False),
+            ),
+            "Approved",
+        )
+        primary_only = [review("dharmesh", ReviewState.APPROVED, t(10))]
+        self.assertEqual(
+            review_status(
+                self.pull_request(primary_only),
+                self.summary(primary_only, tasks_requested=False),
+            ),
+            "Approved",
         )
 
     def test_review_status_without_codeowned_files_is_unchanged(self):

@@ -31,7 +31,7 @@ class TestOutOfOffice(BaseClass):
                     "start_date": "2026-09-16",
                     "end_date": "2026-09-16",
                 },
-                opt_fields=["start_date", "end_date"],
+                fields=["start_date", "end_date"],
             )
 
     def test_active_entry_returns_its_end(self):
@@ -44,9 +44,6 @@ class TestOutOfOffice(BaseClass):
             self.assertEqual(
                 src.asana.client.out_of_office_until("123", "456", self.TODAY),
                 date(2026, 9, 22),
-            )
-            self.assertTrue(
-                src.asana.client.is_user_out_of_office("123", "456", self.TODAY)
             )
 
     def test_open_ended_entry(self):

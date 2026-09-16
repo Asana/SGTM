@@ -24,6 +24,12 @@ class TestParseOptInDocument(BaseClass):
     def test_list_shape(self):
         self.assertEqual(parse_codeowner_tasks_opt_in_document(["a", "b"]), {"a", "b"})
 
+    def test_logins_are_lower_cased(self):
+        self.assertEqual(
+            parse_codeowner_tasks_opt_in_document(["Harshita-Gupta"]),
+            {"harshita-gupta"},
+        )
+
     def test_object_shape(self):
         document = {
             "version": 1,
@@ -66,9 +72,14 @@ class TestCodeownerTasksOptInList(BaseClass):
     def test_unconfigured_path_means_nobody(self):
         self.assertEqual(CodeownerTasksOptInList(None).logins(), set())
         self.assertEqual(CodeownerTasksOptInList("no-slash").logins(), set())
+        self.assertEqual(CodeownerTasksOptInList("s3://bucket/key").logins(), set())
 
     def test_missing_object_means_nobody_but_keeps_last_good_copy(self):
         opt_in = CodeownerTasksOptInList(f"{BUCKET}/missing.json")
+        self.assertEqual(opt_in.logins(), set())
+        # The failure is cached for a TTL instead of hitting S3 on every webhook.
+        self.assertGreater(opt_in._cached_at, 0.0)
+        self.put(["alice"])
         self.assertEqual(opt_in.logins(), set())
 
         self.put(["alice"])
@@ -86,6 +97,7 @@ class TestCodeownerTasksOptInList(BaseClass):
             return_value=CodeownerTasksOptInList(f"{BUCKET}/{KEY}"),
         ):
             self.assertTrue(s3_client.is_opted_in_to_codeowner_tasks("alice"))
+            self.assertTrue(s3_client.is_opted_in_to_codeowner_tasks("Alice"))
             self.assertFalse(s3_client.is_opted_in_to_codeowner_tasks("bob"))
 
 

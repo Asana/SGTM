@@ -61,6 +61,19 @@ class TestChooseAssignee(unittest.TestCase):
         second = _choose(rng=random.Random(7)).login
         self.assertEqual(first, second)
 
+    def test_availability_is_checked_lazily_in_preference_order(self):
+        checked = []
+
+        def is_out_of_office(login):
+            checked.append(login)
+            return False
+
+        choice = _choose(
+            human_requested_reviewers={"b"}, is_out_of_office=is_out_of_office
+        )
+        self.assertEqual(choice.login, "b")
+        self.assertEqual(checked, ["b"])
+
     def test_nobody_available_escalates(self):
         choice = _choose(is_out_of_office=lambda login: True)
         self.assertIsNone(choice.login)
@@ -70,22 +83,42 @@ class TestChooseAssignee(unittest.TestCase):
 class TestIdle(unittest.TestCase):
     FRI = datetime(2026, 9, 11, 15, tzinfo=timezone.utc)
     SAT = datetime(2026, 9, 12, 9, tzinfo=timezone.utc)
-    MON = datetime(2026, 9, 14, 9, tzinfo=timezone.utc)
-    TUE = datetime(2026, 9, 15, 9, tzinfo=timezone.utc)
+    MON_AM = datetime(2026, 9, 14, 9, tzinfo=timezone.utc)
+    MON_PM = datetime(2026, 9, 14, 16, tzinfo=timezone.utc)
+    TUE_AM = datetime(2026, 9, 15, 9, tzinfo=timezone.utc)
+    TUE_PM = datetime(2026, 9, 15, 16, tzinfo=timezone.utc)
 
-    def test_weekends_are_skipped(self):
+    def test_weekends_are_skipped_and_days_count_once_fully_elapsed(self):
         self.assertEqual(business_days_between(self.FRI, self.SAT), 0)
-        self.assertEqual(business_days_between(self.FRI, self.MON), 1)
-        self.assertEqual(business_days_between(self.FRI, self.TUE), 2)
-        self.assertEqual(business_days_between(self.MON, self.MON), 0)
-        self.assertEqual(business_days_between(self.MON, self.FRI), 0)
+        self.assertEqual(business_days_between(self.FRI, self.MON_AM), 0)
+        self.assertEqual(business_days_between(self.FRI, self.MON_PM), 1)
+        self.assertEqual(business_days_between(self.FRI, self.TUE_AM), 1)
+        self.assertEqual(business_days_between(self.FRI, self.TUE_PM), 2)
+        self.assertEqual(business_days_between(self.MON_AM, self.MON_AM), 0)
+        self.assertEqual(business_days_between(self.MON_AM, self.FRI), 0)
+
+    def test_a_late_assignment_is_not_idle_minutes_later(self):
+        late = datetime(2026, 9, 14, 23, 0, tzinfo=timezone.utc)
+        self.assertEqual(
+            business_days_between(
+                late, datetime(2026, 9, 15, 0, 30, tzinfo=timezone.utc)
+            ),
+            0,
+        )
+        self.assertEqual(
+            business_days_between(
+                late, datetime(2026, 9, 15, 23, 30, tzinfo=timezone.utc)
+            ),
+            1,
+        )
 
     def test_is_idle(self):
         self.assertFalse(is_idle(self.FRI, self.SAT, 1, engaged=False))
-        self.assertTrue(is_idle(self.FRI, self.MON, 1, engaged=False))
-        self.assertFalse(is_idle(self.FRI, self.MON, 1, engaged=True))
-        self.assertFalse(is_idle(self.FRI, self.MON, 2, engaged=False))
-        self.assertFalse(is_idle(self.FRI, self.TUE, 0, engaged=False))
+        self.assertFalse(is_idle(self.FRI, self.MON_AM, 1, engaged=False))
+        self.assertTrue(is_idle(self.FRI, self.MON_PM, 1, engaged=False))
+        self.assertFalse(is_idle(self.FRI, self.MON_PM, 1, engaged=True))
+        self.assertFalse(is_idle(self.FRI, self.MON_PM, 2, engaged=False))
+        self.assertFalse(is_idle(self.FRI, self.TUE_PM, 0, engaged=False))
 
 
 if __name__ == "__main__":

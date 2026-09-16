@@ -169,7 +169,8 @@ class AsanaClient(object):
                     "start_date": start_date,
                     "end_date": end_date,
                 },
-                opt_fields=["start_date", "end_date"],
+                # asana 0.9.1 joins `fields` into the opt_fields query parameter.
+                fields=["start_date", "end_date"],
             )
         )
 
@@ -264,7 +265,3 @@ def out_of_office_until(user_id: str, workspace_id: str, today: date) -> Optiona
             continue
         return date.fromisoformat(end) if end else date.max
     return None
-
-
-def is_user_out_of_office(user_id: str, workspace_id: str, today: date) -> bool:
-    return out_of_office_until(user_id, workspace_id, today) is not None

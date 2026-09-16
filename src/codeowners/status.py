@@ -2,11 +2,12 @@
 
 Semantics (agreed in the feature design):
 
-* A file is *approved* when the latest approve / request-changes / dismissed
-  review by any owner of that file (its whole owner set, never the PR author)
-  is an approval. It has *changes requested* when that latest review asks for
-  changes, is *stale* when that latest review was dismissed (a push dismissed
-  the approval), and is *needed* otherwise.
+* A file's status comes from the latest approve / request-changes / dismissed
+  review of each owner of that file (its whole owner set, never the PR author
+  or a follow-up-review user). An active request for changes blocks the file
+  as it blocks merging on GitHub; otherwise an active approval approves it;
+  otherwise a dismissed review (a push dismissed the approval) makes it
+  *stale*; otherwise it is *needed*. Logins compare case-insensitively.
 * A requirement's status is the worst of its files: Changes Requested, then
   Needed, then Approval Stale, then Approved. A requirement without files is
   No Longer Required. A requirement still unapproved when the PR merges is
@@ -82,9 +83,6 @@ class FileEvaluation:
     # The review that decided the status, when one exists.
     review: Optional[Review] = None
 
-    def reviewer(self) -> Optional[str]:
-        return self.review.author_handle() if self.review is not None else None
-
 
 @dataclass
 class RequirementEvaluation:
@@ -129,28 +127,57 @@ class RequirementEvaluation:
         return self._latest_file_review(FileStatus.STALE)
 
 
+def _normalized(logins: Iterable[str]) -> Set[str]:
+    """GitHub logins are case-insensitive; compare them lower-cased."""
+    return {login.lower() for login in logins}
+
+
+def _latest_review_per_reviewer(
+    reviews: Iterable[Review], logins: Optional[Set[str]] = None
+) -> Dict[str, Review]:
+    """The newest approve / changes-requested / dismissed review of each
+    reviewer (optionally only those in `logins`, compared case-insensitively),
+    keyed by the lower-cased login."""
+    wanted = _normalized(logins) if logins is not None else None
+    latest: Dict[str, Review] = {}
+    for review in reviews:
+        if review.state() not in DECISIVE_STATES:
+            continue
+        login = review.author_handle().lower()
+        if wanted is not None and login not in wanted:
+            continue
+        if login not in latest or review.submitted_at() > latest[login].submitted_at():
+            latest[login] = review
+    return latest
+
+
 def latest_decisive_review(
     reviews: Iterable[Review], logins: Set[str]
 ) -> Optional[Review]:
     """The newest approve / changes-requested / dismissed review by any of `logins`."""
-    relevant = [
-        review
-        for review in reviews
-        if review.author_handle() in logins and review.state() in DECISIVE_STATES
-    ]
-    if not relevant:
+    latest = _latest_review_per_reviewer(reviews, logins)
+    if not latest:
         return None
-    return max(relevant, key=lambda r: r.submitted_at())
+    return max(latest.values(), key=lambda r: r.submitted_at())
 
 
-def _file_status(review: Optional[Review]) -> FileStatus:
-    if review is None:
-        return FileStatus.NEEDED
-    if review.state() is ReviewState.CHANGES_REQUESTED:
-        return FileStatus.CHANGES_REQUESTED
-    if review.state() is ReviewState.APPROVED:
-        return FileStatus.APPROVED
-    return FileStatus.STALE
+# In order of precedence: what an owner's active review does to a file.
+_FILE_STATUS_BY_STATE = (
+    (ReviewState.CHANGES_REQUESTED, FileStatus.CHANGES_REQUESTED),
+    (ReviewState.APPROVED, FileStatus.APPROVED),
+    (ReviewState.DISMISSED, FileStatus.STALE),
+)
+
+
+def _decide_file(
+    reviews: Sequence[Review], pool: Set[str]
+) -> "tuple[FileStatus, Optional[Review]]":
+    latest = _latest_review_per_reviewer(reviews, pool)
+    for state, file_status in _FILE_STATUS_BY_STATE:
+        matching = [review for review in latest.values() if review.state() is state]
+        if matching:
+            return file_status, max(matching, key=lambda r: r.submitted_at())
+    return FileStatus.NEEDED, None
 
 
 def evaluate_requirement(
@@ -164,14 +191,15 @@ def evaluate_requirement(
     if not requirement.all_files():
         return RequirementEvaluation(requirement, RequirementStatus.NO_LONGER_REQUIRED)
 
+    never_count = _normalized(SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS) | {
+        author.lower()
+    }
     file_evaluations: List[FileEvaluation] = []
     for path in requirement.all_files():
         owners = requirement.owners_for_file(path)
-        pool = resolve_pool(owners) - {author}
-        review = latest_decisive_review(reviews, pool)
-        file_evaluations.append(
-            FileEvaluation(path, owners, _file_status(review), review)
-        )
+        pool = _normalized(resolve_pool(owners)) - never_count
+        file_status, review = _decide_file(reviews, pool)
+        file_evaluations.append(FileEvaluation(path, owners, file_status, review))
 
     statuses = {f.status for f in file_evaluations}
     if FileStatus.CHANGES_REQUESTED in statuses:
@@ -241,17 +269,6 @@ class CodeownerSummary:
         return all(e.is_satisfied() for e in self.evaluations)
 
 
-def _latest_review_per_reviewer(reviews: Iterable[Review]) -> Dict[str, Review]:
-    latest: Dict[str, Review] = {}
-    for review in reviews:
-        if review.state() not in DECISIVE_STATES:
-            continue
-        login = review.author_handle()
-        if login not in latest or review.submitted_at() > latest[login].submitted_at():
-            latest[login] = review
-    return latest
-
-
 def primary_review(
     pull_request: PullRequest, summary: CodeownerSummary
 ) -> Optional[Review]:
@@ -281,7 +298,8 @@ def review_status(
 ) -> str:
     """Value of the PR task's "Review Status" field.
 
-    Without codeowned files this is SGTM's existing rule. With them: Approved
+    Without codeowned files, or before the label is added, this is SGTM's
+    existing rule. Once codeowner tasks are requested: Approved
     only once the primary review is in and every codeowner requirement is
     satisfied; Needs Codeowner Approval when the primary review is in and
     codeowner approvals are outstanding; Needs Review otherwise. A request for
@@ -289,7 +307,12 @@ def review_status(
     """
     if pull_request.is_draft():
         return "Not Ready"
-    if summary is None or not summary.has_codeowned_files():
+    if (
+        summary is None
+        or not summary.has_codeowned_files()
+        or not summary.tasks_requested
+    ):
+        # Until the author adds the label SGTM behaves exactly as it always has.
         if pull_request.is_needs_review():
             return "Needs Review"
         return "Approved" if pull_request.is_approved() else "Changes Requested"

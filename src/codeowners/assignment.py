@@ -1,8 +1,8 @@
 """Pick who a codeowner subtask is assigned to, and when to pick again."""
 import random
 from dataclasses import dataclass
-from datetime import date, datetime
-from typing import Callable, Optional, Set
+from datetime import date, datetime, timedelta
+from typing import Callable, Dict, List, Optional, Set
 
 # User-facing phrases completing "Assigned to @X, ...". Kept here so the task
 # description and tests agree on the exact wording.
@@ -44,37 +44,49 @@ def choose_assignee(
     """
     rng = rng or random.Random()
     excluded = set(exclude or set()) | {author}
-    eligible = sorted(
-        login
-        for login in pool
-        if login not in excluded
-        and has_asana_mapping(login)
-        and not is_out_of_office(login)
-    )
-    if not eligible:
-        return AssigneeChoice(None, REASON_NOBODY_AVAILABLE)
-    requested = [login for login in eligible if login in human_requested_reviewers]
-    if requested:
-        return AssigneeChoice(rng.choice(requested), REASON_HUMAN_REQUESTED)
-    engaged = [login for login in eligible if login in engaged_logins]
-    if engaged:
-        return AssigneeChoice(rng.choice(engaged), REASON_ENGAGED)
-    return AssigneeChoice(rng.choice(eligible), REASON_RANDOM)
+    candidates = sorted(login for login in pool if login not in excluded)
+
+    # Mapping and out-of-office lookups cost an S3 / Asana call each, so they
+    # run lazily, in preference order, and stop at the first available person.
+    availability: Dict[str, bool] = {}
+
+    def available(login: str) -> bool:
+        if login not in availability:
+            availability[login] = has_asana_mapping(login) and not is_out_of_office(
+                login
+            )
+        return availability[login]
+
+    tiers: List["tuple[Optional[Set[str]], str]"] = [
+        (human_requested_reviewers, REASON_HUMAN_REQUESTED),
+        (engaged_logins, REASON_ENGAGED),
+        (None, REASON_RANDOM),
+    ]
+    for members, reason in tiers:
+        tier = [login for login in candidates if members is None or login in members]
+        rng.shuffle(tier)
+        for login in tier:
+            if available(login):
+                return AssigneeChoice(login, reason)
+    return AssigneeChoice(None, REASON_NOBODY_AVAILABLE)
 
 
 def business_days_between(start: datetime, end: datetime) -> int:
-    """Whole weekdays (Mon-Fri, by UTC date) after `start`'s date up to `end`'s date.
+    """Business days (Mon-Fri, by UTC date) elapsed from `start` to `end`.
 
+    A weekday counts once `end` has reached `start`'s time of day on it, so an
+    assignment late in the UTC day is not "a day idle" a few minutes later:
+    Friday 15:00 -> Monday 09:00 is 0, Monday 15:00 is 1, Tuesday 15:00 is 2.
     Holidays are not tracked; vacations rely on Asana out-of-office.
     """
     if end <= start:
         return 0
     days = 0
-    day: date = start.date()
-    while day < end.date():
-        day = date.fromordinal(day.toordinal() + 1)
-        if day.weekday() < 5:
+    day: date = start.date() + timedelta(days=1)
+    while day <= end.date():
+        if day.weekday() < 5 and end >= datetime.combine(day, start.timetz()):
             days += 1
+        day += timedelta(days=1)
     return days
 
 
