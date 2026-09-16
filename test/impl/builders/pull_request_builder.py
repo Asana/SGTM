@@ -30,10 +30,7 @@ class PullRequestBuilder(BuilderBaseClass):
             "headRefName": "feature/test-branch",
             "headRefOid": create_uuid(),
             "baseRefName": "master",
-            "baseRef": {
-                "name": "master",
-                "associatedPullRequests": {"totalCount": 0},
-            },
+            "baseRef": {"associatedPullRequests": {"totalCount": 0}},
             "stack": None,
             "files": {
                 "pageInfo": {"hasNextPage": False, "endCursor": None},
@@ -197,7 +194,11 @@ class PullRequestBuilder(BuilderBaseClass):
 
     def base_ref_name(self, name: str):
         self.raw_pr["baseRefName"] = name
-        self.raw_pr["baseRef"]["name"] = name
+        return self
+
+    def files_missing(self):
+        """Mimic GitHub returning a null `files` connection for a huge diff."""
+        self.raw_pr["files"] = None
         return self
 
     def head_ref_oid(self, oid: str):

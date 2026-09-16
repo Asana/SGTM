@@ -54,6 +54,18 @@ class TestPullRequestFiles(BaseClass):
             ]
         )
 
+    def test_null_files_connection_is_paged_from_the_start(self, mock_query):
+        pull_request = build(builder.pull_request().files_missing())
+        self.assertTrue(pull_request.has_unloaded_changed_files())
+        self.assertEqual(pull_request.changed_files(), [])
+        mock_query.side_effect = [
+            _files_page(["a"], True, "c1"),
+            _files_page(["b"], False, None),
+        ]
+        client.load_all_changed_files(self.ORG, pull_request)
+        self.assertEqual(pull_request.changed_files(), ["a", "b"])
+        self.assertFalse(pull_request.has_unloaded_changed_files())
+
     def test_load_all_changed_files_is_a_noop_when_complete(self, mock_query):
         pull_request = build(builder.pull_request().files(["a"]))
         client.load_all_changed_files(self.ORG, pull_request)
@@ -68,11 +80,12 @@ class TestRepositoryFileContent(BaseClass):
     def test_returns_text(self, mock_query):
         mock_query.return_value = {
             "repository": {
+                "ref": {"id": "REF_1"},
                 "object": {
                     "__typename": "Blob",
                     "text": "* @owner\n",
                     "isTruncated": False,
-                }
+                },
             }
         }
         text = client.get_repository_file_content(
@@ -82,21 +95,41 @@ class TestRepositoryFileContent(BaseClass):
         mock_query.assert_called_once_with(
             self.ORG,
             GetRepositoryFileContent,
-            {"owner": "Asana", "name": "codez", "expression": "next-master:CODEOWNERS"},
+            {
+                "owner": "Asana",
+                "name": "codez",
+                "ref": "refs/heads/next-master",
+                "expression": "next-master:CODEOWNERS",
+            },
         )
 
     def test_missing_file_returns_none(self, mock_query):
-        mock_query.return_value = {"repository": {"object": None}}
+        mock_query.return_value = {
+            "repository": {"ref": {"id": "REF_1"}, "object": None}
+        }
         self.assertIsNone(
             client.get_repository_file_content(
                 self.ORG, "Asana", "codez", "next-master", "docs/CODEOWNERS"
             )
         )
 
+    def test_missing_branch_raises(self, mock_query):
+        # A deleted base branch must not look like a repository without CODEOWNERS.
+        mock_query.return_value = {"repository": {"ref": None, "object": None}}
+        with self.assertRaises(ValueError):
+            client.get_repository_file_content(
+                self.ORG, "Asana", "codez", "gone-branch", "CODEOWNERS"
+            )
+
     def test_truncated_file_raises(self, mock_query):
         mock_query.return_value = {
             "repository": {
-                "object": {"__typename": "Blob", "text": "partial", "isTruncated": True}
+                "ref": {"id": "REF_1"},
+                "object": {
+                    "__typename": "Blob",
+                    "text": "partial",
+                    "isTruncated": True,
+                },
             }
         }
         with self.assertRaises(ValueError):

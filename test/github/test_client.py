@@ -1,6 +1,6 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
-from github import UnknownObjectException
+from github import GithubException, UnknownObjectException
 
 import src.github.client as github_client
 from test.impl.base_test_case_class import BaseClass
@@ -23,6 +23,31 @@ class TestEnsureLabel(BaseClass):
         )
 
     @patch.object(github_client, "_get_repo")
+    def test_description_is_cut_to_githubs_limit(self, get_repo_mock):
+        repo = MagicMock()
+        repo.get_label.side_effect = UnknownObjectException(404, {}, {})
+        get_repo_mock.return_value = repo
+
+        github_client.ensure_label("Asana", "codez", "lbl", "1d76db", "x" * 130)
+
+        self.assertEqual(len(repo.create_label.call_args.kwargs["description"]), 100)
+
+    @patch.object(github_client, "_get_repo")
+    def test_concurrent_creation_is_not_an_error(self, get_repo_mock):
+        repo = MagicMock()
+        repo.get_label.side_effect = UnknownObjectException(404, {}, {})
+        repo.create_label.side_effect = GithubException(
+            422, {"errors": [{"code": "already_exists"}]}, {}
+        )
+        get_repo_mock.return_value = repo
+
+        github_client.ensure_label("Asana", "codez", "lbl", "1d76db", "desc")
+
+        repo.create_label.side_effect = GithubException(500, {}, {})
+        with self.assertRaises(GithubException):
+            github_client.ensure_label("Asana", "codez", "lbl", "1d76db", "desc")
+
+    @patch.object(github_client, "_get_repo")
     def test_leaves_existing_label_alone(self, get_repo_mock):
         repo = MagicMock()
         get_repo_mock.return_value = repo
@@ -38,9 +63,30 @@ class TestRequestReviewers(BaseClass):
         pr = MagicMock()
         get_pull_request_mock.return_value = pr
 
-        github_client.request_reviewers("Asana", "codez", 42, ["alice", "bob"])
+        requested = github_client.request_reviewers(
+            "Asana", "codez", 42, ["alice", "bob"]
+        )
 
-        pr.create_review_request.assert_called_once_with(reviewers=["alice", "bob"])
+        self.assertEqual(requested, ["alice", "bob"])
+        pr.create_review_request.assert_has_calls(
+            [call(reviewers=["alice"]), call(reviewers=["bob"])]
+        )
+
+    @patch.object(github_client, "_get_pull_request")
+    def test_one_rejected_login_does_not_block_the_others(self, get_pull_request_mock):
+        pr = MagicMock()
+        pr.create_review_request.side_effect = [
+            GithubException(422, {"message": "not a collaborator"}, {}),
+            None,
+        ]
+        get_pull_request_mock.return_value = pr
+
+        requested = github_client.request_reviewers(
+            "Asana", "codez", 42, ["gone", "bob"]
+        )
+
+        self.assertEqual(requested, ["bob"])
+        self.assertEqual(pr.create_review_request.call_count, 2)
 
     @patch.object(github_client, "_get_pull_request")
     def test_no_reviewers_makes_no_request(self, get_pull_request_mock):

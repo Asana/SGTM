@@ -311,10 +311,7 @@ class PullRequest(object):
 
     def base_ref_name(self) -> str:
         """The branch this pull request merges into."""
-        name = self._raw.get("baseRefName") or (self._raw.get("baseRef") or {}).get(
-            "name"
-        )
-        return str(name) if name else ""
+        return str(self._raw.get("baseRefName") or "")
 
     def stack_base_ref_name(self) -> Optional[str]:
         """The trunk branch of the GitHub-native stack this PR belongs to, if any.
@@ -346,7 +343,14 @@ class PullRequest(object):
         files = self._raw.get("files") or {}
         return [node["path"] for node in files.get("nodes", [])]
 
+    def changed_files_missing(self) -> bool:
+        """GitHub returns a null `files` connection for very large diffs; the
+        files must then be paged separately."""
+        return self._raw.get("files") is None
+
     def has_unloaded_changed_files(self) -> bool:
+        if self.changed_files_missing():
+            return True
         files = self._raw.get("files") or {}
         return bool((files.get("pageInfo") or {}).get("hasNextPage", False))
 

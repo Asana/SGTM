@@ -191,16 +191,22 @@ def load_all_changed_files(org_name: str, pull_request: PullRequest) -> None:
         return
     paths = list(pull_request.changed_files())
     cursor = pull_request.changed_files_end_cursor()
-    while cursor is not None:
+    # GitHub returns a null `files` connection for very large diffs; page from
+    # the start in that case.
+    fetch_first_page = pull_request.changed_files_missing()
+    while fetch_first_page or cursor is not None:
         page, cursor = get_pull_request_files(org_name, pull_request.id(), cursor)
         paths.extend(page)
+        fetch_first_page = False
     pull_request.set_changed_files(paths)
 
 
 def get_repository_file_content(
     org_name: str, owner: str, repository: str, ref: str, path: str
 ) -> Optional[str]:
-    """Return the text of a file at `ref`, or None if it does not exist.
+    """Return the text of a file at branch `ref`, or None if the file does not
+    exist there. Raises ValueError when the branch itself does not exist, so a
+    deleted base branch is not mistaken for a repository without the file.
 
     Used to read CODEOWNERS from a pull request's base branch. Requires the
     GitHub App to have read access to repository contents.
@@ -208,9 +214,16 @@ def get_repository_file_content(
     data = _execute_graphql_query(
         org_name,
         GetRepositoryFileContent,
-        {"owner": owner, "name": repository, "expression": f"{ref}:{path}"},
+        {
+            "owner": owner,
+            "name": repository,
+            "ref": f"refs/heads/{ref}",
+            "expression": f"{ref}:{path}",
+        },
     )
     repository_data = data.get("repository") or {}
+    if repository_data.get("ref") is None:
+        raise ValueError(f"Branch {ref} does not exist in {owner}/{repository}")
     blob = repository_data.get("object")
     if not blob or blob.get("__typename") != "Blob" or blob.get("text") is None:
         return None

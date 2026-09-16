@@ -37,7 +37,7 @@ fragment FullPullRequest on PullRequest {
       login
     }
   }
-  reviewRequests(last: 20) {
+  reviewRequests(last: 100) {
     nodes {
       asCodeOwner
       requestedReviewer {
@@ -59,7 +59,7 @@ fragment FullPullRequest on PullRequest {
       }
     }
   }
-  reviews(last: 20) {
+  reviews(last: 100) {
     nodes {
       ...FullReview
     }
