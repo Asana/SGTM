@@ -20,9 +20,10 @@ from test.impl.base_test_case_class import BaseClass
 AUTO_APPROVER_MAIN = "lambda/auto_approver/main.py"
 
 
-def state_with_subtasks(pr, assignees, human_chosen=(), sgtm_assigned=()):
+def state_with_subtasks(pr, assignees, human_chosen=(), sgtm_assigned=None):
     """Requested state with one subtask per owner set, assigned per `assignees`
-    (owner display -> login)."""
+    (owner display -> login). `sgtm_assigned` is the login SGTM last set as
+    the PR's assignee."""
     state = CodeownerState(tasks_requested_at="2026-09-11T19:30:00Z")
     for i, evaluation in enumerate(summary_for(pr).evaluations):
         key = evaluation.owner_set.key()
@@ -32,8 +33,8 @@ def state_with_subtasks(pr, assignees, human_chosen=(), sgtm_assigned=()):
             assignee=assignees.get(evaluation.owner_set.display()),
         )
     state.remember_human_chosen(list(human_chosen))
-    for login in sgtm_assigned:
-        state.remember_sgtm_assigned(login)
+    if sgtm_assigned:
+        state.remember_sgtm_assigned(sgtm_assigned)
     return state
 
 
@@ -57,7 +58,7 @@ class TestDecidePullRequestAssignee(BaseClass):
     def test_changes_requested_goes_back_to_the_author(self):
         cr = review("eli", ReviewState.CHANGES_REQUESTED, at(10))
         pr = pull_request([AUTO_APPROVER], reviews=[cr], assignees=["eli"])
-        state = state_with_subtasks(pr, {"secdev": "eli"}, sgtm_assigned=["eli"])
+        state = state_with_subtasks(pr, {"secdev": "eli"}, sgtm_assigned="eli")
         self.assertEqual(self.decide(pr, state, TRIGGER_REVIEW, cr), "author")
 
         with_author = pull_request([AUTO_APPROVER], reviews=[cr], assignees=["author"])
@@ -69,7 +70,7 @@ class TestDecidePullRequestAssignee(BaseClass):
             review("jordan", ReviewState.APPROVED, at(11)),
         ]
         pr = pull_request([AUTO_APPROVER], reviews=reviews, assignees=["jordan"])
-        state = state_with_subtasks(pr, {"secdev": "jordan"}, sgtm_assigned=["jordan"])
+        state = state_with_subtasks(pr, {"secdev": "jordan"}, sgtm_assigned="jordan")
         self.assertEqual(self.decide(pr, state, TRIGGER_REVIEW, reviews[1]), "author")
 
     def test_primary_approval_with_outstanding_set_goes_to_the_subtask_assignee(
@@ -95,12 +96,12 @@ class TestDecidePullRequestAssignee(BaseClass):
             pr,
             {"secdev": "jordan"},
             human_chosen=["outsider"],
-            sgtm_assigned=["jordan"],
+            sgtm_assigned="jordan",
         )
         self.assertEqual(self.decide(pr, state, TRIGGER_REVIEW, approval), "outsider")
 
         nobody_chosen = state_with_subtasks(
-            pr, {"secdev": "jordan"}, sgtm_assigned=["jordan"]
+            pr, {"secdev": "jordan"}, sgtm_assigned="jordan"
         )
         self.assertIsNone(self.decide(pr, nobody_chosen, TRIGGER_REVIEW, approval))
 
@@ -121,10 +122,18 @@ class TestDecidePullRequestAssignee(BaseClass):
         state = state_with_subtasks(pr, {"secdev": "eli"})
         self.assertIsNone(self.decide(pr, state, TRIGGER_REVIEW, approval))
 
+    def test_a_codeowner_a_person_put_in_charge_after_sgtm_keeps_the_pr(self):
+        approval = review("outsider", ReviewState.APPROVED, at(10))
+        pr = pull_request([AUTO_APPROVER], reviews=[approval], assignees=["eli"])
+        # SGTM last handed the PR to the author; a person then assigned eli.
+        state = state_with_subtasks(pr, {"secdev": "pete"}, sgtm_assigned="author")
+        self.assertIsNone(self.decide(pr, state, TRIGGER_REVIEW, approval))
+        self.assertIsNone(self.decide(pr, state, TRIGGER_SYNC))
+
     def test_current_outstanding_assignee_is_left_alone(self):
         approval = review("outsider", ReviewState.APPROVED, at(10))
         pr = pull_request([AUTO_APPROVER], reviews=[approval], assignees=["eli"])
-        state = state_with_subtasks(pr, {"secdev": "eli"}, sgtm_assigned=["eli"])
+        state = state_with_subtasks(pr, {"secdev": "eli"}, sgtm_assigned="eli")
         self.assertIsNone(self.decide(pr, state, TRIGGER_REVIEW, approval))
 
     def test_label_moves_the_pr_only_once_the_primary_review_is_in(self):
@@ -143,12 +152,10 @@ class TestDecidePullRequestAssignee(BaseClass):
         approval = review("outsider", ReviewState.APPROVED, at(10))
         pr = pull_request([AUTO_APPROVER], reviews=[approval], assignees=["eli"])
         # eli was replaced by pete on the subtask (out of office / idle).
-        state = state_with_subtasks(
-            pr, {"secdev": "pete"}, sgtm_assigned=["eli", "pete"]
-        )
+        state = state_with_subtasks(pr, {"secdev": "pete"}, sgtm_assigned="eli")
         self.assertEqual(self.decide(pr, state, TRIGGER_SYNC), "pete")
 
-        by_hand = state_with_subtasks(pr, {"secdev": "pete"}, sgtm_assigned=["pete"])
+        by_hand = state_with_subtasks(pr, {"secdev": "pete"})
         self.assertIsNone(self.decide(pr, by_hand, TRIGGER_SYNC))
 
     def test_sync_returns_the_pr_to_the_author_once_all_approved(self):
@@ -157,7 +164,7 @@ class TestDecidePullRequestAssignee(BaseClass):
             review("jordan", ReviewState.APPROVED, at(11)),
         ]
         pr = pull_request([AUTO_APPROVER], reviews=reviews, assignees=["eli"])
-        state = state_with_subtasks(pr, {"secdev": "eli"}, sgtm_assigned=["eli"])
+        state = state_with_subtasks(pr, {"secdev": "eli"}, sgtm_assigned="eli")
         self.assertEqual(self.decide(pr, state, TRIGGER_SYNC), "author")
         pushes_do_not_move = pull_request(
             [AUTO_APPROVER], reviews=reviews, assignees=["outsider"]
@@ -169,7 +176,7 @@ class TestDecidePullRequestAssignee(BaseClass):
         pr = pull_request(
             [AUTO_APPROVER], reviews=[approval], assignees=["eli"], merged=True
         )
-        state = state_with_subtasks(pr, {"secdev": "eli"}, sgtm_assigned=["eli"])
+        state = state_with_subtasks(pr, {"secdev": "eli"}, sgtm_assigned="eli")
         self.assertEqual(self.decide(pr, state, TRIGGER_REVIEW, approval), "author")
 
     def test_comment_only_review_changes_nothing(self):
@@ -193,6 +200,35 @@ class TestChooseOutstandingSubtask(BaseClass):
             pr, {"secdev": "eli", "data": "dora"}, human_chosen=["eli"]
         )
         chosen = choose_outstanding_subtask(summary, author_chosen)
+        self.assertIsNotNone(chosen)
+        self.assertEqual(chosen.assignee, "eli")
+
+    def test_escalated_subtasks_rank_after_assigned_ones(self):
+        pr = pull_request([AUTO_APPROVER, AUTO_APPROVER_MAIN, DATABRICKS])
+        # data owns fewer files, but nobody was available to take it.
+        state = state_with_subtasks(pr, {"secdev": "eli"})
+        chosen = choose_outstanding_subtask(summary_for(pr), state)
+        self.assertIsNotNone(chosen)
+        self.assertEqual(chosen.assignee, "eli")
+
+    def test_ties_break_on_creation_time_not_on_state_order(self):
+        pr = pull_request([AUTO_APPROVER, DATABRICKS])
+        summary = summary_for(pr)
+        data_key, secdev_key = [e.owner_set.key() for e in summary.evaluations]
+        state = CodeownerState(tasks_requested_at="2026-09-11T19:30:00Z")
+        state.subtasks[data_key] = SubtaskState(
+            task_id="sub-d",
+            owner_key=data_key,
+            assignee="dora",
+            created_at="2026-09-11T19:35:00Z",
+        )
+        state.subtasks[secdev_key] = SubtaskState(
+            task_id="sub-s",
+            owner_key=secdev_key,
+            assignee="eli",
+            created_at="2026-09-11T19:30:00Z",
+        )
+        chosen = choose_outstanding_subtask(summary, state)
         self.assertIsNotNone(chosen)
         self.assertEqual(chosen.assignee, "eli")
 

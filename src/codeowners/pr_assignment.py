@@ -36,11 +36,12 @@ def choose_outstanding_subtask(
     summary: CodeownerSummary, state: CodeownerState
 ) -> Optional[SubtaskState]:
     """The outstanding subtask whose assignee should hold the PR: one assigned
-    to a reviewer the author chose first, then the one owning the fewest
-    changed files, then the earliest created."""
+    to a reviewer the author chose first, then any with an assignee over one
+    escalated to the author, then the one owning the fewest changed files,
+    then the earliest created."""
     outstanding = {e.owner_set.key(): e for e in summary.outstanding()}
     ranked = []
-    for index, (key, sub) in enumerate(state.subtasks.items()):
+    for key, sub in state.subtasks.items():
         evaluation = outstanding.get(key)
         if evaluation is None:
             continue
@@ -50,14 +51,15 @@ def choose_outstanding_subtask(
         ranked.append(
             (
                 0 if chosen_by_author else 1,
+                0 if sub.assignee else 1,
                 len(evaluation.requirement.all_files()),
-                index,
+                sub.created_at or "",
                 key,
             )
         )
     if not ranked:
         return None
-    return state.subtasks[min(ranked)[3]]
+    return state.subtasks[min(ranked)[-1]]
 
 
 def _decisively_reviewed(pull_request: PullRequest) -> set:
@@ -96,11 +98,15 @@ def decide_pull_request_assignee(
             return _move(current, author)
 
     primary = has_primary_review(pull_request, summary)
+    outstanding_keys = {e.owner_set.key() for e in summary.outstanding()}
     outstanding_assignees = {
         sub.assignee
         for key, sub in state.subtasks.items()
-        if sub.assignee and any(e.owner_set.key() == key for e in summary.outstanding())
+        if sub.assignee and key in outstanding_keys
     }
+    # SGTM only moves an assignee it set itself (the author included); anyone
+    # else was put in charge by a person.
+    set_by_sgtm = current == state.sgtm_assigned_login
 
     if not primary:
         if trigger != TRIGGER_REVIEW:
@@ -113,8 +119,8 @@ def decide_pull_request_assignee(
                 return _move(current, login)
         return None
 
-    if not summary.outstanding():
-        if trigger == TRIGGER_REVIEW or current in state.sgtm_assigned_logins:
+    if not outstanding_keys:
+        if trigger == TRIGGER_REVIEW or set_by_sgtm:
             return _move(current, author)
         return None
 
@@ -123,10 +129,7 @@ def decide_pull_request_assignee(
 
     if trigger == TRIGGER_SYNC:
         # Only follow a subtask reassignment SGTM made (out of office, idle).
-        if (
-            current in state.sgtm_assigned_logins
-            and current not in outstanding_assignees
-        ):
+        if set_by_sgtm and current not in outstanding_assignees:
             return _move(current, target)
         return None
 
@@ -135,7 +138,7 @@ def decide_pull_request_assignee(
     if (
         current != author
         and current in summary.codeowner_logins
-        and current not in state.sgtm_assigned_logins
+        and not set_by_sgtm
         and current not in _decisively_reviewed(pull_request)
     ):
         # A person put a codeowner in charge by hand and that codeowner has

@@ -3,6 +3,7 @@ from uuid import uuid4
 from unittest.mock import patch
 
 import src.asana.client as asana_client
+import src.aws.dynamodb_client as dynamodb_client
 import src.codeowners.controller as codeowner_controller
 import src.github.client as github_client
 import src.github.graphql.client as github_graphql_client
@@ -352,7 +353,7 @@ class TestCodeownerControllerSync(MockDynamoDbTestCase):
         assert context is not None
         set_assignee.assert_called_once_with("Asana", "codez", 436513, assignee)
         self.assertEqual(reviewed.assignees(), [assignee])
-        self.assertEqual(CodeownerState.load(pr.id()).sgtm_assigned_logins, [assignee])
+        self.assertEqual(CodeownerState.load(pr.id()).sgtm_assigned_login, assignee)
 
         # The codeowner approves too: back to the author.
         codeowner_approval = review(assignee, ReviewState.APPROVED, at(11))
@@ -365,6 +366,7 @@ class TestCodeownerControllerSync(MockDynamoDbTestCase):
         self.sync(done, review=codeowner_approval)
         self.assertEqual(set_assignee.call_args.args[3], "author")
         self.assertEqual(done.assignees(), ["author"])
+        self.assertEqual(CodeownerState.load(pr.id()).sgtm_assigned_login, "author")
 
     @patch("src.codeowners.status.SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS", {"bot"})
     @patch("src.config.SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS", {"bot"})
@@ -471,6 +473,84 @@ class TestCodeownerControllerSync(MockDynamoDbTestCase):
         self.sync(plain)
         refs = {call.args[3] for call in get_file_content.call_args_list}
         self.assertEqual(refs, {"feature/parent"})
+
+    def test_github_comment_failures_do_not_abort_the_sync(
+        self,
+        create_subtask,
+        update_task,
+        add_comment,
+        add_followers,
+        complete_task,
+        reopen_task,
+        get_task,
+        get_project_custom_fields,
+        add_pr_comment,
+        edit_comment,
+        ensure_label,
+        request_reviewers,
+        set_assignee,
+        get_file_content,
+        get_team_members,
+        load_files,
+        opted_in,
+        *mocks,
+    ):
+        opted_in.return_value = True
+        add_pr_comment.side_effect = RuntimeError("Resource not accessible")
+        pr = self.pr([AUTO_APPROVER])
+        self.assertIsNotNone(self.sync(pr))
+        saved = CodeownerState.load(pr.id())
+        self.assertEqual(
+            saved.heads_up_comment_id, codeowner_controller.UNKNOWN_COMMENT_ID
+        )
+        # Not tried again: GitHub may have accepted the comment before failing.
+        self.sync(pr)
+        add_pr_comment.assert_called_once()
+
+        labelled = self.pr([AUTO_APPROVER], labels=[LABEL])
+        context = self.sync(labelled)
+        assert context is not None
+        create_subtask.assert_called_once()
+        self.assertTrue(context.manages_pull_request_assignee())
+        self.assertEqual(add_pr_comment.call_count, 2)
+        edit_comment.assert_not_called()
+        saved = CodeownerState.load(pr.id())
+        self.assertEqual(
+            saved.created_comment_id, codeowner_controller.UNKNOWN_COMMENT_ID
+        )
+
+    def test_state_store_failures_fall_back_to_plain_behaviour(
+        self, create_subtask, *mocks
+    ):
+        pr = self.pr([AUTO_APPROVER], labels=[LABEL])
+        with patch.object(CodeownerState, "load", side_effect=RuntimeError("ddb")):
+            self.assertIsNone(self.sync(pr))
+        create_subtask.assert_not_called()
+
+        with patch.object(CodeownerState, "save", side_effect=RuntimeError("ddb")):
+            self.assertIsNone(self.sync(pr))
+        # The subtask exists but SGTM could not record it: not reported as a
+        # success, so the PR task is updated the plain way this time.
+        create_subtask.assert_called_once()
+
+    def test_pull_requests_without_codeowned_files_get_no_state(
+        self, create_subtask, *mocks
+    ):
+        pr = self.pr(["README.md"], requested=["outsider"], assignees=["thelma"])
+        self.assertIsNotNone(self.sync(pr))
+        self.assertIsNone(
+            dynamodb_client.get_json_document(CodeownerState.key_for(pr.id()))
+        )
+
+    def test_team_members_are_fetched_once_per_team(self, create_subtask, *mocks):
+        get_team_members = mocks[13]
+        pr = self.pr([CELL_DATA, AUTO_APPROVER])
+        self.sync(pr)
+        self.sync(pr)
+        self.assertEqual(
+            sorted(c.args for c in get_team_members.call_args_list),
+            [("Asana", "cicd"), ("Asana", "platform"), ("Asana", "secdev")],
+        )
 
 
 if __name__ == "__main__":

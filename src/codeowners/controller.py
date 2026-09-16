@@ -19,7 +19,6 @@ feature is off or the sync failed. In that case the PR task is updated exactly
 as it was before this feature existed, so a GitHub permission problem or an
 outage in one of the lookups degrades to today's behaviour.
 """
-import hashlib
 import time
 from datetime import date, datetime, timezone
 from typing import Dict, List, Optional, Set, Tuple
@@ -29,6 +28,7 @@ import src.aws.s3_client as s3_client
 import src.config as config
 import src.github.client as github_client
 import src.github.graphql.client as github_graphql_client
+import src.github.logic as github_logic
 from src.asana.mentions import task_url_from_task_id
 from src.github.helpers import pull_request_has_label
 from src.github.models import PullRequest, Review
@@ -50,12 +50,10 @@ from .status import (
     RequirementStatus,
     evaluate_requirement,
 )
-from .tasks import SubtaskSyncInputs, sync_subtasks
+from .tasks import SubtaskSyncInputs, _hash, sync_subtasks
 
 _CACHE_TTL_SECONDS = 300
 
-# org/slug -> (fetched at, member logins)
-_team_members_cache: Dict[str, Tuple[float, Set[str]]] = {}
 # owner/repo@ref -> (fetched at, rules)
 _codeowners_cache: Dict[str, Tuple[float, List[CodeownersRule]]] = {}
 # owner/repo values whose label was confirmed to exist in this process.
@@ -64,7 +62,7 @@ _labels_ensured: Set[str] = set()
 
 def reset_caches() -> None:
     """For tests."""
-    _team_members_cache.clear()
+    github_logic.reset_team_members_cache()
     _codeowners_cache.clear()
     _labels_ensured.clear()
 
@@ -74,23 +72,12 @@ def reset_caches() -> None:
 # --------------------------------------------------------------------------
 
 
-def team_members(org: str, team_slug: str) -> Set[str]:
-    key = f"{org}/{team_slug}"
-    now = time.monotonic()
-    cached = _team_members_cache.get(key)
-    if cached is not None and now - cached[0] < _CACHE_TTL_SECONDS:
-        return cached[1]
-    members = set(github_graphql_client.get_team_members(org, team_slug))
-    _team_members_cache[key] = (now, members)
-    return members
-
-
 def resolve_pool(owner_set: OwnerSet) -> Set[str]:
     """Every GitHub login that may approve for `owner_set`."""
     logins: Set[str] = set(owner_set.individual_logins())
     for slug in owner_set.team_slugs():
         org, team = slug.split("/", 1)
-        logins |= team_members(org, team)
+        logins |= set(github_logic.cached_team_members(org, team))
     return logins
 
 
@@ -166,17 +153,50 @@ def _ensure_label(pull_request: PullRequest, label: str) -> None:
         logger.warning(f"Could not ensure label '{label}' exists in {key}: {e}")
 
 
-def _hash(text: str) -> str:
-    return hashlib.sha1(text.encode("utf-8")).hexdigest()
-
-
-# Stored when a comment was posted but GitHub returned no id: SGTM then knows
-# not to post again, and knows it cannot edit that comment either.
+# Stored when SGTM tried to post a comment but has no id for it: GitHub
+# returned none, or the call failed. SGTM then neither posts it again (a
+# failure after GitHub accepted the comment would otherwise duplicate it) nor
+# tries to edit it.
 UNKNOWN_COMMENT_ID = -1
 
 
 def _is_known(comment_id: Optional[int]) -> bool:
     return comment_id is not None and comment_id >= 0
+
+
+def _post_comment(pull_request: PullRequest, body: str) -> int:
+    """Post `body` on the PR. A GitHub failure is logged, not raised: the
+    comments are a courtesy and must not stop the subtasks from being kept
+    up to date."""
+    try:
+        comment_id = github_client.add_pr_comment(
+            pull_request.repository_owner_handle(),
+            pull_request.repository_name(),
+            pull_request.number(),
+            body,
+        )
+    except Exception as e:
+        logger.warning(f"Could not comment on pull request {pull_request.id()}: {e}")
+        return UNKNOWN_COMMENT_ID
+    return comment_id if comment_id is not None else UNKNOWN_COMMENT_ID
+
+
+def _edit_comment(pull_request: PullRequest, comment_id: int, body: str) -> bool:
+    try:
+        github_client.edit_comment(
+            pull_request.repository_owner_handle(),
+            pull_request.repository_name(),
+            pull_request.number(),
+            comment_id,
+            body,
+        )
+    except Exception as e:
+        logger.warning(
+            f"Could not edit comment {comment_id} on pull request"
+            f" {pull_request.id()}: {e}"
+        )
+        return False
+    return True
 
 
 def _heads_up_body(pull_request: PullRequest, summary: CodeownerSummary, label: str):
@@ -200,27 +220,12 @@ def _post_or_edit_heads_up(
     body = _heads_up_body(pull_request, summary, label)
     body_hash = _hash(body)
     if state.heads_up_comment_id is None:
-        comment_id = github_client.add_pr_comment(
-            pull_request.repository_owner_handle(),
-            pull_request.repository_name(),
-            pull_request.number(),
-            body,
-        )
-        # UNKNOWN_COMMENT_ID keeps SGTM from posting again when GitHub gave no id.
-        state.heads_up_comment_id = (
-            comment_id if comment_id is not None else UNKNOWN_COMMENT_ID
-        )
+        state.heads_up_comment_id = _post_comment(pull_request, body)
         state.heads_up_body_hash = body_hash
-        logger.info(f"Posted codeowner heads-up comment {comment_id}")
+        logger.info(f"Posted codeowner heads-up comment {state.heads_up_comment_id}")
     elif _is_known(state.heads_up_comment_id) and body_hash != state.heads_up_body_hash:
-        github_client.edit_comment(
-            pull_request.repository_owner_handle(),
-            pull_request.repository_name(),
-            pull_request.number(),
-            state.heads_up_comment_id,
-            body,
-        )
-        state.heads_up_body_hash = body_hash
+        if _edit_comment(pull_request, state.heads_up_comment_id, body):
+            state.heads_up_body_hash = body_hash
 
 
 def _announce_created(
@@ -239,30 +244,24 @@ def _announce_created(
         key: task_url_from_task_id(state.subtasks[key].task_id) for key in owner_sets
     }
     reasons = {key: state.subtasks[key].assignment_reason for key in owner_sets}
-    owner = pull_request.repository_owner_handle()
-    repository = pull_request.repository_name()
-    number = pull_request.number()
 
-    if _is_known(state.heads_up_comment_id):
+    heads_up_id = state.heads_up_comment_id
+    if heads_up_id is not None and _is_known(heads_up_id):
         body = (
             _heads_up_body(pull_request, summary, label)
             + "\n"
             + texts.created_block_markdown(assignees, subtask_urls, owner_sets, reasons)
         )
-        github_client.edit_comment(
-            owner, repository, number, state.heads_up_comment_id, body
-        )
-        state.heads_up_body_hash = _hash(body)
-        state.created_comment_id = state.heads_up_comment_id
-        return
+        if _edit_comment(pull_request, heads_up_id, body):
+            state.heads_up_body_hash = _hash(body)
+            state.created_comment_id = heads_up_id
+            return
+        # The heads-up comment is gone or cannot be edited: say it afresh.
 
     body = texts.label_added_comment(
         label, summary.codeowned_files, assignees, subtask_urls, owner_sets, reasons
     )
-    comment_id = github_client.add_pr_comment(owner, repository, number, body)
-    state.created_comment_id = (
-        comment_id if comment_id is not None else UNKNOWN_COMMENT_ID
-    )
+    state.created_comment_id = _post_comment(pull_request, body)
 
 
 def _request_reviews(pull_request: PullRequest, logins: List[str]) -> None:
@@ -293,8 +292,7 @@ def _assign_pull_request(
     )
     # so the Asana task mirrors the new assignee without another query
     pull_request.set_assignees([login])
-    if login != pull_request.author_handle():
-        state.remember_sgtm_assigned(login)
+    state.remember_sgtm_assigned(login)
     logger.info(f"Assigned pull request {pull_request.id()} to {login}")
 
 
@@ -316,7 +314,7 @@ def _remember_human_choices(pull_request: PullRequest, state: CodeownerState) ->
     chosen += [
         login
         for login in pull_request.assignees()
-        if login != author and login not in state.sgtm_assigned_logins
+        if login != author and login != state.sgtm_assigned_login
     ]
     state.remember_human_chosen(chosen)
 
@@ -355,19 +353,36 @@ def sync(
     if not config.SGTM_FEATURE__CODEOWNER_TASKS_ENABLED:
         return None
     pull_request_id = pull_request.id()
-    state = CodeownerState.load(pull_request_id)
-    before = state.to_document()
     try:
-        return _sync(pull_request, task_id, state, review, now)
+        state = CodeownerState.load(pull_request_id)
+    except Exception as e:
+        logger.error(
+            f"Could not load codeowner state for pull request {pull_request_id}: {e}",
+            exc_info=True,
+        )
+        return None
+    before = state.to_document()
+    context: Optional[CodeownerTaskContext] = None
+    try:
+        context = _sync(pull_request, task_id, state, review, now)
     except Exception as e:
         logger.error(
             f"Codeowner tasks sync failed for pull request {pull_request_id}: {e}",
             exc_info=True,
         )
-        return None
-    finally:
-        if state.to_document() != before:
+    # Whatever happened, keep what was done (subtasks created, comments
+    # posted) so the next sync continues from there instead of redoing it.
+    if state.to_document() != before:
+        try:
             state.save(pull_request_id)
+        except Exception as e:
+            logger.error(
+                f"Could not save codeowner state for pull request"
+                f" {pull_request_id}: {e}",
+                exc_info=True,
+            )
+            return None
+    return context
 
 
 def _sync(
@@ -396,7 +411,9 @@ def _sync(
     for owner_set in set(owned.values()):
         codeowner_logins |= resolve_pool(owner_set)
 
-    _remember_human_choices(pull_request, state)
+    if owned:
+        # Only PRs with codeowned files get state at all.
+        _remember_human_choices(pull_request, state)
 
     if (
         not state.tasks_requested
