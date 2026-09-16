@@ -3,7 +3,15 @@ import pathlib
 from argparse import Namespace
 from unittest.mock import MagicMock, patch
 
+import src.asana.helpers as asana_helpers
+import src.codeowners.tasks as codeowner_tasks
+from src.codeowners.status import (
+    REVIEW_STATUS_NEEDS_CODEOWNER_APPROVAL,
+    ParentCodeownerStatus,
+    RequirementStatus,
+)
 from test.impl.base_test_case_class import BaseClass
+from test.impl.builders import build, builder
 
 SCRIPT = (
     pathlib.Path(__file__).resolve().parents[2]
@@ -39,49 +47,68 @@ class TestFieldSelection(BaseClass):
         )
         self.assertEqual(script.extra_enum_options_for(args), {})
 
+    def test_pr_status_options_cover_every_value_sgtm_writes(self):
+        options = {o.name for o in script.PR_STATUS_FIELD.enum_options}
+        snapshots = [
+            builder.pull_request(),
+            builder.pull_request().isDraft(True),
+            builder.pull_request().isInMergeQueue(True),
+            builder.pull_request().closed(True),
+            builder.pull_request().closed(True).merged(True),
+        ]
+        written = {
+            asana_helpers._task_status_from_pull_request(build(pr)) for pr in snapshots
+        }
+        self.assertEqual(written, {"Open", "Draft", "Queued", "Closed", "Merged"})
+        self.assertTrue(written <= options, written - options)
+
     def test_sgtm_tasks_project_with_codeowner_fields(self):
         args = Namespace(codeowner_project=False, with_codeowner_fields=True)
         fields = {f.name: f for f in script.fields_for(args)}
         self.assertIn("Codeowner Review (SGTM)", fields)
         self.assertIn("Codeowners Pending (SGTM)", fields)
+        self.assertEqual(
+            [o.name for o in fields["Codeowner Review (SGTM)"].enum_options],
+            [status.value for status in ParentCodeownerStatus],
+        )
         # A fresh "Review Status" field carries the new option from the start...
         self.assertIn(
-            "Needs Codeowner Approval",
+            REVIEW_STATUS_NEEDS_CODEOWNER_APPROVAL,
             [o.name for o in fields["Review Status"].enum_options],
         )
         # ...and the original definition is untouched.
         self.assertNotIn(
-            "Needs Codeowner Approval",
+            REVIEW_STATUS_NEEDS_CODEOWNER_APPROVAL,
             [o.name for o in script.REVIEW_STATUS_FIELD.enum_options],
         )
         extra = script.extra_enum_options_for(args)
         self.assertEqual(
-            [o.name for o in extra["Review Status"]], ["Needs Codeowner Approval"]
+            [o.name for o in extra["Review Status"]],
+            [REVIEW_STATUS_NEEDS_CODEOWNER_APPROVAL],
         )
 
     def test_codeowner_project(self):
         args = Namespace(codeowner_project=True, with_codeowner_fields=False)
         fields = {f.name: f for f in script.fields_for(args)}
+        # Exactly the fields the subtask sync writes (src/codeowners/tasks.py).
         self.assertEqual(
             sorted(fields),
-            [
-                "Author (SGTM)",
-                "Branch Name (SGTM)",
-                "Codeowner Approval (SGTM)",
-                "Codeowners (SGTM)",
-                "PR Status",
-            ],
+            sorted(
+                [
+                    codeowner_tasks.FIELD_APPROVAL,
+                    codeowner_tasks.FIELD_CODEOWNERS,
+                    codeowner_tasks.FIELD_PR_STATUS,
+                    codeowner_tasks.FIELD_AUTHOR,
+                    codeowner_tasks.FIELD_BRANCH_NAME,
+                ]
+            ),
         )
         self.assertEqual(
-            [o.name for o in fields["Codeowner Approval (SGTM)"].enum_options],
-            [
-                "Needed",
-                "Approved",
-                "Approval Stale",
-                "Changes Requested",
-                "No Longer Required",
-                "Merged with Bypass",
-            ],
+            [o.name for o in fields[codeowner_tasks.FIELD_APPROVAL].enum_options],
+            [status.value for status in RequirementStatus],
+        )
+        self.assertEqual(
+            fields[codeowner_tasks.FIELD_CODEOWNERS].resource_subtype(), "text"
         )
 
     def test_enum_option_colors_are_valid(self):

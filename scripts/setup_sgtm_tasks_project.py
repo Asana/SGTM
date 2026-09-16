@@ -2,7 +2,7 @@
 
 import argparse
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List
 
 import asana  # type: ignore
 import sys
@@ -67,6 +67,7 @@ PR_STATUS_FIELD = EnumCustomField(
     enum_options=[
         EnumOption(name="Open", color="green"),
         EnumOption(name="Draft", color="cool-gray"),
+        EnumOption(name="Queued", color="blue"),
         EnumOption(name="Merged", color="purple"),
         EnumOption(name="Closed", color="red"),
     ],
@@ -332,7 +333,7 @@ class AsanaClient(object):
         The custom fields already on the project, by name
         """
         settings = self.client.custom_field_settings.find_by_project(
-            project_id, opt_fields=["custom_field.name", "custom_field.enum_options"]
+            project_id, fields=["custom_field.name", "custom_field.enum_options"]
         )
         return {
             setting["custom_field"]["name"]: setting["custom_field"]
@@ -343,18 +344,16 @@ class AsanaClient(object):
     def setup_custom_fields(
         self,
         project_id: str,
-        custom_fields: Optional[Iterable[CustomField]] = None,
-        extra_enum_options: Optional[Dict[str, List[EnumOption]]] = None,
+        custom_fields: Iterable[CustomField],
+        extra_enum_options: Dict[str, List[EnumOption]],
     ) -> None:
         """
-        Create the custom fields that SGTM requires and add them to the given project.
+        Create the given custom fields (see `fields_for`) and add them to the project.
         Fields the project already has (by name) are left alone; enum options listed in
         `extra_enum_options` are added to existing enum fields that lack them.
         """
         existing = self.existing_custom_fields(project_id)
-        for custom_field in (
-            custom_fields if custom_fields is not None else CUSTOM_FIELDS
-        ):
+        for custom_field in custom_fields:
             if custom_field.name in existing:
                 print(f"Custom field '{custom_field.name}' already exists, skipping")
                 continue
@@ -382,7 +381,7 @@ class AsanaClient(object):
                 )
                 return
 
-        for field_name, options in (extra_enum_options or {}).items():
+        for field_name, options in extra_enum_options.items():
             field = existing.get(field_name)
             if field is None:
                 # Created above with all options included, or absent from the project.

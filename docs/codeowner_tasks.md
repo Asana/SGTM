@@ -35,7 +35,7 @@ You receive an Asana subtask named `Codeowner review: #<number> - <PR title>` (w
 - the codeowned files the PR changes, each linking to its diff with GitHub's *owned by you* filter applied, and marked with any other owners who could approve it instead;
 - a link to only the files you own, and a link to the whole diff.
 
-Approve the PR on GitHub on its latest commit; SGTM completes the subtask. It reopens the subtask, with a comment, if a later push dismisses your approval or if the PR changes codeowned files again after they had been dropped. It comments when it reassigns the subtask, when someone requests changes, when the PR merges without a codeowner approval and when the PR closes.
+Approve the PR on GitHub on its latest commit; SGTM completes the subtask. It reopens the subtask, with a comment, if a later push dismisses your approval, if the PR changes codeowned files again after they had been dropped, or if a closed PR is reopened. It comments when it reassigns the subtask, when someone requests changes, when the PR merges without a codeowner approval and when the PR closes.
 
 The subtask lives under the PR task and is also in the shared **codeowner PR approval tasks** project, which carries its custom fields:
 
@@ -65,7 +65,7 @@ The *pool* for an owner set is the union of its teams' members and its individua
 
 ### Subtask status
 
-For each file, the latest approve / request-changes / dismissed review by anyone in the file's pool decides: approval → **approved**; request for changes → **changes requested**; dismissed (a push dismissed the approval) → **stale**; nothing → **needed**. A subtask's status is the worst of its files: Changes Requested, then Needed, then Approval Stale, then Approved. A PR that no longer changes any file of an owner set makes that subtask **No Longer Required** (completed, with a comment; it reopens if the files come back). A PR merged with a requirement still unapproved marks the subtask **Merged with Bypass**: informational, left open, completed if a codeowner approves the merged PR.
+For each file, SGTM takes each pool member's latest approve / request-changes / dismissed review and applies GitHub's own rules: a request for changes from anyone in the pool blocks the file (**changes requested**) whatever others said; otherwise an approval from anyone in the pool makes it **approved**; otherwise a dismissed approval (a later push dismissed it) makes it **stale**; nothing → **needed**. A subtask's status is the worst of its files: Changes Requested, then Needed, then Approval Stale, then Approved. A PR that no longer changes any file of an owner set makes that subtask **No Longer Required** (completed, with a comment; it reopens if the files come back). A PR merged with a requirement still unapproved marks the subtask **Merged with Bypass**: informational, left open, completed if a codeowner approves the merged PR.
 
 Reviews from users configured for follow-up review (`SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS`) never count.
 
@@ -73,7 +73,7 @@ Reviews from users configured for follow-up review (`SGTM_FEATURE__FOLLOWUP_REVI
 
 From the pool, minus anyone out of office in Asana and anyone without an Asana account mapping, SGTM prefers someone a person already asked to review, then someone who already reviewed or commented on the PR, then a random pick. When nobody is available the subtask is assigned to the PR author with a comment, and SGTM tries again on later events.
 
-SGTM re-picks when the assignee is out of office, or after `SGTM_FEATURE__CODEOWNER_TASKS_IDLE_BUSINESS_DAYS` business days (Monday to Friday, UTC; default 1) without the assignee reviewing or commenting on the PR since being assigned. It does not re-pick for idleness when a person chose the assignee: the author requested that codeowner's review on GitHub, or someone reassigned the subtask by hand in Asana (SGTM notices and adopts that choice).
+SGTM re-picks when the assignee is out of office, or after `SGTM_FEATURE__CODEOWNER_TASKS_IDLE_BUSINESS_DAYS` whole business days (Monday to Friday, UTC; default 1) without the assignee reviewing or commenting on the PR since being assigned: a subtask assigned on Friday at 15:00 UTC counts as idle from Monday 15:00 UTC, not Monday morning. It does not re-pick for idleness when a person chose the assignee: the author requested that codeowner's review on GitHub, or someone reassigned the subtask by hand in Asana (SGTM notices and adopts that choice). A requested codeowner who is out of office is not followed; if the current assignee goes out of office, SGTM falls back to its own pick even for a subtask a person had assigned.
 
 ### Who the PR is assigned to
 
@@ -82,12 +82,12 @@ The GitHub assignee is the "ball" and the Asana PR task mirrors it. Until the la
 - **Changes requested** by anyone: to the author.
 - **Approval**, when the *primary review* is in:
   - every codeowner requirement satisfied: to the author;
-  - codeowner approvals still missing: to an outstanding subtask's assignee. Among outstanding subtasks SGTM prefers one whose assignee the author chose, then the one owning the fewest changed files, then the earliest created.
+  - codeowner approvals still missing: to an outstanding subtask's assignee. Among outstanding subtasks SGTM prefers one whose assignee the author chose, then any with an assignee over one escalated to the author, then the one owning the fewest changed files, then the earliest created.
 - **Approval by a codeowner before the primary review**: to a reviewer the author chose who has not reviewed yet, if there is one; otherwise unchanged.
 - **Adding the label** moves the PR to a codeowner only if the primary review is already in.
 - **Pushes and comments** change nothing, except that a codeowner SGTM assigned who was replaced on the subtask hands the PR to the replacement.
 
-The *primary review* is an approval from anyone who is not a codeowner on this PR, or from a codeowner the author chose (asked to review, or set as GitHub assignee). Codeowners requested only by SGTM or by GitHub's automatic CODEOWNERS request count toward the codeowner side alone. A codeowner a person assigned the PR to by hand keeps it until they review.
+The *primary review* is an approval from anyone who is not a codeowner on this PR, or from a codeowner the author chose (asked to review, or set as GitHub assignee). Codeowners requested only by SGTM or by GitHub's automatic CODEOWNERS request count toward the codeowner side alone. SGTM only moves the PR while it is still assigned to whoever SGTM last assigned it to (the author included); a codeowner a person assigned the PR to by hand keeps it until they review.
 
 The `persistent task assignee` label and follow-up review users keep their existing exemptions. **Review Status** becomes: Not Ready › Changes Requested › Approved (primary review in and every requirement satisfied) › Needs Codeowner Approval (primary review in) › Needs Review.
 
@@ -97,7 +97,7 @@ GitHub evaluates a PR in a GitHub-native stack against the stack's base, so SGTM
 
 ## Setup
 
-1. **GitHub App permission.** SGTM reads `CODEOWNERS` through the GraphQL API, which needs **Contents: Read** on the GitHub App (or a token with `repo` scope). Requesting reviews and creating the label use the **Pull requests: Write** permission SGTM already has. Without Contents: Read the sync fails, is logged, and SGTM behaves as if the feature were off.
+1. **GitHub App permissions.** SGTM reads `CODEOWNERS` through the GraphQL API, which needs **Contents: Read** on the GitHub App (or a token with `repo` scope); without it the sync fails, is logged, and SGTM behaves as if the feature were off. Resolving team owners to people needs **Members: Read** on the organization; a team SGTM cannot see is logged and treated as empty. Creating the label needs **Issues: Write**; if SGTM cannot create it, the label can be created by hand and everything else still works. Requesting reviews, commenting and assigning use the **Pull requests: Write** permission SGTM already has. A comment SGTM cannot post or edit is logged and skipped; the subtasks and the PR task are still kept up to date.
 2. **Codeowner project.** Create the shared project the subtasks are multi-homed into and note its ID:
    ```
    python3 scripts/setup_sgtm_tasks_project.py -p "<PAT>" create -n "Codeowner PR approval tasks" -t "<TEAM ID>" --codeowner-project
@@ -124,7 +124,7 @@ GitHub evaluates a PR in a GitHub-native stack against the stack's base, so SGTM
 
 ## Operations
 
-- **State.** SGTM keeps one JSON document per PR in the `sgtm-objects` table under the key `<PR node id>#codeowners`: when the label was seen, its own comment ids, the reviewers and assignees a person chose, the ones SGTM requested or assigned, and one entry per subtask (task id, assignee, when and why, status, files, hashes of what was last written). Every webhook is handled idempotently from a fresh GraphQL snapshot of the PR plus this state.
+- **State.** SGTM keeps one JSON document per PR that touches codeowned files in the `sgtm-objects` table under the key `<PR node id>#codeowners`: when the label was seen, its own comment ids, the reviewers and assignees a person chose, the reviewers SGTM requested, the assignee SGTM last set, and one entry per subtask (task id, assignee, when created and assigned and why, status, files, hashes of what was last written). Every webhook is handled idempotently from a fresh GraphQL snapshot of the PR plus this state. If the state cannot be read, the PR task is updated as without the feature; if it cannot be written after a sync, that sync is reported as failed so the problem shows up in the logs rather than as a silently repeated action.
 - **Caches.** Team membership and parsed `CODEOWNERS` are cached in the Lambda process for five minutes; the opt-in list for one minute; the label's existence per repository for the life of the process.
-- **Failure mode.** Any error inside the codeowner sync is logged with a stack trace and the PR task is updated exactly as without the feature. Subtasks created before the error are kept in state, so the next event resumes rather than duplicating them.
-- **Code.** `src/codeowners/`: `codeowners_file.py` (parser), `requirements.py` (owner sets and folding), `status.py` (evaluation and Review Status), `assignment.py` (subtask assignee choice, idleness), `pr_assignment.py` (PR assignee rules), `tasks.py` (subtask lifecycle), `texts.py` (every user-facing text), `state.py`, `controller.py` (wiring, called from `src/github/controller.py`).
+- **Failure mode.** Any error inside the codeowner sync is logged with a stack trace and the PR task is updated exactly as without the feature. A subtask is recorded in state the moment Asana creates it, and each subtask is maintained independently, so one broken subtask (deleted in Asana, say) neither stops the others nor gets duplicated on the next event.
+- **Code.** `src/codeowners/`: `codeowners_file.py` (parser), `requirements.py` (owner sets and folding), `status.py` (evaluation and Review Status), `assignment.py` (subtask assignee choice, idleness), `pr_assignment.py` (PR assignee rules), `tasks.py` (subtask lifecycle), `texts.py` (every user-facing text), `state.py`, `context.py` (what the PR task's fields and description need), `controller.py` (wiring, called from `src/github/controller.py`). Team membership is fetched and cached through `src/github/logic.py`.
