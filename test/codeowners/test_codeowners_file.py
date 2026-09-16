@@ -174,5 +174,35 @@ class TestCodezPatterns(unittest.TestCase):
         self.assertEqual(rule.individual_logins(), ["harshita-gupta", "ericrafalovsky"])
 
 
+class TestSyntaxEdgeCases(unittest.TestCase):
+    def test_escaped_space_in_pattern(self):
+        rules = parse_codeowners("/docs/my\\ file.md @o")
+        self.assertEqual(rules[0].pattern, "/docs/my file.md")
+        self.assertEqual(rules[0].owners, ("@o",))
+        self.assertEqual(owners_of(rules, "docs/my file.md"), ("@o",))
+
+    def test_inline_comment_after_tab(self):
+        rules = parse_codeowners("*.js\t@js-owner\t#tab comment here")
+        self.assertEqual(rules[0].owners, ("@js-owner",))
+
+    def test_hash_inside_a_token_is_not_a_comment(self):
+        rules = parse_codeowners("/c#/ @o")
+        self.assertEqual(rules[0].pattern, "/c#/")
+
+    def test_line_with_an_invalid_owner_is_skipped(self):
+        rules = parse_codeowners("/a/ @o\n/b/ bob\n/c/ @Asana/team not-an-owner\n")
+        self.assertEqual([r.pattern for r in rules], ["/a/"])
+        self.assertEqual(owners_of(rules, "b/x"), ())
+
+    def test_emails_and_teams_are_valid_owners(self):
+        rules = parse_codeowners("/a/ docs@example.com @octo-org/octocats @octocat")
+        self.assertEqual(len(rules), 1)
+
+    def test_bare_slash_owns_nothing(self):
+        rules = parse_codeowners("/ @x\n/src/ @y")
+        self.assertEqual(owners_of(rules, "README.md"), ())
+        self.assertEqual(owners_of(rules, "src/a.py"), ("@y",))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -27,21 +27,40 @@ TEAM_SLUG_SUFFIX_TO_STRIP = "-workday-sync"
 
 @dataclass(frozen=True, order=True)
 class OwnerSet:
-    """The owners listed on one CODEOWNERS line, as a sorted tuple of raw tokens."""
+    """The owners listed on one CODEOWNERS line.
+
+    ``owners`` is the canonical, sorted form used for equality, folding and
+    DynamoDB keys: team tokens are lower-cased because GitHub treats org and
+    team slugs case-insensitively. ``spellings`` keeps each owner as written in
+    CODEOWNERS (first spelling wins) for display and API calls; individual
+    logins are never re-cased because the Asana mapping is keyed by them.
+    """
 
     owners: Tuple[str, ...]
+    spellings: Tuple[str, ...] = field(default=(), compare=False, repr=False)
 
     @classmethod
     def of(cls, owners: Sequence[str]) -> "OwnerSet":
-        return cls(tuple(sorted(set(owners))))
+        by_canonical: Dict[str, str] = {}
+        for owner in owners:
+            canonical = owner.lower() if is_team_owner(owner) else owner
+            by_canonical.setdefault(canonical, owner)
+        canonical_owners = tuple(sorted(by_canonical))
+        return cls(canonical_owners, tuple(by_canonical[c] for c in canonical_owners))
+
+    def as_written(self) -> Tuple[str, ...]:
+        """Owners in the order of ``owners``, spelled as in CODEOWNERS."""
+        return (
+            self.spellings if len(self.spellings) == len(self.owners) else self.owners
+        )
 
     def key(self) -> str:
         """Stable identifier, used in DynamoDB keys: ``Asana/a-team+Asana/b-team``."""
         return "+".join(owner.lstrip("@") for owner in self.owners)
 
     def team_slugs(self) -> List[str]:
-        """``org/team`` for every team owner."""
-        return [owner[1:] for owner in self.owners if is_team_owner(owner)]
+        """``org/team`` for every team owner, spelled as in CODEOWNERS."""
+        return [owner[1:] for owner in self.as_written() if is_team_owner(owner)]
 
     def individual_logins(self) -> List[str]:
         return [owner[1:] for owner in self.owners if is_individual_owner(owner)]
@@ -49,7 +68,7 @@ class OwnerSet:
     def display_names(self) -> List[str]:
         """Human-readable owner names: team slug without the org, or ``@login``."""
         names: List[str] = []
-        for owner in self.owners:
+        for owner in self.as_written():
             if is_team_owner(owner):
                 names.append(owner.split("/", 1)[1])
             else:

@@ -15,11 +15,15 @@ https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-f
   whose last segment contains a wildcard does not: ``docs/*`` matches
   ``docs/a.md`` but not ``docs/sub/b.md``.
 * ``*`` matches anything except ``/``; ``?`` matches one non-slash character;
-  ``**`` matches across directories. Negation, escaping and ``[...]`` ranges are
-  not supported by GitHub and not supported here.
+  ``**`` matches across directories. Negation and ``[...]`` ranges are not
+  supported by GitHub and not supported here. A backslash escapes the next
+  character, so ``docs/my\ file.md`` names a path with a space.
+* A ``#`` preceded by whitespace starts a comment.
 * A line with a pattern but no owners clears ownership for matching paths.
+* A line whose owners are not all ``@login``, ``@org/team`` or an email address
+  is skipped, as GitHub skips lines with invalid syntax.
 
-Owner tokens are kept verbatim (``@org/team``, ``@login`` or an email address).
+Owner tokens are kept as written (``@org/team``, ``@login`` or an email address).
 """
 import re
 from dataclasses import dataclass, field
@@ -87,8 +91,50 @@ def _glob_to_regex(pattern: str) -> str:
     return "".join(out)
 
 
+# Owner syntax GitHub accepts: a user, a team, or an email address.
+_LOGIN = r"[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?"
+_OWNER_RE = re.compile(
+    rf"^@{_LOGIN}(?:/[A-Za-z0-9_.-]+)?$|^[^@\s/]+@[^@\s/]+\.[^@\s/]+$"
+)
+
+
+def is_valid_owner(owner: str) -> bool:
+    return _OWNER_RE.match(owner) is not None
+
+
+def _tokenize(line: str) -> List[str]:
+    """Split a CODEOWNERS line on whitespace, honouring backslash escapes and
+    stopping at a ``#`` that starts a token (an inline comment)."""
+    tokens: List[str] = []
+    current: List[str] = []
+    escaped = False
+    for char in line:
+        if escaped:
+            current.append(char)
+            escaped = False
+        elif char == "\\":
+            escaped = True
+        elif char.isspace():
+            if current:
+                tokens.append("".join(current))
+                current = []
+        elif char == "#" and not current:
+            break
+        else:
+            current.append(char)
+    if current:
+        tokens.append("".join(current))
+    return tokens
+
+
+_NEVER_MATCHES = re.compile(r"(?!)")
+
+
 def compile_pattern(raw_pattern: str) -> "re.Pattern[str]":
     pattern = raw_pattern.strip()
+    if pattern == "/":
+        # A bare slash names the root directory itself, which no file is.
+        return _NEVER_MATCHES
     dir_only = pattern.endswith("/")
     pattern = pattern.rstrip("/")
     anchored = pattern.startswith("/") or "/" in pattern
@@ -118,15 +164,13 @@ def compile_pattern(raw_pattern: str) -> "re.Pattern[str]":
 def parse_codeowners(text: str) -> List[CodeownersRule]:
     rules: List[CodeownersRule] = []
     for line_number, raw in enumerate(text.splitlines(), start=1):
-        line = raw.strip()
-        if not line or line.startswith("#"):
+        parts = _tokenize(raw)
+        if not parts:
             continue
-        # GitHub treats `#` as the start of an inline comment when preceded by
-        # whitespace.
-        if " #" in line:
-            line = line.split(" #", 1)[0].rstrip()
-        parts = line.split()
         pattern, owners = parts[0], tuple(parts[1:])
+        if not all(is_valid_owner(owner) for owner in owners):
+            # GitHub skips lines with invalid syntax rather than guessing.
+            continue
         rules.append(
             CodeownersRule(
                 pattern=pattern,
@@ -144,11 +188,10 @@ def owning_rule(rules: Sequence[CodeownersRule], path: str) -> Optional[Codeowne
     A matching rule with no owners still wins and yields no owners, exactly like
     GitHub.
     """
-    winner: Optional[CodeownersRule] = None
-    for rule in rules:
+    for rule in reversed(rules):
         if rule.matches(path):
-            winner = rule
-    return winner
+            return rule
+    return None
 
 
 def owners_of(rules: Sequence[CodeownersRule], path: str) -> Tuple[str, ...]:

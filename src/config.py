@@ -94,10 +94,24 @@ SGTM_FEATURE__CODEOWNER_TASKS_OPT_IN_S3_PATH = _optional_env(
 SGTM_FEATURE__CODEOWNER_TASKS_LABEL = (
     _optional_env("SGTM_FEATURE__CODEOWNER_TASKS_LABEL") or "assign-tasks-to-codeowners"
 )
+
+
+def _optional_int_env(name: str, default: int) -> int:
+    """An integer setting; a malformed value falls back to the default instead of
+    failing every import of this module (and with it every webhook)."""
+    value = _optional_env(name)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
 # Business days (Mon-Fri) a subtask assignee may sit without reviewing before
 # SGTM re-picks another codeowner.
-SGTM_FEATURE__CODEOWNER_TASKS_IDLE_BUSINESS_DAYS = int(
-    _optional_env("SGTM_FEATURE__CODEOWNER_TASKS_IDLE_BUSINESS_DAYS") or "1"
+SGTM_FEATURE__CODEOWNER_TASKS_IDLE_BUSINESS_DAYS = _optional_int_env(
+    "SGTM_FEATURE__CODEOWNER_TASKS_IDLE_BUSINESS_DAYS", 1
 )
 # Asana workspace used for out-of-office lookups (GET /ooo_entries).
 SGTM_FEATURE__CODEOWNER_TASKS_ASANA_WORKSPACE_ID = _optional_env(

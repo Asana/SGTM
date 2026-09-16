@@ -29,15 +29,24 @@ DATABRICKS = ".github/workflows/databricks_nightly.yml"
 
 
 class TestOwnerSet(unittest.TestCase):
+    def test_team_slugs_are_case_insensitive(self):
+        owner_set = OwnerSet.of(["@Asana/SecDev", "@asana/secdev", "@JohnDoe"])
+        self.assertEqual(owner_set.owners, ("@JohnDoe", "@asana/secdev"))
+        self.assertEqual(owner_set, OwnerSet.of(["@asana/secdev", "@JohnDoe"]))
+        self.assertEqual(owner_set.key(), "JohnDoe+asana/secdev")
+        # The first spelling is kept for display and API calls.
+        self.assertEqual(owner_set.team_slugs(), ["Asana/SecDev"])
+        self.assertEqual(owner_set.display_names(), ["@JohnDoe", "SecDev"])
+
     def test_sorted_and_deduplicated(self):
         owner_set = OwnerSet.of([SECDEV, PLATFORM, SECDEV])
-        self.assertEqual(owner_set.owners, (PLATFORM, SECDEV))
+        self.assertEqual(owner_set.as_written(), (PLATFORM, SECDEV))
 
     def test_key_display_and_short_display(self):
         owner_set = OwnerSet.of([SECDEV, PLATFORM, "@harshita-gupta"])
         self.assertEqual(
             owner_set.key(),
-            "Asana/platform-area-workday-sync+Asana/security-development-team-workday-sync+harshita-gupta",
+            "asana/platform-area-workday-sync+asana/security-development-team-workday-sync+harshita-gupta",
         )
         # Raw tokens sort with the org prefix first, so teams precede individuals.
         self.assertEqual(
