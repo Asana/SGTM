@@ -1,4 +1,5 @@
 import boto3  # type: ignore
+import json
 from typing import TypedDict, List, Optional, Tuple
 
 from src.config import OBJECTS_TABLE, AWS_REGION
@@ -86,6 +87,18 @@ class DynamoDbClient(object):
             )
             return None
 
+    def get_item_value(self, key: str) -> Optional[str]:
+        """
+        The asana-id attribute stored under `key`, or None when there is none.
+        Unlike get_asana_id_from_github_node_id this does not warn: callers use
+        it for optional per-PR documents that usually do not exist.
+        """
+        response = self.client.get_item(
+            TableName=OBJECTS_TABLE, Key={"github-node": {"S": key}}
+        )
+        item = response.get("Item")
+        return item["asana-id"]["S"] if item else None
+
     def insert_github_node_to_asana_id_mapping(self, gh_node_id: str, asana_id: str):
         """
         Creates an association between a GitHub node-id and an Asana object-id
@@ -151,4 +164,27 @@ def bulk_insert_github_node_to_asana_id_mapping(
     """
     DynamoDbClient.singleton().bulk_insert_github_node_to_asana_id_mapping(
         gh_and_asana_ids
+    )
+
+
+def get_json_document(key: str) -> Optional[dict]:
+    """
+    Reads a JSON document SGTM stored under a synthetic key in the objects table
+    (see put_json_document). Returns None when nothing is stored.
+    """
+    raw = DynamoDbClient.singleton().get_item_value(key)
+    if raw is None:
+        return None
+    document = json.loads(raw)
+    return document if isinstance(document, dict) else None
+
+
+def put_json_document(key: str, document: dict) -> None:
+    """
+    Stores a small JSON document under a synthetic key in the objects table.
+    Keys are of the form "<github node id>#<purpose>" so they never collide with
+    real GitHub node ids. Used for per-PR feature state such as codeowner tasks.
+    """
+    DynamoDbClient.singleton().insert_github_node_to_asana_id_mapping(
+        key, json.dumps(document, sort_keys=True)
     )

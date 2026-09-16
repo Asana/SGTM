@@ -146,6 +146,29 @@ class AsanaClient(object):
             task_id, attachment_content, attachment_name, attachment_type
         )
 
+    def create_subtask(self, parent_task_id: str, fields: dict) -> str:
+        """
+        Creates a subtask under the given parent task with the provided fields,
+        returning the new task's id.
+        """
+        validate_object_id(
+            parent_task_id, "AsanaClient.create_subtask requires a parent_task_id"
+        )
+        response = self.asana_api_client.tasks.add_subtask(parent_task_id, fields)
+        return response["gid"]
+
+    def add_task_to_project(self, task_id: str, project_id: str) -> None:
+        """
+        Multi-homes the task into the given project.
+        """
+        validate_object_id(
+            task_id, "AsanaClient.add_task_to_project requires a task_id"
+        )
+        validate_object_id(
+            project_id, "AsanaClient.add_task_to_project requires a project_id"
+        )
+        self.asana_api_client.tasks.add_project(task_id, {"project": project_id})
+
     def get_out_of_office_entries(
         self, user_id: str, workspace_id: str, start_date: str, end_date: str
     ) -> List[Dict]:
@@ -198,6 +221,24 @@ def update_task(task_id: str, fields: dict):
 
 def complete_task(task_id: str):
     return update_task(task_id, {"completed": True})
+
+
+def reopen_task(task_id: str):
+    return update_task(task_id, {"completed": False})
+
+
+def create_subtask(parent_task_id: str, fields: dict) -> str:
+    """
+    Creates a subtask under the given parent task, returning the new task's id
+    """
+    return AsanaClient.singleton().create_subtask(parent_task_id, fields)
+
+
+def add_task_to_project(task_id: str, project_id: str) -> None:
+    """
+    Multi-homes the task into the given project
+    """
+    AsanaClient.singleton().add_task_to_project(task_id, project_id)
 
 
 def add_followers(task_id: str, followers: List[str]):

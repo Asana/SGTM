@@ -13,7 +13,12 @@ import src.asana.logic as asana_logic
 import src.github.logic as github_logic
 import src.aws.dynamodb_client as dynamodb_client
 import src.aws.s3_client as s3_client
+import src.codeowners.status as codeowner_status
+import src.codeowners.texts as codeowner_texts
 import src.config as config
+import src.asana.mentions as mentions
+from src.asana.mentions import asana_mention_for_github_login, asana_task_link
+from src.codeowners.context import CodeownerTaskContext
 from src.github.models import (
     Comment,
     PullRequest,
@@ -45,8 +50,19 @@ class CustomField:
     """
 
     matcher: Callable[[str], bool]
-    extractor: Callable[[PullRequest], Union[str, List[str], None]]
+    extractor: Callable[..., Union[str, List[str], None]]
     is_enabled: Callable[[], bool] = lambda: True
+    # When True the extractor is called as extractor(pull_request, codeowner_context).
+    uses_codeowner_context: bool = False
+
+    def extract(
+        self,
+        pull_request: PullRequest,
+        codeowner_context: Optional[CodeownerTaskContext],
+    ) -> Union[str, List[str], None]:
+        if self.uses_codeowner_context:
+            return self.extractor(pull_request, codeowner_context)
+        return self.extractor(pull_request)
 
     def matches(self, custom_field_name: str) -> bool:
         """
@@ -94,23 +110,29 @@ def task_url_from_task_id(task_id: str) -> str:
     """
     Transforms an Asana Task's object-id into an url referring to the task in the Asana app
     """
-    if not task_id:
-        raise ValueError("task_url_from_task_id requires a task_id")
-    return f"https://app.asana.com/0/0/{task_id}"
+    return mentions.task_url_from_task_id(task_id)
 
 
-def extract_task_fields_from_pull_request(pull_request: PullRequest) -> dict:
+def extract_task_fields_from_pull_request(
+    pull_request: PullRequest,
+    codeowner_context: Optional[CodeownerTaskContext] = None,
+) -> dict:
     """
     Extracts and transforms all relevant fields of a GitHub PullRequest into their corresponding
     equivalent fields, as relevant to an Asana Task
+    :param codeowner_context: the PR's codeowner state, when the codeowner tasks feature is on
     :return: Returns the following fields: assignee, name, html_notes, followers and custom fields
     """
     return {
         "assignee": _task_assignee_from_pull_request(pull_request),
         "name": _task_name_from_pull_request(pull_request),
-        "html_notes": _task_description_from_pull_request(pull_request),
+        "html_notes": _task_description_from_pull_request(
+            pull_request, codeowner_context
+        ),
         "completed": _task_completion_from_pull_request(pull_request).is_complete,
-        "custom_fields": _custom_fields_from_pull_request(pull_request),
+        "custom_fields": _custom_fields_from_pull_request(
+            pull_request, codeowner_context
+        ),
     }
 
 
@@ -151,15 +173,44 @@ def _task_status_from_pull_request(pull_request: PullRequest) -> str:
         return "Draft" if pull_request.is_draft() else "Open"
 
 
-def _review_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
-    if pull_request.is_draft():
-        return "Not Ready"
-    elif pull_request.is_needs_review():
-        return "Needs Review"
-    elif pull_request.is_approved():
-        return "Approved"
+def _review_status_from_pull_request(
+    pull_request: PullRequest,
+    codeowner_context: Optional[CodeownerTaskContext] = None,
+) -> Optional[str]:
+    summary = codeowner_context.summary if codeowner_context is not None else None
+    return codeowner_status.review_status(pull_request, summary)
+
+
+def _codeowner_review_from_pull_request(
+    pull_request: PullRequest,
+    codeowner_context: Optional[CodeownerTaskContext] = None,
+) -> Optional[str]:
+    if codeowner_context is None:
+        return None
+    return codeowner_context.summary.parent_status().value
+
+
+def _codeowners_pending_from_pull_request(
+    pull_request: PullRequest,
+    codeowner_context: Optional[CodeownerTaskContext] = None,
+) -> Optional[str]:
+    if codeowner_context is None:
+        return None
+    summary = codeowner_context.summary
+    if not summary.has_codeowned_files():
+        return ""
+    # Before the label everything is pending; afterwards only what is still
+    # outstanding. Both use the folded owner sets so the value does not jump
+    # when the label is added.
+    if not summary.tasks_requested:
+        pending = [
+            e
+            for e in summary.evaluations
+            if e.status is not codeowner_status.RequirementStatus.NO_LONGER_REQUIRED
+        ]
     else:
-        return "Changes Requested"
+        pending = summary.outstanding()
+    return "; ".join(e.owner_set.display() for e in pending)
 
 
 def _build_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
@@ -206,6 +257,19 @@ _custom_fields_to_extract = [
     CustomField(
         matcher=CustomField.exact_match("Review Status"),
         extractor=_review_status_from_pull_request,
+        uses_codeowner_context=True,
+    ),
+    CustomField(
+        matcher=CustomField.exact_match("Codeowner Review (SGTM)"),
+        is_enabled=lambda: config.SGTM_FEATURE__CODEOWNER_TASKS_ENABLED,
+        extractor=_codeowner_review_from_pull_request,
+        uses_codeowner_context=True,
+    ),
+    CustomField(
+        matcher=CustomField.exact_match("Codeowners Pending (SGTM)"),
+        is_enabled=lambda: config.SGTM_FEATURE__CODEOWNER_TASKS_ENABLED,
+        extractor=_codeowners_pending_from_pull_request,
+        uses_codeowner_context=True,
     ),
     CustomField(
         matcher=CustomField.starts_with_match("Labels (SGTM)"),
@@ -219,15 +283,23 @@ _custom_fields_to_extract = [
 ]
 
 
-def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
+def _custom_fields_from_pull_request(
+    pull_request: PullRequest,
+    codeowner_context: Optional[CodeownerTaskContext] = None,
+) -> Dict:
     """
     We currently expect the project to have custom fields with their corresponding enum options:
         • PR Status: "Open", "Draft", "Closed", "Queued", "Merged"
         • Build: "Success", "Failure"
-        • Review Status: "Needs Review", "Changes Requested", "Approved", "Not Ready"
+        • Review Status: "Needs Review", "Changes Requested", "Approved", "Not Ready",
+          and "Needs Codeowner Approval" when codeowner tasks are enabled
     Optionally, the project may have a "Labels (SGTM)" multi-select field that syncs GitHub labels (when this feature is enabled).
         The field name must start with "Labels (SGTM)" (e.g., "Labels (SGTM) [my-repo-name]")
     Optionally, the project may have a "Branch Name (SGTM)" text field that syncs the source branch name of the pull request.
+    With codeowner tasks enabled, the project may also have:
+        • Codeowner Review (SGTM): "Not Required", "Not Yet Requested", "Pending", "Partially Approved",
+          "Approved", "Changes Requested"
+        • Codeowners Pending (SGTM): text listing the owner sets still waiting on approval
     """
     repository_id = pull_request.repository_id()
     project_id = dynamodb_client.get_asana_id_from_github_node_id(repository_id)
@@ -252,7 +324,9 @@ def _custom_fields_from_pull_request(pull_request: PullRequest) -> Dict:
 
             # Process each matching field
             for field_name, custom_field in matching_fields:
-                value_name = custom_field_config.extractor(pull_request)
+                value_name = custom_field_config.extract(
+                    pull_request, codeowner_context
+                )
 
                 custom_field_id = custom_field["gid"]
                 custom_field_value = _get_custom_field_value(custom_field, value_name)
@@ -317,16 +391,15 @@ def _asana_display_name_for_github_user(github_user: User) -> str:
 
 
 def _asana_user_url_from_github_user_handle(github_handle: str) -> Optional[str]:
-    user_id = s3_client.get_asana_domain_user_id_from_github_handle(github_handle)
-    if user_id is None:
-        return None
-    return _wrap_in_tag(
-        "A",
-        attrs={
-            "data-asana-gid": user_id,
-            "href": f"https://github.com/{github_handle}",
-        },
-    )(github_handle)
+    return mentions.asana_user_link_for_github_login(github_handle)
+
+
+def custom_field_value_for(custom_field: dict, value_name: Union[str, List[str], None]):
+    """
+    Public wrapper around the enum/text/multi-enum value resolution used for
+    SGTM-managed custom fields.
+    """
+    return _get_custom_field_value(custom_field, value_name)
 
 
 def _task_name_from_pull_request(pull_request: PullRequest) -> str:
@@ -623,7 +696,39 @@ def _generate_assignee_description(assignee: Assignee) -> str:
         return ""
 
 
-def _task_description_from_pull_request(pull_request: PullRequest) -> str:
+def _codeowner_description_block(
+    codeowner_context: Optional[CodeownerTaskContext],
+) -> str:
+    """The 🛡️ block inserted after the task's status line, or "" when the
+    codeowner tasks feature is off or the PR touches no codeowned files."""
+    if codeowner_context is None or not codeowner_context.summary.has_codeowned_files():
+        return ""
+    summary = codeowner_context.summary
+    if not summary.tasks_requested:
+        block = codeowner_texts.parent_not_requested_block(
+            summary.codeowned_files, codeowner_context.label
+        )
+    else:
+        block = codeowner_texts.parent_checklist_block(
+            summary,
+            codeowner_context.assignees_by_owner_key(),
+            codeowner_context.subtask_ids_by_owner_key(),
+        )
+    return "\n" + block
+
+
+def _codeowner_description_footer(
+    codeowner_context: Optional[CodeownerTaskContext],
+) -> str:
+    if codeowner_context is None or not codeowner_context.summary.has_codeowned_files():
+        return ""
+    return "\n\n" + codeowner_texts.parent_footer()
+
+
+def _task_description_from_pull_request(
+    pull_request: PullRequest,
+    codeowner_context: Optional[CodeownerTaskContext] = None,
+) -> str:
     link_to_pr = _link(pull_request.url())
     github_author = pull_request.author()
     author = _asana_user_url_from_github_user_handle(github_author.login())
@@ -647,8 +752,10 @@ def _task_description_from_pull_request(pull_request: PullRequest) -> str:
         + author
         + _generate_assignee_description(pull_request.assignee())
         + f"\n❗️Task is {status} because {status_reason.reason}"
+        + _codeowner_description_block(codeowner_context)
         + _wrap_in_tag("strong")("\n\nDescription:\n")
         + _format_github_text_for_asana(pull_request.body())
+        + _codeowner_description_footer(codeowner_context)
     )
 
 

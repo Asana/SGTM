@@ -87,6 +87,25 @@ class S3Client(object):
         else:
             return None
 
+    @memoize
+    def get_github_username_from_asana_domain_user_id(
+        self, asana_user_id: str
+    ) -> Optional[str]:
+        """
+        Reverse lookup: the GitHub login mapped to an Asana domain user id, or None.
+        """
+        with closing(
+            self.s3_client.get_object(
+                Bucket=self.github_user_mapping_bucket_name,
+                Key=self.github_user_mapping_key_name,
+            )["Body"]
+        ) as stream:
+            github_identities_to_asana_gids = json.load(stream)
+        for github_username, gid in github_identities_to_asana_gids.items():
+            if gid == asana_user_id:
+                return github_username
+        return None
+
 
 def get_asana_domain_user_id_from_github_handle(github_handle: str) -> Optional[str]:
     """
@@ -101,6 +120,16 @@ def get_asana_domain_user_id_from_github_handle(github_handle: str) -> Optional[
 
     return S3Client.singleton().get_asana_domain_user_id_from_github_username(
         github_handle
+    )
+
+
+def get_github_handle_from_asana_domain_user_id(asana_user_id: str) -> Optional[str]:
+    """
+    Reverse of get_asana_domain_user_id_from_github_handle: the GitHub login for an
+    Asana domain user id, or None when no mapping exists.
+    """
+    return S3Client.singleton().get_github_username_from_asana_domain_user_id(
+        asana_user_id
     )
 
 
