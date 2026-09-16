@@ -1,8 +1,6 @@
-import time
-from typing import Dict, Any, List
-
 import src.asana.controller as asana_controller
 import src.asana.helpers as asana_helpers
+import src.codeowners.controller as codeowner_controller
 import src.github.logic as github_logic
 import src.github.client as github_client
 import src.github.graphql.client as github_graphql_client
@@ -15,24 +13,6 @@ from src.config import (
 from src.github.models import Comment, PullRequest, Review
 from src.logger import logger
 
-_TEAM_CACHE_TTL_SECONDS = 300
-
-_team_members_cache: Dict[str, Any] = {}
-
-
-def _get_skip_team_members(org: str, team_slug: str) -> List[str]:
-    cache_key = f"{org}/{team_slug}"
-    now = time.monotonic()
-    cached = _team_members_cache.get(cache_key)
-    if cached and (now - cached["ts"]) < _TEAM_CACHE_TTL_SECONDS:
-        logger.info(f"Using cached team members for {cache_key}")
-        return cached["members"]
-
-    members = github_graphql_client.get_team_members(org, team_slug)
-    _team_members_cache[cache_key] = {"members": members, "ts": now}
-    logger.info(f"Fetched and cached {len(members)} members for {cache_key}")
-    return members
-
 
 def _should_skip_task_creation(pull_request: PullRequest) -> bool:
     """Check if task creation should be skipped for this PR author.
@@ -44,7 +24,9 @@ def _should_skip_task_creation(pull_request: PullRequest) -> bool:
         return False
     try:
         org = pull_request.repository_owner_handle()
-        team_members = _get_skip_team_members(org, SGTM_FEATURE__SKIP_TEAM_SLUG)
+        team_members = github_logic.cached_team_members(
+            org, SGTM_FEATURE__SKIP_TEAM_SLUG
+        )
         return pull_request.author_handle() in team_members
     except Exception as e:
         logger.warning(
@@ -78,10 +60,14 @@ def upsert_pull_request(pull_request: PullRequest):
         logger.info(
             f"Task found for pull request {pull_request_id}, updating task {task_id}"
         )
+    # Runs before the task update so the task reflects any assignee change and
+    # the subtasks created here. None when the feature is off or it failed.
+    codeowner_context = codeowner_controller.sync(pull_request, task_id)
     asana_controller.update_task(
         pull_request,
         task_id,
         asana_helpers.task_followers_from_pull_request(pull_request),
+        codeowner_context=codeowner_context,
     )
 
 
@@ -124,6 +110,12 @@ def upsert_review(pull_request: PullRequest, review: Review, org_name: str):
             " now."
         )
         asana_controller.upsert_github_review_to_task(review, task_id)
+        # With codeowner tasks requested for this PR, the codeowner rules decide
+        # who the PR goes to after a review (see src/codeowners/pr_assignment.py)
+        # and the assignment happens inside this sync.
+        codeowner_context = codeowner_controller.sync(
+            pull_request, task_id, review=review
+        )
         force_update_due_today = False
         if review.is_approval_or_changes_requested():
             # If this action was taken by a user that's marked for follow-up
@@ -134,13 +126,18 @@ def upsert_review(pull_request: PullRequest, review: Review, org_name: str):
                 review.author().login()
                 not in SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS
             ):
-                assign_pull_request_to_author(pull_request)
+                if (
+                    codeowner_context is None
+                    or not codeowner_context.manages_pull_request_assignee()
+                ):
+                    assign_pull_request_to_author(pull_request)
                 force_update_due_today = True
         asana_controller.update_task(
             pull_request,
             task_id,
             asana_helpers.task_followers_from_review(review),
             force_update_due_today=force_update_due_today,
+            codeowner_context=codeowner_context,
         )
     else:
         logger.warning(

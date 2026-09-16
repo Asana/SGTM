@@ -55,6 +55,11 @@ class CodeownerState:
     tasks_requested_at: Optional[str] = None
     # GitHub issue-comment database ids of SGTM's own comments on the PR.
     heads_up_comment_id: Optional[int] = None
+    # Hash of the heads-up comment body last written, so it is only edited
+    # when the codeowned files change.
+    heads_up_body_hash: str = ""
+    # The comment announcing the created subtasks: the heads-up comment's id
+    # when that comment was edited in place, otherwise a new comment's id.
     created_comment_id: Optional[int] = None
     # Reviewers the author chose (human review requests, author-set assignee),
     # accumulated over time because GitHub drops reviewers from reviewRequests

@@ -27,9 +27,15 @@ def edit_pr_title(owner: str, repository: str, number: int, title: str):
     pr.edit(title=title)  # type: ignore
 
 
-def add_pr_comment(owner: str, repository: str, number: int, comment: str):
+def add_pr_comment(
+    owner: str, repository: str, number: int, comment: str
+) -> Optional[int]:
+    """Post an issue comment on the pull request, returning its numeric id
+    (the REST id, usable with `edit_comment`) when GitHub provides one."""
     pr = _get_pull_request(owner, repository, number)
-    pr.create_issue_comment(comment)  # type: ignore
+    created = pr.create_issue_comment(comment)  # type: ignore
+    comment_id = getattr(created, "id", None)
+    return int(comment_id) if isinstance(comment_id, int) else None
 
 
 def edit_comment(

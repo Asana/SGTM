@@ -1,5 +1,6 @@
 import re
-from typing import List, Set, Optional, Tuple
+import time
+from typing import Dict, List, Set, Optional, Tuple
 from src.logger import logger
 
 from . import client as github_client
@@ -19,6 +20,29 @@ from src.config import (
     SGTM_FEATURE__FOLLOWUP_REVIEW_GITHUB_USERS,
     SGTM_FEATURE__AUTOMERGE_DISABLED_REPOSITORIES,
 )
+
+_TEAM_MEMBERS_CACHE_TTL_SECONDS = 300
+# org/slug -> (fetched at, member logins)
+_team_members_cache: Dict[str, Tuple[float, List[str]]] = {}
+
+
+def cached_team_members(org: str, team_slug: str) -> List[str]:
+    """Members of a GitHub team, remembered in this process for a few minutes
+    so a burst of webhooks does not fetch the same team again and again."""
+    key = f"{org}/{team_slug}"
+    now = time.monotonic()
+    cached = _team_members_cache.get(key)
+    if cached is not None and now - cached[0] < _TEAM_MEMBERS_CACHE_TTL_SECONDS:
+        return cached[1]
+    members = github_graphql_client.get_team_members(org, team_slug)
+    _team_members_cache[key] = (now, members)
+    return members
+
+
+def reset_team_members_cache() -> None:
+    """For tests."""
+    _team_members_cache.clear()
+
 
 GITHUB_USERNAME_MENTION_REGEX = r"\B@([A-Za-z0-9_\-]+)(?![A-Za-z0-9_\-]*/)"
 GITHUB_TEAM_MENTION_REGEX = r"\B@([a-zA-Z0-9_\-]+/[a-zA-Z0-9_\-]+)"

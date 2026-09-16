@@ -1,11 +1,13 @@
-from unittest.mock import patch, ANY
+from unittest.mock import patch, ANY, MagicMock
 from uuid import uuid4
 
 import src.asana.controller as asana_controller
 import src.aws.dynamodb_client as dynamodb_client
 import src.aws.sqs_client as sqs_client
+import src.codeowners.controller as codeowner_controller
 import src.github.client as github_client
 import src.github.controller as github_controller
+from src.github.models import ReviewState
 from test.impl.builders import builder
 from test.impl.mock_dynamodb_test_case import MockDynamoDbTestCase
 
@@ -33,7 +35,9 @@ class GithubControllerTest(MockDynamoDbTestCase):
             add_asana_task_to_pr_mock.assert_called_with(pull_request, new_task_id)
 
         create_task_mock.assert_called_with(pull_request.repository_id())
-        update_task_mock.assert_called_with(pull_request, new_task_id, ANY)
+        update_task_mock.assert_called_with(
+            pull_request, new_task_id, ANY, codeowner_context=None
+        )
 
         # Assert that the new task id was inserted into the table
         task_id = dynamodb_client.get_asana_id_from_github_node_id(pull_request.id())
@@ -60,7 +64,9 @@ class GithubControllerTest(MockDynamoDbTestCase):
         github_controller.upsert_pull_request(pull_request)
 
         create_task_mock.assert_not_called()
-        update_task_mock.assert_called_with(pull_request, existing_task_id, ANY)
+        update_task_mock.assert_called_with(
+            pull_request, existing_task_id, ANY, codeowner_context=None
+        )
 
     @patch.object(github_client, "edit_pr_description")
     def test_add_asana_task_to_pull_request(
@@ -140,6 +146,47 @@ class GithubControllerTest(MockDynamoDbTestCase):
         github_controller.upsert_comment(pull_request, comment, org_name)
         add_comment_mock.assert_not_called()
         queue_mock.assert_called_with(pull_request.id(), org_name)
+
+    @patch.object(asana_controller, "update_task")
+    @patch.object(asana_controller, "upsert_github_review_to_task")
+    @patch.object(github_controller, "assign_pull_request_to_author")
+    @patch.object(codeowner_controller, "sync")
+    def test_upsert_review_lets_codeowner_rules_own_the_assignee(
+        self,
+        codeowner_sync_mock,
+        assign_to_author_mock,
+        upsert_review_mock,
+        update_task_mock,
+        _get_asana_domain_id_mock,
+    ):
+        pull_request = builder.pull_request().build()
+        review = builder.review().state(ReviewState.APPROVED).build()
+        task_id = uuid4().hex
+        dynamodb_client.insert_github_node_to_asana_id_mapping(
+            pull_request.id(), task_id
+        )
+
+        # Codeowner tasks requested for this PR: the codeowner rules decide.
+        context = MagicMock()
+        context.manages_pull_request_assignee.return_value = True
+        codeowner_sync_mock.return_value = context
+        github_controller.upsert_review(pull_request, review, "the-org")
+        codeowner_sync_mock.assert_called_once_with(
+            pull_request, task_id, review=review
+        )
+        assign_to_author_mock.assert_not_called()
+        update_task_mock.assert_called_once_with(
+            pull_request,
+            task_id,
+            ANY,
+            force_update_due_today=True,
+            codeowner_context=context,
+        )
+
+        # Feature off or not applicable: back to the author as before.
+        codeowner_sync_mock.return_value = None
+        github_controller.upsert_review(pull_request, review, "the-org")
+        assign_to_author_mock.assert_called_once_with(pull_request)
 
     @patch.object(github_client, "set_pull_request_assignee")
     def test_assign_pull_request_to_author(

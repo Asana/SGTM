@@ -31,6 +31,14 @@ class TestPullRequest(BaseClass):
         )
         self.assertEqual("feature/new-feature", pull_request.head_ref_name())
 
+    def test_default_branch_name(self):
+        pull_request = build(builder.pull_request().default_branch_name("next-master"))
+        self.assertEqual("next-master", pull_request.default_branch_name())
+
+        raw = builder.pull_request().to_raw()
+        del raw["repository"]["defaultBranchRef"]
+        self.assertIsNone(PullRequest(raw).default_branch_name())
+
 
 if __name__ == "__main__":
     from unittest import main as run_tests
