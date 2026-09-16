@@ -36,6 +36,9 @@ fragment FullPullRequest on PullRequest {
     owner {
       login
     }
+    defaultBranchRef {
+      name
+    }
   }
   reviewRequests(last: 100) {
     nodes {

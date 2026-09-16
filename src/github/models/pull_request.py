@@ -196,6 +196,12 @@ class PullRequest(object):
     def repository_full_name(self) -> str:
         return f"{self.repository_owner_handle()}/{self.repository_name()}"
 
+    def default_branch_name(self) -> Optional[str]:
+        """The repository's default branch, or None when the query lacked it."""
+        ref = (self._raw.get("repository") or {}).get("defaultBranchRef") or {}
+        name = ref.get("name")
+        return str(name) if name else None
+
     def author(self) -> User:
         return User(self._raw["author"])
 

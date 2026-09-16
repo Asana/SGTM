@@ -66,9 +66,15 @@ class PullRequestBuilder(BuilderBaseClass):
                 "id": create_uuid(),
                 "name": create_uuid(),
                 "owner": {"login": create_uuid(), "name": create_uuid()},
+                "defaultBranchRef": {"name": "master"},
             },
             "owner": {"login": create_uuid(), "name": create_uuid()},
         }
+
+    def node_id(self, node_id: str):
+        """Set the GraphQL node id, e.g. to build several snapshots of one PR."""
+        self.raw_pr["id"] = node_id
+        return self
 
     def closed(self, closed: bool):
         self.raw_pr["closed"] = closed
@@ -241,6 +247,11 @@ class PullRequestBuilder(BuilderBaseClass):
     def repository_name(self, name: str):
         """Set the repository name."""
         self.raw_pr["repository"]["name"] = name
+        return self
+
+    def default_branch_name(self, name: str):
+        """Set the repository's default branch."""
+        self.raw_pr["repository"]["defaultBranchRef"] = {"name": name}
         return self
 
     def build(self) -> PullRequest:

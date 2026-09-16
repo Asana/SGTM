@@ -1,6 +1,7 @@
 """Shared fixtures for codeowner feature tests."""
 from datetime import datetime, timezone
 from typing import Dict, Iterable, List, Set
+from uuid import uuid4
 
 from src.codeowners.codeowners_file import parse_codeowners
 from src.codeowners.requirements import (
@@ -78,13 +79,22 @@ def review(login: str, state: ReviewState, when: datetime, commit: str = "abc123
 
 
 def pull_request(files: List[str], reviews=(), author: str = "author", **kwargs):
+    """A codez-like PR. Keyword options: node_id (to build several snapshots
+    of one PR), closed, merged, draft, labels, assignees, requested (logins a
+    person asked to review), codeowner_teams (teams GitHub auto-requested as
+    ``org/slug``), base, default_branch."""
     pr_builder = (
         builder.pull_request()
+        .node_id(kwargs.get("node_id") or f"PR_{uuid4().hex}")
         .author(builder.user(author))
         .number(436513)
         .title("Plumb permissionsCluster into cell Helm globals")
         .url("https://github.com/Asana/codez/pull/436513")
         .head_ref_oid("0fb846e3e7fc2aec8e017cc3f98ff77267009d28")
+        .repository_owner("Asana")
+        .repository_name("codez")
+        .base_ref_name(kwargs.get("base", "next-master"))
+        .default_branch_name(kwargs.get("default_branch", "next-master"))
         .files(files)
         .reviews(list(reviews))
     )
@@ -92,6 +102,19 @@ def pull_request(files: List[str], reviews=(), author: str = "author", **kwargs)
         pr_builder = pr_builder.closed(True)
     if kwargs.get("merged"):
         pr_builder = pr_builder.merged(True).closed(True)
+    if kwargs.get("draft"):
+        pr_builder = pr_builder.isDraft(True)
+    for label in kwargs.get("labels", ()):
+        pr_builder = pr_builder.label(builder.label(label))
+    for login in kwargs.get("assignees", ()):
+        pr_builder = pr_builder.assignee(builder.user(login))
+    for login in kwargs.get("requested", ()):
+        pr_builder = pr_builder.requested_reviewer(builder.user(login))
+    for slug in kwargs.get("codeowner_teams", ()):
+        name = slug.split("/", 1)[1]
+        pr_builder = pr_builder.requested_reviewer_team(
+            name, sorted(TEAM_MEMBERS.get(slug, set())), slug, as_code_owner=True
+        )
     return build(pr_builder)
 
 
