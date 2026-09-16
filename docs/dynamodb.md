@@ -26,3 +26,5 @@ For example:
 * Github Comment / Review Comment -> Asana comment
 
 All Asana objects created or used by SGTM should be tracked in this table. When handling incoming webhooks, SGTM will fetch relevant objects to update if they exist, otherwise create a new object and add it to the table.
+
+The table also holds small per-PR JSON documents for features that need more than one id, stored in the `asana-id` attribute under a synthetic key of the form `<github node id>#<purpose>` so they never collide with real node ids. Today that is `<PR node id>#codeowners` for the [codeowner tasks](codeowner_tasks.md) feature; see `get_json_document` / `put_json_document` in `src/aws/dynamodb_client.py`.

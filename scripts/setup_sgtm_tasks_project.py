@@ -2,7 +2,7 @@
 
 import argparse
 from dataclasses import dataclass
-from typing import List
+from typing import Dict, Iterable, List
 
 import asana  # type: ignore
 import sys
@@ -62,16 +62,30 @@ class TextCustomField(CustomField):
 # "none" | "red" | "orange" | "yellow-orange" | "yellow" | "yellow-green" | "green" | "blue-green" |
 # "aqua" | "blue" | "indigo" | "purple" | "magenta" | "hot-pink" | "pink" | "cool-gray"
 # TODO: Replace this list with a link to public documentation once available
+PR_STATUS_FIELD = EnumCustomField(
+    name="PR Status",
+    enum_options=[
+        EnumOption(name="Open", color="green"),
+        EnumOption(name="Draft", color="cool-gray"),
+        EnumOption(name="Queued", color="blue"),
+        EnumOption(name="Merged", color="purple"),
+        EnumOption(name="Closed", color="red"),
+    ],
+)
+AUTHOR_FIELD = PeopleCustomField(name="Author (SGTM)")
+BRANCH_NAME_FIELD = TextCustomField(name="Branch Name (SGTM)")
+REVIEW_STATUS_FIELD = EnumCustomField(
+    name="Review Status",
+    enum_options=[
+        EnumOption(name="Needs Review", color="yellow"),
+        EnumOption(name="Changes Requested", color="red"),
+        EnumOption(name="Approved", color="green"),
+        EnumOption(name="Not Ready", color="purple"),
+    ],
+)
+
 CUSTOM_FIELDS = [
-    EnumCustomField(
-        name="PR Status",
-        enum_options=[
-            EnumOption(name="Open", color="green"),
-            EnumOption(name="Draft", color="cool-gray"),
-            EnumOption(name="Merged", color="purple"),
-            EnumOption(name="Closed", color="red"),
-        ],
-    ),
+    PR_STATUS_FIELD,
     EnumCustomField(
         name="Build",
         enum_options=[
@@ -79,17 +93,52 @@ CUSTOM_FIELDS = [
             EnumOption(name="Failure", color="red"),
         ],
     ),
-    PeopleCustomField(name="Author (SGTM)"),
+    AUTHOR_FIELD,
+    REVIEW_STATUS_FIELD,
+    BRANCH_NAME_FIELD,
+]
+
+# Codeowner tasks feature (docs/codeowner_tasks.md).
+#
+# Fields added to each "SGTM <repo> tasks" project so the PR task shows the
+# state of its codeowner reviews. "Review Status" also gains the
+# "Needs Codeowner Approval" option.
+CODEOWNER_PR_TASK_FIELDS = [
     EnumCustomField(
-        name="Review Status",
+        name="Codeowner Review (SGTM)",
         enum_options=[
-            EnumOption(name="Needs Review", color="yellow"),
-            EnumOption(name="Changes Requested", color="red"),
+            EnumOption(name="Not Required", color="cool-gray"),
+            EnumOption(name="Not Yet Requested", color="blue"),
+            EnumOption(name="Pending", color="yellow"),
+            EnumOption(name="Partially Approved", color="yellow-green"),
             EnumOption(name="Approved", color="green"),
-            EnumOption(name="Not Ready", color="purple"),
+            EnumOption(name="Changes Requested", color="red"),
         ],
     ),
-    TextCustomField(name="Branch Name (SGTM)"),
+    TextCustomField(name="Codeowners Pending (SGTM)"),
+]
+REVIEW_STATUS_CODEOWNER_OPTION = EnumOption(
+    name="Needs Codeowner Approval", color="orange"
+)
+
+# Fields of the project every codeowner subtask is multi-homed into
+# (SGTM_FEATURE__CODEOWNER_TASKS_PROJECT_ID).
+CODEOWNER_PROJECT_FIELDS = [
+    EnumCustomField(
+        name="Codeowner Approval (SGTM)",
+        enum_options=[
+            EnumOption(name="Needed", color="yellow"),
+            EnumOption(name="Approved", color="green"),
+            EnumOption(name="Approval Stale", color="orange"),
+            EnumOption(name="Changes Requested", color="red"),
+            EnumOption(name="No Longer Required", color="cool-gray"),
+            EnumOption(name="Merged with Bypass", color="purple"),
+        ],
+    ),
+    TextCustomField(name="Codeowners (SGTM)"),
+    PR_STATUS_FIELD,
+    AUTHOR_FIELD,
+    BRANCH_NAME_FIELD,
 ]
 
 
@@ -152,22 +201,74 @@ def parse_args():
 
     parser_update.set_defaults(func=setup_existing_project)
 
+    for subparser in (parser_create, parser_update):
+        group = subparser.add_mutually_exclusive_group()
+        group.add_argument(
+            "--codeowner-project",
+            help="""Set the project up as the home of SGTM's codeowner subtasks (one shared project for all
+            repositories; pass its ID as TF_VAR_sgtm_feature__codeowner_tasks_project_id) instead of as an
+            SGTM tasks project. See docs/codeowner_tasks.md.""",
+            action="store_true",
+        )
+        group.add_argument(
+            "--with-codeowner-fields",
+            help="""Also add the codeowner tasks fields to this SGTM tasks project: "Codeowner Review (SGTM)",
+            "Codeowners Pending (SGTM)" and the "Needs Codeowner Approval" option of "Review Status".""",
+            action="store_true",
+        )
+
     return parser.parse_args()
+
+
+def fields_for(args) -> List[CustomField]:
+    if getattr(args, "codeowner_project", False):
+        return list(CODEOWNER_PROJECT_FIELDS)
+    fields = list(CUSTOM_FIELDS)
+    if getattr(args, "with_codeowner_fields", False):
+        # A "Review Status" field created from scratch includes the extra option;
+        # an existing one gets it via extra_enum_options_for.
+        review_status_with_option = EnumCustomField(
+            name=REVIEW_STATUS_FIELD.name,
+            enum_options=REVIEW_STATUS_FIELD.enum_options
+            + [REVIEW_STATUS_CODEOWNER_OPTION],
+        )
+        fields = [
+            review_status_with_option if field is REVIEW_STATUS_FIELD else field
+            for field in fields
+        ]
+        fields += CODEOWNER_PR_TASK_FIELDS
+    return fields
+
+
+def extra_enum_options_for(args) -> Dict[str, List[EnumOption]]:
+    """Options to add to enum fields that already exist on the project."""
+    if getattr(args, "with_codeowner_fields", False):
+        return {"Review Status": [REVIEW_STATUS_CODEOWNER_OPTION]}
+    return {}
 
 
 def setup_new_project(args) -> None:
     client = AsanaClient(args.personal_access_token)
     project_id = client.create_project(args.new_project_name, args.team_id)
-    client.setup_custom_fields(project_id)
+    client.setup_custom_fields(
+        project_id, fields_for(args), extra_enum_options_for(args)
+    )
     print(
         f"The ID of your newly created project '{args.new_project_name}' is"
         f" {project_id}"
     )
+    if getattr(args, "codeowner_project", False):
+        print(
+            "Set TF_VAR_sgtm_feature__codeowner_tasks_project_id to this ID and make"
+            " sure the SGTM Asana user is a member of the project."
+        )
 
 
 def setup_existing_project(args) -> None:
     client = AsanaClient(args.personal_access_token)
-    client.setup_custom_fields(args.existing_project_id)
+    client.setup_custom_fields(
+        args.existing_project_id, fields_for(args), extra_enum_options_for(args)
+    )
     client.add_user_to_project(args.existing_project_id)
 
 
@@ -227,11 +328,35 @@ class AsanaClient(object):
         response = self.client.projects.create_project(create_project_data)
         return response["gid"]
 
-    def setup_custom_fields(self, project_id: str) -> None:
+    def existing_custom_fields(self, project_id: str) -> Dict[str, dict]:
         """
-        Create the custom fields that SGTM requires and add them to the given project
+        The custom fields already on the project, by name
         """
-        for custom_field in CUSTOM_FIELDS:
+        settings = self.client.custom_field_settings.find_by_project(
+            project_id, fields=["custom_field.name", "custom_field.enum_options"]
+        )
+        return {
+            setting["custom_field"]["name"]: setting["custom_field"]
+            for setting in settings
+            if setting.get("custom_field")
+        }
+
+    def setup_custom_fields(
+        self,
+        project_id: str,
+        custom_fields: Iterable[CustomField],
+        extra_enum_options: Dict[str, List[EnumOption]],
+    ) -> None:
+        """
+        Create the given custom fields (see `fields_for`) and add them to the project.
+        Fields the project already has (by name) are left alone; enum options listed in
+        `extra_enum_options` are added to existing enum fields that lack them.
+        """
+        existing = self.existing_custom_fields(project_id)
+        for custom_field in custom_fields:
+            if custom_field.name in existing:
+                print(f"Custom field '{custom_field.name}' already exists, skipping")
+                continue
             custom_field_data = {
                 "name": custom_field.name,
                 "enabled": True,
@@ -255,6 +380,20 @@ class AsanaClient(object):
                     " guest and try again."
                 )
                 return
+
+        for field_name, options in extra_enum_options.items():
+            field = existing.get(field_name)
+            if field is None:
+                # Created above with all options included, or absent from the project.
+                continue
+            present = {option["name"] for option in field.get("enum_options") or []}
+            for option in options:
+                if option.name in present:
+                    continue
+                print(f"Adding option '{option.name}' to '{field_name}'")
+                self.client.custom_fields.create_enum_option(
+                    field["gid"], {"name": option.name, "color": option.color}
+                )
 
     def add_user_to_project(self, project_id: str) -> None:
         """

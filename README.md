@@ -184,6 +184,17 @@ SGTM can include a Graphite link alongside the GitHub PR link in Asana task desc
 **How to enable**:
 * Set an env variable of `TF_VAR_sgtm_feature__graphite_link_enabled` to `true`
 
+### Codeowner tasks
+For repositories that require [code owner](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners) approvals, SGTM can create one Asana subtask per group of codeowners whose approval a PR needs when the author adds the `assign-tasks-to-codeowners` label. Each subtask is assigned to an available codeowner (skipping the author and anyone out of office in Asana), who is also asked for a review on GitHub; it is completed when the approval is in place and reopened if a later push dismisses it. The PR's Asana task shows the state of every codeowner review, and is routed between the codeowners and the author until all approvals are in. GitHub's automatic codeowner review requests stop adding every team member as a follower. Authors can opt in to a heads-up comment as soon as their PR touches codeowned files.
+
+See [docs/codeowner_tasks.md](docs/codeowner_tasks.md) for the full behaviour and setup.
+
+**How to enable**:
+* Give the SGTM GitHub App the **Contents: Read** permission (it reads `CODEOWNERS`)
+* Create the shared subtask project: `python3 scripts/setup_sgtm_tasks_project.py -p "<PAT>" create -n "Codeowner PR approval tasks" -t "<TEAM ID>" --codeowner-project`
+* Add the new fields to each SGTM tasks project: `python3 scripts/setup_sgtm_tasks_project.py -p "<PAT>" update -e "<EXISTING PROJECT ID>" --with-codeowner-fields`
+* Set `TF_VAR_sgtm_feature__codeowner_tasks_enabled` to `true` and `TF_VAR_sgtm_feature__codeowner_tasks_project_id` to the new project's ID; see the docs for the optional variables (opt-in list, label name, idle days, out-of-office workspace, links)
+
 ## Installing a Virtual Environment for Python
 
 We recommend using `pipenv` to manage your python environment for SGTM. We've checked in a `Pipfile` and `Pipfile.lock` to make this easier for you. If you have `pipenv` installed, `cd` into the SGTM directory, and run `pipenv install` to install all dependencies. If you don't have `pipenv` installed, you can install it via `pip install pipenv`.
