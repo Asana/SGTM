@@ -1,5 +1,6 @@
 
 resource "aws_lambda_function" "sgtm" {
+  region           = var.aws_region
   s3_bucket        = var.lambda_code_s3_bucket_name
   s3_key           = aws_s3_object.lambda_code_bundle.key
   function_name    = "sgtm${local.cluster}"
