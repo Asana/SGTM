@@ -1,8 +1,8 @@
 import requests
 from requests.auth import HTTPBasicAuth
-from typing import Optional
+from typing import List, Optional
 
-from github import PullRequest  # type: ignore
+from github import GithubException, PullRequest, UnknownObjectException  # type: ignore
 from src.github.get_app_token import sgtm_github_auth
 from src.logger import logger
 
@@ -56,6 +56,64 @@ def set_pull_request_assignee(owner: str, repository: str, number: int, assignee
     # allows you to *add* an assignee, not set the assignee.
     pr = repo.get_issue(number)
     pr.edit(assignee=assignee)  # type: ignore
+
+
+def request_reviewers(
+    owner: str, repository: str, number: int, reviewers: List[str]
+) -> List[str]:
+    """Ask the given users to review the pull request, one request per user so
+    that one rejected login (not a collaborator any more, the author) does not
+    stop the others. Returns the logins GitHub accepted.
+
+    Note that GitHub treats a request for someone who already reviewed as a
+    re-request: they are asked again and notified. Callers decide whether that
+    is wanted.
+    """
+    if not reviewers:
+        return []
+    pr = _get_pull_request(owner, repository, number)
+    requested: List[str] = []
+    for reviewer in reviewers:
+        try:
+            pr.create_review_request(reviewers=[reviewer])  # type: ignore
+            requested.append(reviewer)
+        except GithubException as e:
+            logger.warning(
+                f"Could not request a review from {reviewer} on "
+                f"{owner}/{repository}#{number}: {e}"
+            )
+    return requested
+
+
+# GitHub rejects label descriptions longer than this.
+LABEL_DESCRIPTION_MAX_LENGTH = 100
+
+
+def ensure_label(owner: str, repository: str, name: str, color: str, description: str):
+    """Create the label in the repository if it does not exist yet.
+
+    `color` is a hex string without the leading `#`. Creating labels needs the
+    Issues: write permission (labels are an issues resource).
+    """
+    repo = _get_repo(owner, repository)
+    try:
+        repo.get_label(name)
+        return
+    except UnknownObjectException:
+        pass
+    logger.info(f"Creating label '{name}' in {owner}/{repository}")
+    try:
+        repo.create_label(
+            name=name,
+            color=color,
+            description=description[:LABEL_DESCRIPTION_MAX_LENGTH],
+        )
+    except GithubException as e:
+        # Another invocation created it in between: the end state is what we want.
+        if e.status == 422:
+            logger.info(f"Label '{name}' already exists in {owner}/{repository}")
+            return
+        raise
 
 
 def merge_pull_request(owner: str, repository: str, number: int, title: str, body: str):

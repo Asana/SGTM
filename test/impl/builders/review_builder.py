@@ -47,6 +47,10 @@ class ReviewBuilder(BuilderBaseClass):
         self.raw_review["url"] = url
         return self
 
+    def commit_oid(self, oid: str):
+        self.raw_review["commit"] = {"oid": oid}
+        return self
+
     def build(self) -> Review:
         return Review(self.raw_review)
 

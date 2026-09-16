@@ -1,12 +1,15 @@
 from typing import Tuple, FrozenSet, Optional, List
 from sgqlc.endpoint.http import HTTPEndpoint  # type: ignore
 from src.github.get_app_token import sgtm_github_auth
+from src.logger import logger
 from src.github.models import comment_factory, PullRequest, Review, Comment
 from .queries import (
     GetPullRequest,
     GetPullRequestByRepositoryAndNumber,
     GetPullRequestAndComment,
     GetPullRequestAndReview,
+    GetPullRequestFiles,
+    GetRepositoryFileContent,
     IteratePullRequestIdsForCommitId,
     IterateReviewsForPullRequestId,
     GetTeamMembers,
@@ -158,22 +161,99 @@ def get_review_for_database_id(
     return None
 
 
-def get_team_members(org: str, team_slug: str) -> List[str]:
-    """Get all members of a GitHub team.
+def get_pull_request_files(
+    org_name: str, pull_request_id: str, cursor: Optional[str] = None
+) -> Tuple[List[str], Optional[str]]:
+    """Fetch one page of a pull request's changed file paths.
 
-    Args:
-        org: The organization name
-        team_slug: The team slug (name with hyphens instead of spaces)
+    Returns the paths on that page and the cursor for the next page, or None
+    when this was the last page.
+    """
+    variables: dict = {"pullRequestId": pull_request_id}
+    if cursor is not None:
+        variables["cursor"] = cursor
+    files = _execute_graphql_query(org_name, GetPullRequestFiles, variables)[
+        "pullRequest"
+    ]["files"]
+    paths = [node["path"] for node in files["nodes"]]
+    page_info = files["pageInfo"]
+    next_cursor = page_info["endCursor"] if page_info["hasNextPage"] else None
+    return paths, next_cursor
 
-    Returns:
-        List of GitHub usernames of team members
+
+def load_all_changed_files(org_name: str, pull_request: PullRequest) -> None:
+    """Make sure `pull_request.changed_files()` holds every changed file.
+
+    The FullPullRequest fragment carries the first 100 files; this pages
+    through the rest for larger pull requests and stores the complete list on
+    the object.
+    """
+    if not pull_request.has_unloaded_changed_files():
+        return
+    paths = list(pull_request.changed_files())
+    cursor = pull_request.changed_files_end_cursor()
+    # GitHub returns a null `files` connection for very large diffs; page from
+    # the start in that case.
+    fetch_first_page = pull_request.changed_files_missing()
+    while fetch_first_page or cursor is not None:
+        page, cursor = get_pull_request_files(org_name, pull_request.id(), cursor)
+        paths.extend(page)
+        fetch_first_page = False
+    pull_request.set_changed_files(paths)
+
+
+def get_repository_file_content(
+    org_name: str, owner: str, repository: str, ref: str, path: str
+) -> Optional[str]:
+    """Return the text of a file at branch `ref`, or None if the file does not
+    exist there. Raises ValueError when the branch itself does not exist, so a
+    deleted base branch is not mistaken for a repository without the file.
+
+    Used to read CODEOWNERS from a pull request's base branch. Requires the
+    GitHub App to have read access to repository contents.
     """
     data = _execute_graphql_query(
-        org,
-        GetTeamMembers.GetTeamMembers,
-        {"org": org, "teamSlug": team_slug},
+        org_name,
+        GetRepositoryFileContent,
+        {
+            "owner": owner,
+            "name": repository,
+            "ref": f"refs/heads/{ref}",
+            "expression": f"{ref}:{path}",
+        },
     )
-    team = data["organization"]["team"]
-    if not team:
-        return []
-    return [node["login"] for node in team["members"]["nodes"]]
+    repository_data = data.get("repository") or {}
+    if repository_data.get("ref") is None:
+        raise ValueError(f"Branch {ref} does not exist in {owner}/{repository}")
+    blob = repository_data.get("object")
+    if not blob or blob.get("__typename") != "Blob" or blob.get("text") is None:
+        return None
+    if blob.get("isTruncated"):
+        raise ValueError(f"{path} at {ref} is too large to read via GraphQL")
+    return blob["text"]
+
+
+def get_team_members(org: str, team_slug: str) -> List[str]:
+    """All members of a GitHub team, paging through teams larger than 100.
+
+    Returns an empty list, and logs an error, when the team does not exist or
+    is not visible to SGTM (the GitHub App needs Members: Read on the
+    organization).
+    """
+    logins: List[str] = []
+    variables: dict = {"org": org, "teamSlug": team_slug}
+    while True:
+        data = _execute_graphql_query(org, GetTeamMembers.GetTeamMembers, variables)
+        team = data["organization"]["team"]
+        if not team:
+            logger.error(
+                f"GitHub team {org}/{team_slug} was not found or is not visible to"
+                " SGTM; treating it as having no members"
+            )
+            return []
+        members = team["members"]
+        logins.extend(node["login"] for node in members["nodes"])
+        page_info = members.get("pageInfo") or {}
+        if not page_info.get("hasNextPage"):
+            return logins
+        variables = {**variables, "cursor": page_info["endCursor"]}

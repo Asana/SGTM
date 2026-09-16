@@ -23,6 +23,50 @@ class AssigneeReason(Enum):
 Assignee = collections.namedtuple("Assignee", "login reason")
 
 
+class ReviewRequest(object):
+    """One entry of a pull request's `reviewRequests` connection.
+
+    Either a user (`login`) or a team (`team_slug`, as `org/slug`) was asked
+    to review. `as_code_owner` is True when GitHub itself made the request
+    because of a CODEOWNERS rule rather than a person doing so.
+    """
+
+    def __init__(self, raw_review_request: Dict[str, Any]):
+        self._raw = copy.deepcopy(raw_review_request)
+
+    def as_code_owner(self) -> bool:
+        return bool(self._raw.get("asCodeOwner", False))
+
+    def _reviewer(self) -> Dict[str, Any]:
+        return self._raw.get("requestedReviewer") or {}
+
+    def is_user(self) -> bool:
+        return "login" in self._reviewer()
+
+    def is_team(self) -> bool:
+        return "members" in self._reviewer() or "slug" in self._reviewer()
+
+    def login(self) -> Optional[str]:
+        return self._reviewer().get("login")
+
+    def team_slug(self) -> Optional[str]:
+        """`org/slug` for a team request, matching CODEOWNERS `@org/slug` owners."""
+        if not self.is_team():
+            return None
+        reviewer = self._reviewer()
+        return (
+            reviewer.get("combinedSlug") or reviewer.get("slug") or reviewer.get("name")
+        )
+
+    def team_member_logins(self) -> List[str]:
+        if not self.is_team():
+            return []
+        return [
+            node["login"]
+            for node in (self._reviewer().get("members") or {}).get("nodes", [])
+        ]
+
+
 @unique
 class MergeableState(Enum):
     """https://developer.github.com/v4/enum/mergeablestate/"""
@@ -50,22 +94,53 @@ class PullRequest(object):
         ]
         self._assignees = self._assignees_from_raw()
 
-    def requested_reviewers(self, include_team_members: bool = True) -> List[str]:
+    def review_requests(self) -> List[ReviewRequest]:
+        return [
+            ReviewRequest(node)
+            for node in self._raw["reviewRequests"]["nodes"]
+            if node.get("requestedReviewer") is not None
+        ]
+
+    def requested_reviewers(
+        self,
+        include_team_members: bool = True,
+        include_codeowner_requests: bool = True,
+    ) -> List[str]:
+        """Logins of requested reviewers, expanding requested teams to members.
+
+        `include_codeowner_requests=False` drops requests GitHub made on its own
+        because of CODEOWNERS, keeping only the ones a person made.
+        """
         reviewer_logins = set()
-        for node in self._raw["reviewRequests"]["nodes"]:
-            if (
-                node["requestedReviewer"] is not None
-                and "login" in node["requestedReviewer"]
-            ):
-                reviewer_logins.add(node["requestedReviewer"]["login"])
-            elif (
-                node["requestedReviewer"] is not None
-                and "members" in node["requestedReviewer"]
-                and include_team_members
-            ):
-                for reviewer in node["requestedReviewer"]["members"].get("nodes", []):
-                    reviewer_logins.add(reviewer["login"])
+        for request in self.review_requests():
+            if request.as_code_owner() and not include_codeowner_requests:
+                continue
+            login = request.login()
+            if login is not None:
+                reviewer_logins.add(login)
+            elif request.is_team() and include_team_members:
+                reviewer_logins.update(request.team_member_logins())
         return sorted(reviewer_logins)
+
+    def human_requested_reviewer_logins(self) -> List[str]:
+        """Users a person (not GitHub's codeowner auto-request) asked to review."""
+        return sorted(
+            login
+            for request in self.review_requests()
+            if not request.as_code_owner()
+            for login in [request.login()]
+            if login is not None
+        )
+
+    def codeowner_requested_team_slugs(self) -> List[str]:
+        """Teams GitHub auto-requested because of CODEOWNERS, as `org/slug`."""
+        return sorted(
+            slug
+            for request in self.review_requests()
+            if request.as_code_owner()
+            for slug in [request.team_slug()]
+            if slug is not None
+        )
 
     def reviewers(self) -> List[str]:
         return [review.author_handle() for review in self.reviews()]
@@ -229,3 +304,63 @@ class PullRequest(object):
     def head_ref_name(self) -> str:
         """Returns the name of the head branch (source branch) of the pull request."""
         return self._raw.get("headRefName") or ""
+
+    def head_ref_oid(self) -> Optional[str]:
+        """The sha of the head commit, or None when the query did not include it."""
+        return self._raw.get("headRefOid")
+
+    def base_ref_name(self) -> str:
+        """The branch this pull request merges into."""
+        return str(self._raw.get("baseRefName") or "")
+
+    def stack_base_ref_name(self) -> Optional[str]:
+        """The trunk branch of the GitHub-native stack this PR belongs to, if any.
+
+        Native stacks are evaluated (rulesets, codeowners) against the stack's
+        base rather than the PR's immediate base. None for PRs outside a
+        native stack, including Graphite or hand-managed stacks, which GitHub
+        cannot tell apart from ordinary branches.
+        """
+        stack = self._raw.get("stack")
+        if not stack:
+            return None
+        return stack.get("baseRefName")
+
+    def is_in_native_stack(self) -> bool:
+        return self.stack_base_ref_name() is not None
+
+    def latest_commit(self) -> Optional[Commit]:
+        commits = self.commits()
+        return commits[0] if commits else None
+
+    def changed_files(self) -> List[str]:
+        """Paths of the files this pull request changes.
+
+        The GraphQL fragment carries the first 100. Call
+        `graphql_client.load_all_changed_files` first when
+        `has_unloaded_changed_files()` is True.
+        """
+        files = self._raw.get("files") or {}
+        return [node["path"] for node in files.get("nodes", [])]
+
+    def changed_files_missing(self) -> bool:
+        """GitHub returns a null `files` connection for very large diffs; the
+        files must then be paged separately."""
+        return self._raw.get("files") is None
+
+    def has_unloaded_changed_files(self) -> bool:
+        if self.changed_files_missing():
+            return True
+        files = self._raw.get("files") or {}
+        return bool((files.get("pageInfo") or {}).get("hasNextPage", False))
+
+    def changed_files_end_cursor(self) -> Optional[str]:
+        files = self._raw.get("files") or {}
+        return (files.get("pageInfo") or {}).get("endCursor")
+
+    def set_changed_files(self, paths: List[str]):
+        self._raw = copy.deepcopy(self._raw)
+        self._raw["files"] = {
+            "pageInfo": {"hasNextPage": False, "endCursor": None},
+            "nodes": [{"path": path} for path in paths],
+        }

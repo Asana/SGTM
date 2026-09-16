@@ -6,10 +6,15 @@ _full_pull_request = """
 fragment FullPullRequest on PullRequest {
   id
   headRefName
+  headRefOid
+  baseRefName
   baseRef {
     associatedPullRequests(states: OPEN, first: 1) {
       totalCount
     }
+  }
+  stack {
+    baseRefName
   }
   body
   bodyHTML
@@ -32,14 +37,17 @@ fragment FullPullRequest on PullRequest {
       login
     }
   }
-  reviewRequests(last: 20) {
+  reviewRequests(last: 100) {
     nodes {
+      asCodeOwner
       requestedReviewer {
         ... on User {
           login
         }
         ... on Team {
           name
+          slug
+          combinedSlug
           members(last:20) {
             nodes {
               ... on User {
@@ -51,7 +59,7 @@ fragment FullPullRequest on PullRequest {
       }
     }
   }
-  reviews(last: 20) {
+  reviews(last: 100) {
     nodes {
       ...FullReview
     }
@@ -77,6 +85,8 @@ fragment FullPullRequest on PullRequest {
   commits(last: 1) {
     nodes {
       commit {
+        oid
+        committedDate
         statusCheckRollup {
           state
         }
@@ -96,6 +106,15 @@ fragment FullPullRequest on PullRequest {
   labels(last: 20) {
     nodes {
       name
+    }
+  }
+  files(first: 100) {
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+    nodes {
+      path
     }
   }
 }

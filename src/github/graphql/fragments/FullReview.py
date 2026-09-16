@@ -14,6 +14,9 @@ fragment FullReview on PullRequestReview {
   body
   submittedAt
   state
+  commit {
+    oid
+  }
   comments(last: 20) {
     nodes {
       ...FullComment

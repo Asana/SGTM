@@ -1,6 +1,8 @@
+from datetime import datetime
 from typing import Dict, Any, Optional, List
 import copy
 
+from src.utils import parse_date_string
 from .check_suite import CheckSuite
 
 
@@ -29,6 +31,16 @@ class Commit(object):
 
     def node_id(self) -> str:
         return self._raw["commit"]["node_id"]
+
+    def oid(self) -> Optional[str]:
+        """The commit sha, when the query included it."""
+        return self._raw["commit"].get("oid")
+
+    def committed_date(self) -> Optional[datetime]:
+        committed_date = self._raw["commit"].get("committedDate")
+        if committed_date is None:
+            return None
+        return parse_date_string(committed_date)
 
     def to_raw(self) -> Dict[str, Any]:
         return copy.deepcopy(self._raw)

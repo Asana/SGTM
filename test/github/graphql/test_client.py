@@ -287,6 +287,40 @@ class TestGithubClientGetTeamMembers(BaseClass):
             {"org": "test-org", "teamSlug": "non-existent-team"},
         )
 
+    def test_get_team_members_pages_through_large_teams(self, mock_query):
+        def page(logins, has_next_page, end_cursor):
+            return {
+                "organization": {
+                    "team": {
+                        "members": {
+                            "pageInfo": {
+                                "hasNextPage": has_next_page,
+                                "endCursor": end_cursor,
+                            },
+                            "nodes": [{"login": login} for login in logins],
+                        }
+                    }
+                }
+            }
+
+        mock_query.side_effect = [
+            page(["user1", "user2"], True, "c1"),
+            page(["user3"], True, "c2"),
+            page(["user4"], False, None),
+        ]
+
+        actual = client.get_team_members("test-org", "big-team")
+
+        self.assertEqual(["user1", "user2", "user3", "user4"], actual)
+        self.assertEqual(
+            [c.args[2] for c in mock_query.call_args_list],
+            [
+                {"org": "test-org", "teamSlug": "big-team"},
+                {"org": "test-org", "teamSlug": "big-team", "cursor": "c1"},
+                {"org": "test-org", "teamSlug": "big-team", "cursor": "c2"},
+            ],
+        )
+
     def test_get_team_members_empty_team(self, mock_query):
         mock_query.return_value = {"organization": {"team": {"members": {"nodes": []}}}}
 
