@@ -43,6 +43,23 @@ class TestCodeownerState(MockDynamoDbTestCase):
         )
         self.assertFalse(loaded.tasks_requested)
 
+    def test_unknown_subtask_keys_are_ignored(self):
+        loaded = CodeownerState.from_document(
+            {
+                "tasks_requested_at": "2026-09-11T19:30:00Z",
+                "subtasks": {
+                    "Asana/platform": {
+                        "task_id": "task-1",
+                        "owner_key": "Asana/platform",
+                        "future_subtask_field": True,
+                    }
+                },
+            }
+        )
+        sub = loaded.subtasks["Asana/platform"]
+        self.assertEqual(sub.task_id, "task-1")
+        self.assertIsNone(sub.created_at)
+
 
 if __name__ == "__main__":
     from unittest import main as run_tests

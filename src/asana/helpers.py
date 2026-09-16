@@ -16,6 +16,7 @@ import src.aws.s3_client as s3_client
 import src.codeowners.status as codeowner_status
 import src.codeowners.texts as codeowner_texts
 import src.config as config
+import src.asana.mentions as mentions
 from src.asana.mentions import asana_mention_for_github_login, asana_task_link
 from src.codeowners.context import CodeownerTaskContext
 from src.github.models import (
@@ -109,9 +110,7 @@ def task_url_from_task_id(task_id: str) -> str:
     """
     Transforms an Asana Task's object-id into an url referring to the task in the Asana app
     """
-    if not task_id:
-        raise ValueError("task_url_from_task_id requires a task_id")
-    return f"https://app.asana.com/0/0/{task_id}"
+    return mentions.task_url_from_task_id(task_id)
 
 
 def extract_task_fields_from_pull_request(
@@ -197,13 +196,21 @@ def _codeowners_pending_from_pull_request(
 ) -> Optional[str]:
     if codeowner_context is None:
         return None
-    outstanding = codeowner_context.summary.outstanding()
-    if not codeowner_context.summary.has_codeowned_files():
+    summary = codeowner_context.summary
+    if not summary.has_codeowned_files():
         return ""
-    if not codeowner_context.summary.tasks_requested:
-        owner_sets = sorted(set(codeowner_context.summary.codeowned_files.values()))
-        return "; ".join(owner_set.display() for owner_set in owner_sets)
-    return "; ".join(e.owner_set.display() for e in outstanding)
+    # Before the label everything is pending; afterwards only what is still
+    # outstanding. Both use the folded owner sets so the value does not jump
+    # when the label is added.
+    if not summary.tasks_requested:
+        pending = [
+            e
+            for e in summary.evaluations
+            if e.status is not codeowner_status.RequirementStatus.NO_LONGER_REQUIRED
+        ]
+    else:
+        pending = summary.outstanding()
+    return "; ".join(e.owner_set.display() for e in pending)
 
 
 def _build_status_from_pull_request(pull_request: PullRequest) -> Optional[str]:
@@ -384,16 +391,7 @@ def _asana_display_name_for_github_user(github_user: User) -> str:
 
 
 def _asana_user_url_from_github_user_handle(github_handle: str) -> Optional[str]:
-    user_id = s3_client.get_asana_domain_user_id_from_github_handle(github_handle)
-    if user_id is None:
-        return None
-    return _wrap_in_tag(
-        "A",
-        attrs={
-            "data-asana-gid": user_id,
-            "href": f"https://github.com/{github_handle}",
-        },
-    )(github_handle)
+    return mentions.asana_user_link_for_github_login(github_handle)
 
 
 def custom_field_value_for(custom_field: dict, value_name: Union[str, List[str], None]):

@@ -26,6 +26,7 @@ from test.codeowners.helpers import (
     summary_for,
 )
 from test.impl.base_test_case_class import BaseClass
+from test.impl.builders import builder, build
 
 PROJECT_FIELDS = [
     {
@@ -287,8 +288,11 @@ class TestSyncSubtasks(BaseClass):
         # Saturday: not idle yet.
         self.sync(pull_request([AUTO_APPROVER]), state, now=at(9, day=12))
         self.assertEqual(sub.assignee, first)
-        # Monday: one business day, re-pick.
+        # Monday morning: still short of a full business day.
         self.sync(pull_request([AUTO_APPROVER]), state, now=at(9, day=14))
+        self.assertEqual(sub.assignee, first)
+        # Monday afternoon: one business day, re-pick.
+        self.sync(pull_request([AUTO_APPROVER]), state, now=at(16, day=14))
         self.assertNotEqual(sub.assignee, first)
         self.assertIn(
             "after 1 business day without a review", add_comment.call_args.args[1]
@@ -319,8 +323,56 @@ class TestSyncSubtasks(BaseClass):
         state.remember_human_chosen([other])
         self.sync(pull_request([AUTO_APPROVER]), state)
         self.assertEqual(sub.assignee, other)
-        self.assertTrue(sub.manual)
+        self.assertEqual(sub.assignment_reason, REASON_HUMAN_REQUESTED)
+        self.assertFalse(sub.manual)
         self.assertIn("who was requested as a reviewer", add_comment.call_args.args[1])
+
+        # Requested reviewers are never swapped out for idleness...
+        sub.assigned_at = "2026-09-01T09:00:00Z"
+        self.sync(pull_request([AUTO_APPROVER]), state, now=at(16, day=14))
+        self.assertEqual(sub.assignee, other)
+        # ...but an out-of-office one is.
+        self.sync(
+            pull_request([AUTO_APPROVER]),
+            state,
+            ooo=lambda login: date(2026, 9, 22) if login == other else None,
+        )
+        self.assertNotEqual(sub.assignee, other)
+
+    def test_requested_but_out_of_office_codeowner_is_not_followed(
+        self, create_subtask, add_to_project, update_task, add_comment, *_
+    ):
+        state = CodeownerState()
+        self.sync(pull_request([AUTO_APPROVER]), state, rng_seed=3)
+        sub = list(state.subtasks.values())[0]
+        first = sub.assignee
+        other = "pete" if first != "pete" else "eli"
+        state.remember_human_chosen([other])
+        ooo = lambda login: date(2026, 9, 22) if login == other else None
+        for _ in range(2):
+            self.sync(pull_request([AUTO_APPROVER]), state, ooo=ooo)
+            self.assertEqual(sub.assignee, first)
+        add_comment.assert_not_called()
+
+    def test_sgtm_review_requests_are_not_human_requests(
+        self, create_subtask, add_to_project, update_task, add_comment, *_
+    ):
+        state = CodeownerState()
+        self.sync(pull_request([AUTO_APPROVER]), state, rng_seed=3)
+        sub = list(state.subtasks.values())[0]
+        first = sub.assignee
+        # SGTM asked `first` to review; GitHub shows that request like any other.
+        pr = build(
+            builder.pull_request()
+            .author(builder.user("author"))
+            .files([AUTO_APPROVER])
+            .requested_reviewer(builder.user(first))
+        )
+        sub.assigned_at = "2026-09-01T09:00:00Z"
+        self.sync(pr, state, now=at(16, day=14))
+        # Still replaced for idleness: the request was SGTM's, not a person's.
+        self.assertNotEqual(sub.assignee, first)
+        self.assertEqual(sub.assignment_reason, REASON_RANDOM)
 
     def test_manual_reassignment_in_asana_is_adopted(
         self,
@@ -399,6 +451,147 @@ class TestSyncSubtasks(BaseClass):
         calls_after_create = update_task.call_count
         self.sync(pr, state)
         self.assertEqual(update_task.call_count, calls_after_create)
+
+    def test_failed_update_after_create_does_not_duplicate_the_subtask(
+        self, create_subtask, add_to_project, update_task, add_comment, *_
+    ):
+        update_task.side_effect = [RuntimeError("asana down"), None, None, None]
+        state = CodeownerState()
+        pr = pull_request([AUTO_APPROVER])
+        self.sync(pr, state)
+        create_subtask.assert_called_once()
+        sub = list(state.subtasks.values())[0]
+        self.assertEqual(sub.task_id, "sub-1")
+
+        self.sync(pr, state)
+        create_subtask.assert_called_once()  # the retry updates, never recreates
+        self.assertTrue(update_task.call_count >= 2)
+
+    def test_one_broken_subtask_does_not_stop_the_others(
+        self, create_subtask, add_to_project, update_task, add_comment, *_
+    ):
+        # Owner sets sort by key: data ("sub-1") before secdev ("sub-2").
+        create_subtask.side_effect = ["sub-1", "sub-2"]
+        state = CodeownerState()
+        pr = pull_request([AUTO_APPROVER, DATABRICKS])
+        self.sync(pr, state)
+        self.assertEqual(len(state.subtasks), 2)
+
+        def failing_comment(task_id, _html):
+            if task_id == "sub-1":
+                raise RuntimeError("task deleted in Asana")
+
+        add_comment.side_effect = failing_comment
+        cr = pull_request(
+            [AUTO_APPROVER, DATABRICKS],
+            reviews=[
+                review("dora", ReviewState.CHANGES_REQUESTED, at(10)),
+                review("jordan", ReviewState.CHANGES_REQUESTED, at(10)),
+            ],
+        )
+        self.sync(cr, state)
+        statuses = {sub.task_id: sub.status for sub in state.subtasks.values()}
+        self.assertEqual(statuses["sub-1"], "Needed")  # failed before recording
+        self.assertEqual(statuses["sub-2"], "Changes Requested")
+
+    def test_reopened_pull_request_reopens_closed_subtasks(
+        self,
+        create_subtask,
+        add_to_project,
+        update_task,
+        add_comment,
+        add_followers,
+        complete_task,
+        reopen_task,
+        *_,
+    ):
+        state = CodeownerState()
+        self.sync(pull_request([AUTO_APPROVER]), state)
+        self.sync(pull_request([AUTO_APPROVER], closed=True), state)
+        sub = list(state.subtasks.values())[0]
+        self.assertTrue(sub.completed)
+        self.assertEqual(sub.status, "Needed")
+
+        self.sync(pull_request([AUTO_APPROVER]), state)
+        reopen_task.assert_called_once_with("sub-1")
+        self.assertFalse(sub.completed)
+        self.assertIn("reopened", add_comment.call_args.args[1].lower())
+
+    def test_already_approved_requirement_is_created_closed_without_a_request(
+        self,
+        create_subtask,
+        add_to_project,
+        update_task,
+        add_comment,
+        add_followers,
+        complete_task,
+        *_,
+    ):
+        pr = pull_request(
+            [AUTO_APPROVER], reviews=[review("jordan", ReviewState.APPROVED, at(10))]
+        )
+        state = CodeownerState()
+        result = self.sync(pr, state)
+        sub = list(state.subtasks.values())[0]
+        self.assertEqual(sub.status, "Approved")
+        self.assertEqual(sub.assignee, "jordan")
+        self.assertEqual(sub.assignment_reason, REASON_ENGAGED)
+        self.assertTrue(sub.completed)
+        complete_task.assert_called_once_with("sub-1")
+        self.assertEqual(result.newly_assigned_logins, [])
+        self.assertEqual(state.sgtm_requested_logins, [])
+        self.assertIn("Approved by", add_comment.call_args.args[1])
+
+    def test_branch_name_and_timestamps_are_written(
+        self, create_subtask, add_to_project, update_task, add_comment, *_
+    ):
+        state = CodeownerState()
+        pr = build(
+            builder.pull_request()
+            .author(builder.user("author"))
+            .files([AUTO_APPROVER])
+            .head_ref_name("feature/codeowners")
+        )
+        self.sync(pr, state)
+        sub = list(state.subtasks.values())[0]
+        self.assertEqual(sub.created_at, "2026-09-11T20:00:00Z")
+        self.assertEqual(sub.assigned_at, "2026-09-11T20:00:00Z")
+        self.assertIsNotNone(sub.fields_hash)
+
+    def test_orphans_are_retired_when_the_pull_request_is_closed(
+        self,
+        create_subtask,
+        add_to_project,
+        update_task,
+        add_comment,
+        add_followers,
+        complete_task,
+        *_,
+    ):
+        state = CodeownerState()
+        self.sync(pull_request([AUTO_APPROVER]), state)
+        # The file left the diff *and* the PR was closed in one go.
+        self.sync(pull_request(["README.md"], closed=True), state)
+        sub = list(state.subtasks.values())[0]
+        complete_task.assert_called_once_with("sub-1")
+        self.assertTrue(sub.completed)
+        self.assertEqual(sub.status, "Needed")  # not "No Longer Required"
+        self.assertEqual(
+            add_comment.call_args.args[1],
+            "<body>PR closed without merging. Closing.</body>",
+        )
+        update_task.reset_mock()
+        # Nothing to do on the next sync.
+        self.sync(pull_request(["README.md"], closed=True), state)
+        complete_task.assert_called_once()
+
+    def test_nothing_is_created_for_a_closed_pull_request(
+        self, create_subtask, add_to_project, update_task, add_comment, *_
+    ):
+        state = CodeownerState()
+        self.sync(pull_request([AUTO_APPROVER], closed=True), state)
+        create_subtask.assert_not_called()
+        self.assertEqual(state.subtasks, {})
 
 
 if __name__ == "__main__":

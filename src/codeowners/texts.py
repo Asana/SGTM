@@ -30,10 +30,8 @@ LABEL_COLOR = "1d76db"
 
 
 def label_description() -> str:
-    return (
-        "Ask SGTM to create an Asana review task for this PR's codeowners and "
-        "route the PR to them once your primary reviewer approves."
-    )
+    # GitHub rejects label descriptions over 100 characters.
+    return "SGTM: create Asana tasks for this PR's codeowner reviews and route them."
 
 
 # --------------------------------------------------------------------------
@@ -81,7 +79,7 @@ def _short_sha(sha: Optional[str]) -> str:
 
 def owner_links_html(owner_set: OwnerSet) -> str:
     parts: List[str] = []
-    for owner in owner_set.owners:
+    for owner in owner_set.as_written():
         if owner.startswith("@") and "/" in owner:
             slug = owner[1:]
             parts.append(_a(team_url(slug), slug.split("/", 1)[1]))
@@ -94,7 +92,7 @@ def owner_links_html(owner_set: OwnerSet) -> str:
 
 def owner_links_markdown(owner_set: OwnerSet) -> str:
     parts: List[str] = []
-    for owner in owner_set.owners:
+    for owner in owner_set.as_written():
         if owner.startswith("@") and "/" in owner:
             slug = owner[1:]
             parts.append(f"[{slug.split('/', 1)[1]}]({team_url(slug)})")
@@ -395,6 +393,13 @@ def comment_merged_with_bypass(merged_by_login: Optional[str]) -> str:
 
 def comment_closed_unmerged() -> str:
     return _body("PR closed without merging. Closing.")
+
+
+def comment_pr_reopened() -> str:
+    return _body(
+        "Reopening: the PR was reopened and still needs an approval from these"
+        " codeowners."
+    )
 
 
 # --------------------------------------------------------------------------

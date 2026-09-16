@@ -141,6 +141,15 @@ class TestCodeownerTaskFields(MockDynamoDbTestCase):
         self.assertEqual(custom["cf-pending"], "")
         self.assertIn("Codeowner reviews: 1 of 1 approved", task_fields["html_notes"])
 
+    def test_pending_uses_folded_owner_sets_before_and_after_the_label(self, _fields):
+        # `modules/cell` is owned by a superset of `lambda/auto_approver`'s
+        # owners, so both files fold into one secdev requirement.
+        pr = pull_request([CELL_DATA, AUTO_APPROVER])
+        before = self.fields(pr, self.context(pr, tasks_requested=False))
+        after = self.fields(pr, self.context(pr))
+        self.assertEqual(before["custom_fields"]["cf-pending"], "secdev")
+        self.assertEqual(after["custom_fields"]["cf-pending"], "secdev")
+
     def test_no_codeowned_files_leaves_legacy_behaviour(self, _fields):
         pr = pull_request(
             ["README.md"], reviews=[review("outsider", ReviewState.APPROVED, at(10))]

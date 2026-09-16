@@ -21,13 +21,15 @@ from src.logger import logger
 
 from . import texts
 from .assignment import (
+    REASON_ENGAGED,
+    REASON_HUMAN_REQUESTED,
     REASON_NOBODY_AVAILABLE,
     AssigneeChoice,
     business_days_between,
     choose_assignee,
     is_idle,
 )
-from .state import CodeownerState, SubtaskState, now_iso, parse_iso
+from .state import CodeownerState, SubtaskState, parse_iso
 from .status import (
     CodeownerSummary,
     PoolResolver,
@@ -43,6 +45,7 @@ FIELD_APPROVAL = "Codeowner Approval (SGTM)"
 FIELD_CODEOWNERS = "Codeowners (SGTM)"
 FIELD_PR_STATUS = "PR Status"
 FIELD_AUTHOR = "Author (SGTM)"
+FIELD_BRANCH_NAME = "Branch Name (SGTM)"
 
 
 @dataclass
@@ -78,6 +81,11 @@ class _Sync:
 
     # -- lookups ----------------------------------------------------------
 
+    def _now_iso(self) -> str:
+        """Timestamps come from the sync's clock so idleness is measured against
+        the same instant they were written with."""
+        return self.inputs.now.strftime("%Y-%m-%dT%H:%M:%SZ")
+
     def _gid(self, login: Optional[str]) -> Optional[str]:
         if login is None:
             return None
@@ -110,9 +118,17 @@ class _Sync:
         return False
 
     def _human_requested(self) -> Set[str]:
-        return set(self.pull_request.human_requested_reviewer_logins()) | set(
-            self.state.human_chosen_logins
+        """Reviewers a person asked for. SGTM's own review requests look the
+        same on GitHub (asCodeOwner is false), so they are taken out; the
+        choices recorded in `human_chosen_logins` stay whatever SGTM did with
+        them afterwards."""
+        on_github = set(self.pull_request.human_requested_reviewer_logins()) - set(
+            self.state.sgtm_requested_logins
         )
+        return on_github | set(self.state.human_chosen_logins)
+
+    def _available(self, login: str) -> bool:
+        return self._has_mapping(login) and not self._is_out_of_office(login)
 
     def _pool(self, evaluation: RequirementEvaluation) -> Set[str]:
         return self.inputs.resolve_pool(evaluation.owner_set) - {self.author}
@@ -155,6 +171,7 @@ class _Sync:
                 self.pull_request
             ),
             FIELD_AUTHOR: self._gid(self.author),
+            FIELD_BRANCH_NAME: self.pull_request.head_ref_name(),
         }
         data: Dict[str, object] = {}
         for name, value in values.items():
@@ -169,6 +186,8 @@ class _Sync:
     def _notes(self, evaluation: RequirementEvaluation, sub: SubtaskState) -> str:
         if sub.assignee:
             reason = sub.assignment_reason
+        elif not evaluation.is_outstanding():
+            reason = ""
         elif sub.manual:
             reason = "Assigned manually."
         else:
@@ -191,7 +210,7 @@ class _Sync:
             asana_client.add_followers(sub.task_id, [gid])
         sub.assignee = login
         sub.assignment_reason = reason
-        sub.assigned_at = now_iso()
+        sub.assigned_at = self._now_iso()
         if login:
             self.state.remember_sgtm_requested(login)
             self.result.newly_assigned_logins.append(login)
@@ -205,20 +224,32 @@ class _Sync:
         if sub.completed:
             asana_client.reopen_task(sub.task_id)
             sub.completed = False
+            # The assignee starts fresh: idleness counts from the revival.
+            sub.assigned_at = self._now_iso()
 
     # -- creation -----------------------------------------------------------
 
     def _create(self, evaluation: RequirementEvaluation) -> None:
         key = evaluation.owner_set.key()
-        choice = self._pick(evaluation)
+        if evaluation.is_outstanding():
+            choice = self._pick(evaluation)
+        else:
+            # Already approved (or merged with bypass): record who approved for
+            # the description, but ask nobody for anything.
+            review = evaluation.approval_review()
+            choice = AssigneeChoice(
+                review.author_handle() if review is not None else None,
+                REASON_ENGAGED if review is not None else "",
+            )
         sub = SubtaskState(
             task_id="",
             owner_key=key,
             assignee=choice.login,
-            assigned_at=now_iso(),
+            assigned_at=self._now_iso(),
             assignment_reason=choice.reason if choice.login else "",
             status=evaluation.status.value,
             files=evaluation.requirement.all_files(),
+            created_at=self._now_iso(),
         )
         assignee_gid = self._gid(choice.login) or self._gid(self.author)
         fields: Dict[str, object] = {
@@ -230,6 +261,10 @@ class _Sync:
             fields["assignee"] = assignee_gid
         task_id = asana_client.create_subtask(self.inputs.parent_task_id, fields)
         sub.task_id = task_id
+        # Recorded before anything else can fail, so a retry updates this task
+        # instead of creating a second one.
+        self.state.subtasks[key] = sub
+        self.result.created_owner_keys.append(key)
         logger.info(f"Created codeowner subtask {task_id} for {key}")
 
         project_id = config.SGTM_FEATURE__CODEOWNER_TASKS_PROJECT_ID
@@ -248,22 +283,19 @@ class _Sync:
         if followers:
             asana_client.add_followers(task_id, sorted(set(followers)))
 
-        if choice.login:
-            self.state.remember_sgtm_requested(choice.login)
-            self.result.newly_assigned_logins.append(choice.login)
-        else:
-            self._comment(sub, texts.comment_escalated(self.author))
-
-        if evaluation.status is RequirementStatus.APPROVED:
+        if evaluation.is_outstanding():
+            if choice.login:
+                self.state.remember_sgtm_requested(choice.login)
+                self.result.newly_assigned_logins.append(choice.login)
+            else:
+                self._comment(sub, texts.comment_escalated(self.author))
+        elif evaluation.status is RequirementStatus.APPROVED:
             review = evaluation.approval_review()
             if review is not None:
                 self._comment(sub, texts.comment_approved(review, evaluation.owner_set))
             self._complete(sub)
         elif evaluation.status is RequirementStatus.MERGED_WITH_BYPASS:
             self._comment(sub, texts.comment_merged_with_bypass(None))
-
-        self.state.subtasks[key] = sub
-        self.result.created_owner_keys.append(key)
 
     # -- maintenance of an existing subtask ---------------------------------
 
@@ -285,7 +317,7 @@ class _Sync:
         if login == self.author:
             return
         sub.manual = True
-        sub.assigned_at = now_iso()
+        sub.assigned_at = self._now_iso()
         sub.assignee = login
         sub.assignment_reason = "assigned by hand in Asana"
         if login:
@@ -297,15 +329,14 @@ class _Sync:
         pool = self._pool(evaluation)
         requested = (self._human_requested() & pool) - {self.author}
 
-        # The author asked a specific codeowner: follow that choice.
-        if requested and (sub.assignee not in requested) and not sub.manual:
-            login = sorted(requested)[0]
-            if len(requested) > 1:
-                login = (self.inputs.rng or random.Random()).choice(sorted(requested))
-            self._set_assignee(sub, login, texts_reason_requested())
-            sub.manual = True
-            self._comment(sub, texts.comment_reassigned_to_requested(login))
-            return
+        # The author asked a specific codeowner who is available: follow that.
+        if sub.assignee not in requested and not sub.manual:
+            available = sorted(login for login in requested if self._available(login))
+            if available:
+                login = (self.inputs.rng or random.Random()).choice(available)
+                self._set_assignee(sub, login, REASON_HUMAN_REQUESTED)
+                self._comment(sub, texts.comment_reassigned_to_requested(login))
+                return
 
         if sub.assignee:
             until = None
@@ -316,9 +347,9 @@ class _Sync:
             if until is not None:
                 old = sub.assignee
                 choice = self._pick(evaluation, exclude={old})
+                sub.manual = False
                 if choice.login:
                     self._set_assignee(sub, choice.login, choice.reason)
-                    sub.manual = False
                     self._comment(
                         sub,
                         texts.comment_reassigned_out_of_office(
@@ -330,7 +361,8 @@ class _Sync:
                     self._comment(sub, texts.comment_escalated(self.author))
                 return
 
-            if not sub.manual:
+            # People a person chose are never replaced for idleness.
+            if not sub.manual and sub.assignee not in requested:
                 assigned_at = parse_iso(sub.assigned_at)
                 engaged = self._engaged_since(sub.assignee, assigned_at)
                 if assigned_at is not None and is_idle(
@@ -364,6 +396,10 @@ class _Sync:
         previous = RequirementStatus(sub.status) if sub.status else None
         new = evaluation.status
         if new is previous:
+            if sub.completed and evaluation.is_outstanding():
+                # Completed when the PR was closed; the PR is open again.
+                self._reopen(sub)
+                self._comment(sub, texts.comment_pr_reopened())
             return
         if new is RequirementStatus.APPROVED:
             review = evaluation.approval_review()
@@ -434,10 +470,10 @@ class _Sync:
                 self._comment(sub, texts.comment_closed_unmerged())
                 self._complete(sub)
             return
-        if evaluation.is_outstanding():
-            self._adopt_manual_reassignment(sub)
-            self._maintain_assignee(evaluation, sub)
+        self._adopt_manual_reassignment(sub)
         self._apply_status(evaluation, sub)
+        if evaluation.is_outstanding():
+            self._maintain_assignee(evaluation, sub)
         self._update_task_content(evaluation, sub)
 
     def _retire_orphans(self, current_keys: Set[str]) -> None:
@@ -447,7 +483,10 @@ class _Sync:
                 or sub.status == RequirementStatus.NO_LONGER_REQUIRED.value
             ):
                 continue
-            if self.pull_request.closed():
+            if self.pull_request.closed() and not self.pull_request.merged():
+                if not sub.completed:
+                    self._comment(sub, texts.comment_closed_unmerged())
+                    self._complete(sub)
                 continue
             self._comment(sub, texts.comment_no_longer_required(sub.files))
             fields = self._project_custom_fields()
@@ -474,23 +513,24 @@ class _Sync:
             key = evaluation.owner_set.key()
             current_keys.add(key)
             sub = self.state.subtasks.get(key)
-            if sub is None:
-                if (
-                    closed_unmerged
-                    or evaluation.status is RequirementStatus.NO_LONGER_REQUIRED
-                ):
-                    continue
-                self._create(evaluation)
-            else:
-                self._update_existing(evaluation, sub)
+            try:
+                if sub is None:
+                    if (
+                        closed_unmerged
+                        or evaluation.status is RequirementStatus.NO_LONGER_REQUIRED
+                    ):
+                        continue
+                    self._create(evaluation)
+                else:
+                    self._update_existing(evaluation, sub)
+            except Exception as e:
+                # One broken subtask (deleted in Asana, say) must not stop the
+                # others from being maintained.
+                logger.error(
+                    f"Codeowner subtask sync failed for {key}: {e}", exc_info=True
+                )
         self._retire_orphans(current_keys)
         return self.result
-
-
-def texts_reason_requested() -> str:
-    from .assignment import REASON_HUMAN_REQUESTED
-
-    return REASON_HUMAN_REQUESTED
 
 
 def _hash(text: str) -> str:

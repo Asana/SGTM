@@ -79,9 +79,7 @@ class TestSubtaskTexts(BaseClass):
             [AUTO_APPROVER], reviews=[review("jordan", ReviewState.APPROVED, at(10))]
         )
         evaluation = evaluations_for(pr)[0]
-        html = texts.subtask_description(
-            pr, evaluation, "parent-1", None, texts.REASON_NOBODY if False else ""
-        )
+        html = texts.subtask_description(pr, evaluation, "parent-1", None, "")
         self.assertContainsStrings(
             html,
             ["<strong>Approved</strong>", "Approved by", "gid-jordan", "on abc12345"],
@@ -279,6 +277,9 @@ class TestGithubTexts(BaseClass):
             block,
             ["---", "**✅ Codeowner review task created.**", "no codeowner available"],
         )
+
+    def test_label_description_fits_github_limit(self):
+        self.assertLessEqual(len(texts.label_description()), 100)
 
 
 def DATABRICKS_PATH():

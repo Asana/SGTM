@@ -45,6 +45,8 @@ class SubtaskState:
     # tasks are not rewritten on every webhook.
     notes_hash: str = ""
     fields_hash: str = ""
+    # When SGTM created the subtask; orders subtasks when the PR is routed.
+    created_at: Optional[str] = None
 
 
 @dataclass
@@ -58,9 +60,13 @@ class CodeownerState:
     # accumulated over time because GitHub drops reviewers from reviewRequests
     # once they review.
     human_chosen_logins: List[str] = field(default_factory=list)
-    # Logins SGTM itself requested as reviewers or set as the PR assignee.
+    # Logins SGTM itself requested as reviewers, so its own review requests
+    # are not mistaken for the author's.
     sgtm_requested_logins: List[str] = field(default_factory=list)
-    sgtm_assigned_logins: List[str] = field(default_factory=list)
+    # The login SGTM last set as the PR's GitHub assignee (the author
+    # included). While the PR is still assigned to them, SGTM may move it;
+    # anyone else was put there by a person and keeps it.
+    sgtm_assigned_login: Optional[str] = None
     # Whether the one "all codeowner approvals are in place" comment was posted.
     all_approved_commented: bool = False
     subtasks: Dict[str, SubtaskState] = field(default_factory=dict)
@@ -79,8 +85,7 @@ class CodeownerState:
             self.sgtm_requested_logins.append(login)
 
     def remember_sgtm_assigned(self, login: str) -> None:
-        if login not in self.sgtm_assigned_logins:
-            self.sgtm_assigned_logins.append(login)
+        self.sgtm_assigned_login = login
 
     def to_document(self) -> dict:
         document = asdict(self)
@@ -91,8 +96,9 @@ class CodeownerState:
 
     @classmethod
     def from_document(cls, document: dict) -> "CodeownerState":
+        subtask_fields = set(SubtaskState.__dataclass_fields__)
         subtasks = {
-            key: SubtaskState(**value)
+            key: SubtaskState(**{k: v for k, v in value.items() if k in subtask_fields})
             for key, value in (document.get("subtasks") or {}).items()
         }
         known_fields = {f for f in cls.__dataclass_fields__ if f != "subtasks"}
