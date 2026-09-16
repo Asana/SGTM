@@ -4,6 +4,7 @@ import src.asana.client as asana_client
 import src.asana.helpers as asana_helpers
 import src.asana.logic as asana_logic
 import src.aws.dynamodb_client as dynamodb_client
+from src.codeowners.context import CodeownerTaskContext
 from src.config import SGTM_FEATURE__AUTOCOMPLETE_ENABLED
 from src.github.models import Comment, PullRequest, Review
 from src.github.logic import (
@@ -28,13 +29,14 @@ def update_task(
     task_id: str,
     followers: List[str],
     force_update_due_today: bool = False,
+    codeowner_context: Optional[CodeownerTaskContext] = None,
 ):
     task_url = asana_helpers.task_url_from_task_id(task_id)
     pr_url = pull_request.url()
     logger.info(f"Updating task {task_url} for pull request {pr_url}")
 
     update_task_fields = asana_helpers.extract_task_fields_from_pull_request(
-        pull_request
+        pull_request, codeowner_context
     )
     task = asana_client.get_task(task_id)
     new_due_on = (

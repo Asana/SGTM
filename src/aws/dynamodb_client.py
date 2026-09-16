@@ -1,4 +1,5 @@
 import boto3  # type: ignore
+import json
 from typing import TypedDict, List, Optional, Tuple
 
 from src.config import OBJECTS_TABLE, AWS_REGION
@@ -151,4 +152,27 @@ def bulk_insert_github_node_to_asana_id_mapping(
     """
     DynamoDbClient.singleton().bulk_insert_github_node_to_asana_id_mapping(
         gh_and_asana_ids
+    )
+
+
+def get_json_document(key: str) -> Optional[dict]:
+    """
+    Reads a JSON document SGTM stored under a synthetic key in the objects table
+    (see put_json_document). Returns None when nothing is stored.
+    """
+    raw = DynamoDbClient.singleton().get_asana_id_from_github_node_id(key)
+    if raw is None:
+        return None
+    document = json.loads(raw)
+    return document if isinstance(document, dict) else None
+
+
+def put_json_document(key: str, document: dict) -> None:
+    """
+    Stores a small JSON document under a synthetic key in the objects table.
+    Keys are of the form "<github node id>#<purpose>" so they never collide with
+    real GitHub node ids. Used for per-PR feature state such as codeowner tasks.
+    """
+    DynamoDbClient.singleton().insert_github_node_to_asana_id_mapping(
+        key, json.dumps(document, sort_keys=True)
     )
