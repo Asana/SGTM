@@ -128,6 +128,60 @@ variable "sgtm_feature__skip_team_slug" {
   default     = ""
 }
 
+variable "sgtm_feature__codeowner_tasks_enabled" {
+  type        = string
+  description = "'true' to create one Asana subtask per group of codeowners when a PR author adds the codeowner-tasks label. See docs/codeowner_tasks.md."
+  default     = "false"
+}
+
+variable "sgtm_feature__codeowner_tasks_project_id" {
+  type        = string
+  description = "Asana project gid that codeowner subtasks are multi-homed into; it carries the subtask custom fields. Created by scripts/setup_sgtm_tasks_project.py --codeowner-project."
+  default     = ""
+}
+
+variable "sgtm_feature__codeowner_tasks_opt_in_s3_path" {
+  type        = string
+  description = "S3 path, in the form bucket/key, of a JSON list of GitHub logins who opted in to the heads-up PR comment. Leave empty to post no heads-up comments."
+  default     = ""
+}
+
+variable "sgtm_feature__codeowner_tasks_label" {
+  type        = string
+  description = "GitHub label a PR author adds to have SGTM create and route codeowner tasks. SGTM creates the label in the repository on first use."
+  default     = "assign-tasks-to-codeowners"
+}
+
+variable "sgtm_feature__codeowner_tasks_idle_business_days" {
+  type        = string
+  description = "Business days a codeowner subtask assignee may go without reviewing before SGTM reassigns the subtask to another codeowner."
+  default     = "1"
+}
+
+variable "sgtm_feature__codeowner_tasks_asana_workspace_id" {
+  type        = string
+  description = "Asana workspace gid used for out-of-office lookups when picking codeowner subtask assignees."
+  default     = ""
+}
+
+variable "sgtm_feature__codeowner_tasks_docs_url" {
+  type        = string
+  description = "URL of the codeowner tasks documentation linked from PR comments and task footers."
+  default     = "https://github.com/Asana/SGTM/blob/master/docs/codeowner_tasks.md"
+}
+
+variable "sgtm_feature__codeowner_tasks_org_docs_url" {
+  type        = string
+  description = "Optional URL of your organization's CODEOWNERS documentation, linked next to the SGTM docs."
+  default     = ""
+}
+
+variable "sgtm_feature__codeowner_tasks_opt_in_command" {
+  type        = string
+  description = "Optional command engineers run to opt in to the heads-up comment, shown in PR comments and task footers (for example 'z sgtm codeowner-tasks opt-in')."
+  default     = ""
+}
+
 variable "github_app_name" {
   type        = string
   default     = null

@@ -68,6 +68,7 @@ _BLOCK_LEVEL_TAGS = frozenset(
     }
 )
 
+
 def _urlreplace(matchobj: Match[str]) -> str:
     """Replace a bare URL match with an <a> tag. Used by both the markdown
     renderer's text() method and the HTML sanitizer's handle_data()."""
@@ -104,7 +105,9 @@ class _AsanaHTMLSanitizer(HTMLParser):
         super().__init__(convert_charrefs=False)
         self._parts: list = []
         self._cell_count_in_row = 0  # tracks cell position within a <tr>
-        self.anchor_depth = anchor_depth  # nested <a> depth; public for cross-call carry
+        self.anchor_depth = (
+            anchor_depth  # nested <a> depth; public for cross-call carry
+        )
 
     def handle_starttag(self, tag: str, attrs: list) -> None:
         tag_lower = tag.lower()
@@ -145,9 +148,7 @@ class _AsanaHTMLSanitizer(HTMLParser):
                 if alt:
                     self._parts.append(escape(alt, quote=False))
             elif src and _is_safe_url(src):
-                self._parts.append(
-                    f'<a href="{escape(src)}">{escape(alt or src)}</a>'
-                )
+                self._parts.append(f'<a href="{escape(src)}">{escape(alt or src)}</a>')
         elif tag_lower == "br":
             self._parts.append("\n")
         elif tag_lower == "hr":

@@ -1,6 +1,7 @@
 import os
 import boto3  # type: ignore
 import json
+from typing import Optional
 
 # This config file sets the values of various configuration variables that
 # SGTM's source code depends on. This file runs within the lambda itself, and
@@ -67,6 +68,66 @@ SGTM_FEATURE__GRAPHITE_LINK_ENABLED = is_feature_flag_enabled(
 )
 
 SGTM_FEATURE__SKIP_TEAM_SLUG = os.getenv("SGTM_FEATURE__SKIP_TEAM_SLUG", None)
+
+
+# Codeowner tasks: one Asana subtask per group of codeowners whose approval a PR
+# needs, created when the author adds a label. See docs/codeowner_tasks.md.
+def _optional_env(name: str) -> Optional[str]:
+    value = os.getenv(name, "")
+    return value if value else None
+
+
+SGTM_FEATURE__CODEOWNER_TASKS_ENABLED = is_feature_flag_enabled(
+    "SGTM_FEATURE__CODEOWNER_TASKS_ENABLED"
+)
+# Asana project that every codeowner subtask is multi-homed into. It carries the
+# subtask custom fields ("Codeowner Approval (SGTM)", "Codeowners (SGTM)").
+SGTM_FEATURE__CODEOWNER_TASKS_PROJECT_ID = _optional_env(
+    "SGTM_FEATURE__CODEOWNER_TASKS_PROJECT_ID"
+)
+# S3 path (bucket/key) of a JSON list of GitHub logins who opted in to the
+# heads-up PR comment. The label itself works for everyone.
+SGTM_FEATURE__CODEOWNER_TASKS_OPT_IN_S3_PATH = _optional_env(
+    "SGTM_FEATURE__CODEOWNER_TASKS_OPT_IN_S3_PATH"
+)
+# GitHub label the author adds to ask SGTM to create and route codeowner tasks.
+SGTM_FEATURE__CODEOWNER_TASKS_LABEL = (
+    _optional_env("SGTM_FEATURE__CODEOWNER_TASKS_LABEL") or "assign-tasks-to-codeowners"
+)
+
+
+def _optional_int_env(name: str, default: int) -> int:
+    """An integer setting; a malformed value falls back to the default instead of
+    failing every import of this module (and with it every webhook)."""
+    value = _optional_env(name)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
+# Business days (Mon-Fri) a subtask assignee may sit without reviewing before
+# SGTM re-picks another codeowner.
+SGTM_FEATURE__CODEOWNER_TASKS_IDLE_BUSINESS_DAYS = _optional_int_env(
+    "SGTM_FEATURE__CODEOWNER_TASKS_IDLE_BUSINESS_DAYS", 1
+)
+# Asana workspace used for out-of-office lookups (GET /ooo_entries).
+SGTM_FEATURE__CODEOWNER_TASKS_ASANA_WORKSPACE_ID = _optional_env(
+    "SGTM_FEATURE__CODEOWNER_TASKS_ASANA_WORKSPACE_ID"
+)
+# Links and the opt-in command shown in comments and task footers.
+SGTM_FEATURE__CODEOWNER_TASKS_DOCS_URL = (
+    _optional_env("SGTM_FEATURE__CODEOWNER_TASKS_DOCS_URL")
+    or "https://github.com/Asana/SGTM/blob/master/docs/codeowner_tasks.md"
+)
+SGTM_FEATURE__CODEOWNER_TASKS_ORG_DOCS_URL = _optional_env(
+    "SGTM_FEATURE__CODEOWNER_TASKS_ORG_DOCS_URL"
+)
+SGTM_FEATURE__CODEOWNER_TASKS_OPT_IN_COMMAND = _optional_env(
+    "SGTM_FEATURE__CODEOWNER_TASKS_OPT_IN_COMMAND"
+)
 
 
 #### Particularly sensitive variables are retrieved from an S3 bucket, instead of

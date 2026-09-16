@@ -132,6 +132,26 @@ data "aws_iam_policy_document" "sgtm_lambda" {
       "arn:aws:s3:::${var.github_usernames_to_asana_gids_s3_path}",
     ]
   }
+
+  ##################################################################################################
+  ##### Codeowner tasks opt-in list S3 Permissions
+  ##################################################################################################
+
+  # Give the Lambda function permissions to read the JSON list of GitHub logins
+  # who opted in to the codeowner tasks heads-up comment, when configured.
+  dynamic "statement" {
+    for_each = var.sgtm_feature__codeowner_tasks_opt_in_s3_path != "" ? [1] : []
+    content {
+      sid = "S3CodeownerTasksOptIn"
+      actions = [
+        "s3:GetObject",
+        "s3:GetObjectVersion",
+      ]
+      resources = [
+        "arn:aws:s3:::${var.sgtm_feature__codeowner_tasks_opt_in_s3_path}",
+      ]
+    }
+  }
 }
 
 
