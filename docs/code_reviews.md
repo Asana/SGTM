@@ -66,7 +66,7 @@ The Asana task remains open until the Pull Request is approved by a reviewer.
 
 ### Addressing reviews after merge
 
-It isn't possible to add commits to a merged Pull Request. In the event your reviewer isn't satisfied with the Pull Request you merged, you should open a new Pull Request with changes, comment in the old PR with a link to the new Pull Request and ask your reviewer to approve the old PR so that the task gets completed.
+It isn't possible to add commits to a merged Pull Request. In the event your reviewer isn't satisfied with the Pull Request you merged, you should open a new Pull Request with changes, comment in the old PR with a link to the new Pull Request and ask your reviewer to approve the new PR so that the task gets completed.
 
 ### Flowchart
 
