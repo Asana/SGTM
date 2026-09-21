@@ -72,6 +72,17 @@ module "sgtm-prod" {
   sgtm_feature__graphite_link_enabled            = var.sgtm_feature__graphite_link_enabled
   sgtm_feature__skip_team_slug                   = var.sgtm_feature__skip_team_slug
 
+  # Codeowner tasks (docs/codeowner_tasks.md)
+  sgtm_feature__codeowner_tasks_enabled            = var.sgtm_feature__codeowner_tasks_enabled
+  sgtm_feature__codeowner_tasks_project_id         = var.sgtm_feature__codeowner_tasks_project_id
+  sgtm_feature__codeowner_tasks_opt_in_s3_path     = var.sgtm_feature__codeowner_tasks_opt_in_s3_path
+  sgtm_feature__codeowner_tasks_label              = var.sgtm_feature__codeowner_tasks_label
+  sgtm_feature__codeowner_tasks_idle_business_days = var.sgtm_feature__codeowner_tasks_idle_business_days
+  sgtm_feature__codeowner_tasks_asana_workspace_id = var.sgtm_feature__codeowner_tasks_asana_workspace_id
+  sgtm_feature__codeowner_tasks_docs_url           = var.sgtm_feature__codeowner_tasks_docs_url
+  sgtm_feature__codeowner_tasks_org_docs_url       = var.sgtm_feature__codeowner_tasks_org_docs_url
+  sgtm_feature__codeowner_tasks_opt_in_command     = var.sgtm_feature__codeowner_tasks_opt_in_command
+
   # API Gateway configuration
   sgtm_rest_api_id               = aws_api_gateway_rest_api.sgtm_rest_api.id
   sgtm_rest_api_root_resource_id = aws_api_gateway_rest_api.sgtm_rest_api.root_resource_id
@@ -119,6 +130,17 @@ module "sgtm-staging" {
   sgtm_feature__sync_github_labels_enabled       = var.sgtm_feature__sync_github_labels_enabled
   sgtm_feature__graphite_link_enabled            = var.sgtm_feature__graphite_link_enabled
   sgtm_feature__skip_team_slug                   = var.sgtm_feature__skip_team_slug
+
+  # Codeowner tasks (docs/codeowner_tasks.md)
+  sgtm_feature__codeowner_tasks_enabled            = var.sgtm_feature__codeowner_tasks_enabled
+  sgtm_feature__codeowner_tasks_project_id         = var.sgtm_feature__codeowner_tasks_project_id
+  sgtm_feature__codeowner_tasks_opt_in_s3_path     = var.sgtm_feature__codeowner_tasks_opt_in_s3_path
+  sgtm_feature__codeowner_tasks_label              = var.sgtm_feature__codeowner_tasks_label
+  sgtm_feature__codeowner_tasks_idle_business_days = var.sgtm_feature__codeowner_tasks_idle_business_days
+  sgtm_feature__codeowner_tasks_asana_workspace_id = var.sgtm_feature__codeowner_tasks_asana_workspace_id
+  sgtm_feature__codeowner_tasks_docs_url           = var.sgtm_feature__codeowner_tasks_docs_url
+  sgtm_feature__codeowner_tasks_org_docs_url       = var.sgtm_feature__codeowner_tasks_org_docs_url
+  sgtm_feature__codeowner_tasks_opt_in_command     = var.sgtm_feature__codeowner_tasks_opt_in_command
 
   # API Gateway configuration
   sgtm_rest_api_id               = aws_api_gateway_rest_api.sgtm_rest_api.id

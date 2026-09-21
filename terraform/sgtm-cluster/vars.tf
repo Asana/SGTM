@@ -122,6 +122,60 @@ variable "sgtm_feature__skip_team_slug" {
   default     = ""
 }
 
+variable "sgtm_feature__codeowner_tasks_enabled" {
+  type        = string
+  description = "'true' to create one Asana subtask per group of codeowners when a PR author adds the codeowner-tasks label"
+  default     = "false"
+}
+
+variable "sgtm_feature__codeowner_tasks_project_id" {
+  type        = string
+  description = "Asana project gid that codeowner subtasks are multi-homed into"
+  default     = ""
+}
+
+variable "sgtm_feature__codeowner_tasks_opt_in_s3_path" {
+  type        = string
+  description = "S3 path, in the form bucket/key, of the JSON list of GitHub logins opted in to the heads-up PR comment"
+  default     = ""
+}
+
+variable "sgtm_feature__codeowner_tasks_label" {
+  type        = string
+  description = "GitHub label that triggers codeowner task creation"
+  default     = "assign-tasks-to-codeowners"
+}
+
+variable "sgtm_feature__codeowner_tasks_idle_business_days" {
+  type        = string
+  description = "Business days before an idle codeowner subtask is reassigned"
+  default     = "1"
+}
+
+variable "sgtm_feature__codeowner_tasks_asana_workspace_id" {
+  type        = string
+  description = "Asana workspace gid used for out-of-office lookups"
+  default     = ""
+}
+
+variable "sgtm_feature__codeowner_tasks_docs_url" {
+  type        = string
+  description = "URL of the codeowner tasks documentation"
+  default     = "https://github.com/Asana/SGTM/blob/master/docs/codeowner_tasks.md"
+}
+
+variable "sgtm_feature__codeowner_tasks_org_docs_url" {
+  type        = string
+  description = "Optional URL of the organization's CODEOWNERS documentation"
+  default     = ""
+}
+
+variable "sgtm_feature__codeowner_tasks_opt_in_command" {
+  type        = string
+  description = "Optional command engineers run to opt in to the heads-up comment"
+  default     = ""
+}
+
 variable "sgtm_rest_api_id" {
   type        = string
   description = "The ID of the API Gateway REST API for SGTM"
